@@ -5,7 +5,9 @@ use std::fs;
 //use std::io::{self, prelude::*, BufReader};
 use std::path::Path;
 
-mod structures;
+mod config;
+mod processors;
+mod report;
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Stack munching started ...");
@@ -15,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // load config
     let conf = Path::new("/home/ubuntu/rust/stackmuncher/assets/config.json");
     let conf = fs::File::open(conf).expect("Cannot read config file");
-    let mut conf: structures::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
+    let mut conf: config::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
 
     // get list of files
     let mut files = get_file_names_recursively(Path::new(dir.as_str()));
@@ -37,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // loop through the rules and process the file if it's a match
         for file_rules in &conf.files {
             if file_rules.name_regex.as_ref().unwrap().is_match(file_path.as_str()) {
-                if let Ok(_) = process_file(&file_path, &file_rules) {
+                if let Ok(_tech) = processors::process_file(&file_path, &file_rules) {
                     processed_files.push(file_path.clone());
                 }
             }
@@ -50,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // output the list
     println!("\nSkipped files:\n");
     for s in &files {
-         println!("{}", s);
+        println!("{}", s);
     }
     Ok(())
 }
@@ -74,24 +76,4 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
     }
 
     files
-}
-
-// fn get_asset_lines(asset_path: String) -> Vec<String> {
-//     let mut lines: Vec<String> = Vec::new();
-
-//     let file = fs::File::open(asset_path.as_str()).unwrap();
-//     let reader = BufReader::new(file);
-
-//     for line in reader.lines() {
-//         lines.push(line.unwrap());
-//     }
-
-//     lines
-// }
-
-fn process_file(file_path: &String, rules: &structures::FileRules ) -> Result<(), String> {
-
-    println!("{}: {}", rules.name, file_path);
-
-    Ok(())
 }

@@ -82,13 +82,15 @@
         "volatile",
         "while"
       ],
-      "line_comments": "//",
-      "doc_comments": "///",
+      "bracket_only": "^\\s*[{}\\[\\]][\\s;,]*$",
+      "line_comments": "^\\s*//\\s.{10,}",
+      "inline_comments": "^[.[^/\n]]+\\s//\\s.{10,}",
+      "doc_comments": "^\\s+///\\s+.{8,}",
       "block_comments": [
         "/*",
         "*/"
       ],
-      "use_dependency": "using"
+      "use_dependency": "^\\s+using\\s+(.+);"
     }
   ]
 }

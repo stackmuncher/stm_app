@@ -7,14 +7,15 @@ pub(crate) struct FileRules {
     pub name: String,
     pub required: bool,
     pub keywords: Vec<String>,
+    pub bracket_only: String,
     pub line_comments: String,
+    pub inline_comments: String,
     pub doc_comments: String,
     pub block_comments: [String; 2],
     pub use_dependency: String,
     #[serde(skip)]
     pub name_regex: Option<Regex>
 }
-
 
 #[derive(Deserialize)]
 pub(crate) struct Config {
@@ -30,6 +31,8 @@ impl Default for FileRules {
             line_comments: "//".to_owned(),
             doc_comments: "///".to_owned(),
             block_comments: ["/*".to_owned(), "*/".to_owned()],
+            inline_comments: "".to_string(),
+            bracket_only: "".to_string(),
             use_dependency: "using".to_owned(),
             name_regex: None
         }
