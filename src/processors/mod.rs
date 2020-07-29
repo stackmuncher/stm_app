@@ -90,7 +90,7 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
 
     }
 
-    println!("\nTech:\n{:?}", tech);
+    //println!("\nTech:\n{:?}", tech);
 
     Ok(tech)
 }

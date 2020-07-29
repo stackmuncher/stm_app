@@ -32,15 +32,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         f.name_regex = Some(Regex::new(f.name.as_str()).expect("Regex compilation failed"));
     }
 
+    // result collectors
     let mut processed_files: Vec<String> = Vec::new();
+    let mut report = report::Report::new();
 
     // loop through all the files and process them one by one
     for file_path in &files {
         // loop through the rules and process the file if it's a match
         for file_rules in &conf.files {
             if file_rules.name_regex.as_ref().unwrap().is_match(file_path.as_str()) {
-                if let Ok(_tech) = processors::process_file(&file_path, &file_rules) {
+                if let Ok(tech) = processors::process_file(&file_path, &file_rules) {
                     processed_files.push(file_path.clone());
+                    report.add_tech_record(tech);
                 }
             }
         }
@@ -49,11 +52,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     // discard processed files
     files.retain(|f| !processed_files.contains(&f));
 
-    // output the list
-    println!("\nSkipped files:\n");
-    for s in &files {
-        println!("{}", s);
+    // log unprocessed files in the report
+    for f in &files {
+        report.add_unprocessed_file(f);
     }
+
+    // output the report as json
+    println!("\n\n{}",report);
+
     Ok(())
 }
 
