@@ -91,7 +91,7 @@ impl Report {
     }
 
     /// Insert a new record or increment the counter for the existing one
-    fn increment_hashmap_counter(hashmap: &mut HashMap<String, usize>, key: String, value: usize) {
+    pub(crate) fn increment_hashmap_counter(hashmap: &mut HashMap<String, usize>, key: String, value: usize) {
         match hashmap.get_mut(&key) {
             Some(cnt) => {
                 *cnt = *cnt + value;

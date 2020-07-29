@@ -1,13 +1,14 @@
 use crate::config;
 use crate::report;
 use content_inspector::ContentType;
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, BufRead};
+use tracing::{error, trace};
 
 pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Result<report::Tech, String> {
-    println!("{}: {}", rules.name, file_path);
+    trace!("\n");
+    trace!("{}: {}", rules.name, file_path);
 
     // prepare the blank structure
     let mut tech = report::Tech {
@@ -29,68 +30,75 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
     let lines = get_file_lines(&file_path);
     if lines.len() == 0 {
         // exit now if the file is either empty or binary
+        trace!("Empty or binary file - not processing.");
         return Ok(tech);
     }
 
     // get total lines
     tech.total_lines = lines.len();
 
-    // prepare the regex
-    let bracket_only = Regex::new(rules.bracket_only.as_str()).expect("Bad regex for bracket_only");
-    let line_comments = Regex::new(rules.line_comments.as_str()).expect("Bad regex for line_comments");
-    let inline_comments = Regex::new(rules.inline_comments.as_str()).expect("Bad regex for inline_comments");
-    let doc_comments = Regex::new(rules.doc_comments.as_str()).expect("Bad regex for doc_comments");
-    //let block_comments = Regex::new(rules.block_comments.as_str());
-    let use_dependency = Regex::new(rules.use_dependency.as_str()).expect("Bad regex for use_dependency");
-    let blank_line = Regex::new(r"^\s*$").expect("Bad regex for blank_line - hardcoded");
-
     // evaluate every line
     for line in lines {
+        trace!("{}", line);
         // check for non-code parts
-        if doc_comments.is_match(&line) {
+        if rules.doc_comments_regex.is_some() && rules.doc_comments_regex.as_ref().unwrap().is_match(&line) {
             tech.docs_comments += 1;
+            trace!("doc_comments");
             continue;
         }
 
-        if line_comments.is_match(&line) {
+        if rules.line_comments_regex.is_some() && rules.line_comments_regex.as_ref().unwrap().is_match(&line) {
             tech.line_comments += 1;
+            trace!("line_comments");
             continue;
         }
 
-        if bracket_only.is_match(&line) {
+        if rules.bracket_only_regex.is_some() && rules.bracket_only_regex.as_ref().unwrap().is_match(&line) {
             tech.bracket_only_lines += 1;
+            trace!("bracket_only");
             continue;
         }
 
-        if blank_line.is_match(&line) {
+        if rules.blank_line_regex.is_some() && rules.blank_line_regex.as_ref().unwrap().is_match(&line) {
+            trace!("blank_line");
             continue;
         }
 
-        if inline_comments.is_match(&line) {
+        if rules.inline_comments_regex.is_some() && rules.inline_comments_regex.as_ref().unwrap().is_match(&line) {
             tech.inline_comments += 1;
+            trace!("inline_comments");
             continue;
         }
 
         // this is a code line of sorts
         tech.code_lines += 1;
+        trace!("code_lines");
 
         // get the dependency, if any
-        if let Some(caps) = use_dependency.captures(&line) {
-            if caps.len() == 2 {
-                tech.use_dependencies.insert(caps[1].to_string());
-                continue;
-            } else {
-                println!("Failed dependency capture: {}", line);
+        if rules.use_dependency_regex.is_some() {
+            if let Some(caps) = rules.use_dependency_regex.as_ref().unwrap().captures(&line) {
+                if caps.len() == 2 {
+                    let cap = caps[1].to_string();
+                    trace!("dependency: {}", cap);
+                    tech.use_dependencies.insert(cap);
+                    continue;
+                } else {
+                    error!("Failed dependency capture");
+                }
             }
         }
 
         // try to extract the keywords from the line
-        
-
-
+        if rules.keywords_regex.is_some() {
+            for (kw, re) in rules.keywords_regex.as_ref().unwrap() {
+                //trace!("-{}", kw);
+                if re.is_match(&line) {
+                    report::Report::increment_hashmap_counter(&mut tech.keywords, kw.clone(), 1);
+                    trace!("kw: {}", kw);
+                }
+            }
+        }
     }
-
-    //println!("\nTech:\n{:?}", tech);
 
     Ok(tech)
 }
@@ -99,22 +107,30 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
 /// is text or binary. Will return an empty array if the file is empty or
 /// is not text. Panics if the file cannot be open,
 fn get_file_lines(asset_path: &String) -> Vec<String> {
-    let mut lines: Vec<String> = Vec::new();
-
+    // read the file
     let file = fs::File::open(asset_path.as_str()).expect("Cannot open the file");
     let reader = io::BufReader::new(file);
 
-    match content_inspector::inspect(&reader.buffer()) {
+    // check if the content is text and can be split into lines
+    let content_type = content_inspector::inspect(&reader.buffer());
+    match content_type {
         ContentType::UTF_8 | ContentType::UTF_8_BOM => {
-            // do nothing - we can process UTF-8 only
+            // success - we will process the lines later
         }
         _ => {
-            return lines;
+            // the content is not text - return an empty array
+            trace!("Binary file: {}", content_type);
+            return Vec::new();
         }
     };
 
+    // convert the file into a collection of lines
+    let mut lines: Vec<String> = Vec::new();
     for line in reader.lines() {
-        lines.push(line.unwrap());
+        match line {
+            Ok(l) => lines.push(l),
+            Err(e) => trace!("Unreadable line: {:?}", e),
+        }
     }
 
     lines

@@ -2,15 +2,21 @@ use regex::Regex;
 use serde_json;
 use std::error::Error;
 use std::fs;
-//use std::io::{self, prelude::*, BufReader};
 use std::path::Path;
+use tracing::{error, info, trace};
 
 mod config;
 mod processors;
 mod report;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Stack munching started ...");
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_ansi(false)
+        //.without_time()
+        .init();
+
+    info!("Stack munching started ...");
 
     let dir = "/home/ubuntu/rust/cm_repos/eShopOnWeb/".to_string();
 
@@ -18,6 +24,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conf = Path::new("/home/ubuntu/rust/stackmuncher/assets/config.json");
     let conf = fs::File::open(conf).expect("Cannot read config file");
     let mut conf: config::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
+
+    // pre-compile all regex rules
+    for file_rules in conf.files.iter_mut() {
+        file_rules.compile_regex();
+    }
 
     // get list of files
     let mut files = get_file_names_recursively(Path::new(dir.as_str()));
@@ -58,7 +69,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // output the report as json
-    println!("\n\n{}",report);
+    //report.unknown_file_types.clear();
+    report.unprocessed_file_names.clear();
+    info!("\n\n{}", report);
 
     Ok(())
 }
@@ -78,7 +91,10 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
             }
         }
     } else {
-        println!("{} is not a dir", dir.to_str().unwrap().to_owned());
+        error!(
+            "get_file_names_recursively: {} is not a dir",
+            dir.to_str().unwrap().to_owned()
+        );
     }
 
     files
