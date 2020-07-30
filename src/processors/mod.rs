@@ -1,18 +1,21 @@
 use crate::config;
 use crate::report;
 use content_inspector::ContentType;
-use std::collections::{HashMap, HashSet};
+use regex::Regex;
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, BufRead};
-use tracing::{error, trace};
+use tracing::trace;
 
 pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Result<report::Tech, String> {
+    let file_rule_name = rules.file_names.join(", ");
+
     trace!("\n");
-    trace!("{}: {}", rules.name, file_path);
+    trace!("{}: {}", file_rule_name, file_path);
 
     // prepare the blank structure
     let mut tech = report::Tech {
-        name: rules.name.clone(),
+        name: file_rule_name,
         files: 0,
         total_lines: 0,
         code_lines: 0,
@@ -22,8 +25,8 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
         inline_comments: 0,
         blank_lines: 0,
         bracket_only_lines: 0,
-        keywords: HashMap::new(),
-        use_dependencies: HashSet::new(),
+        keywords: HashMap::new(), // this is wasteful
+        refs: HashMap::new(),     // they should be Option<>
     };
 
     // get file contents
@@ -41,32 +44,34 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
     for line in lines {
         trace!("{}", line);
         // check for non-code parts
-        if rules.doc_comments_regex.is_some() && rules.doc_comments_regex.as_ref().unwrap().is_match(&line) {
+
+        if match_line(&rules.doc_comments_regex, &line) {
             tech.docs_comments += 1;
             trace!("doc_comments");
             continue;
         }
 
-        if rules.line_comments_regex.is_some() && rules.line_comments_regex.as_ref().unwrap().is_match(&line) {
+        if match_line(&rules.line_comments_regex, &line) {
             tech.line_comments += 1;
             trace!("line_comments");
             continue;
         }
 
-        if rules.bracket_only_regex.is_some() && rules.bracket_only_regex.as_ref().unwrap().is_match(&line) {
-            tech.bracket_only_lines += 1;
-            trace!("bracket_only");
-            continue;
-        }
-
-        if rules.blank_line_regex.is_some() && rules.blank_line_regex.as_ref().unwrap().is_match(&line) {
-            trace!("blank_line");
-            continue;
-        }
-
-        if rules.inline_comments_regex.is_some() && rules.inline_comments_regex.as_ref().unwrap().is_match(&line) {
+        if match_line(&rules.inline_comments_regex, &line) {
             tech.inline_comments += 1;
             trace!("inline_comments");
+            continue;
+        }
+
+        if match_line(&rules.bracket_only_regex, &line) {
+            tech.bracket_only_lines += 1;
+            trace!("bracket_only_lines");
+            continue;
+        }
+
+        if match_line(&rules.blank_line_regex, &line) {
+            tech.blank_lines += 1;
+            trace!("blank_lines");
             continue;
         }
 
@@ -75,29 +80,8 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
         trace!("code_lines");
 
         // get the dependency, if any
-        if rules.use_dependency_regex.is_some() {
-            if let Some(caps) = rules.use_dependency_regex.as_ref().unwrap().captures(&line) {
-                if caps.len() == 2 {
-                    let cap = caps[1].to_string();
-                    trace!("dependency: {}", cap);
-                    tech.use_dependencies.insert(cap);
-                    continue;
-                } else {
-                    error!("Failed dependency capture");
-                }
-            }
-        }
-
-        // try to extract the keywords from the line
-        if rules.keywords_regex.is_some() {
-            for (kw, re) in rules.keywords_regex.as_ref().unwrap() {
-                //trace!("-{}", kw);
-                if re.is_match(&line) {
-                    report::Report::increment_hashmap_counter(&mut tech.keywords, kw.clone(), 1);
-                    trace!("kw: {}", kw);
-                }
-            }
-        }
+        count_matches(&rules.refs_regex, &line, &mut tech.refs);
+        count_matches(&rules.keywords_regex, &line, &mut tech.keywords);
     }
 
     Ok(tech)
@@ -134,4 +118,48 @@ fn get_file_lines(asset_path: &String) -> Vec<String> {
     }
 
     lines
+}
+
+/// Returns true if there is a regex and it matches the line.
+fn match_line(regex: &Option<Vec<Regex>>, line: &String) -> bool {
+    if let Some(v) = regex {
+        for r in v {
+            if r.is_match(&line) {
+                trace!("{}", r);
+                return true;
+            }
+        }
+    }
+
+    // no match found
+    false
+}
+
+/// Returns true if there is a regex and it matches the line.
+fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashmap: &mut HashMap<String, usize>) {
+    // the output collector
+    //let mut hashmap: HashMap<String, usize> = HashMap::new();
+
+    // process if there is a regex
+    if let Some(v) = regex {
+        for r in v {
+            if let Some(groups) = r.captures(line) {
+                // The regex may or may not have capture groups. The counts depend on that.
+                // We'll assume that if there is only capture[0], which is the whole string,
+                // then it's one match. If there is > 1, then it's .len()-1, because capture[0]
+                // is always present as the full string match.
+
+                // grab the exact match, if any, otherwise grab the whole string match
+                let (cap, group_len) = if groups.len() > 1 {
+                    (groups[1].to_string(), groups.len() - 1)
+                } else {
+                    (groups[0].to_string(), 1)
+                };
+
+                trace!("{} x {} for {}", cap, groups.len(), r);
+
+                report::Report::increment_hashmap_counter(hashmap, cap, group_len);
+            }
+        }
+    }
 }

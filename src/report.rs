@@ -17,8 +17,8 @@ pub(crate) struct Tech {
     pub line_comments: usize,
     pub block_comments: usize,
     pub docs_comments: usize,
-    pub keywords: HashMap<String, usize>,
-    pub use_dependencies: HashSet<String>,
+    pub keywords: HashMap<String, usize>, // has to be Option<>
+    pub refs: HashMap<String, usize>,     // has to be Option<>
 }
 
 #[derive(Serialize, Debug)]
@@ -58,8 +58,8 @@ impl Report {
             }
 
             // add dependencies
-            for dep in tech.use_dependencies {
-                master.use_dependencies.insert(dep);
+            for (kw, cnt) in tech.refs {
+                Report::increment_hashmap_counter(&mut master.refs, kw, cnt);
             }
         }
     }

@@ -3,7 +3,7 @@ use serde_json;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use tracing::{error, info, trace};
+use tracing::{error, info};
 
 mod config;
 mod processors;
@@ -25,9 +25,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conf = fs::File::open(conf).expect("Cannot read config file");
     let mut conf: config::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
 
-    // pre-compile all regex rules
+    // pre-compile regex rules for file names
     for file_rules in conf.files.iter_mut() {
-        file_rules.compile_regex();
+        file_rules.compile_file_name_regex();
     }
 
     // get list of files
@@ -37,11 +37,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let re = Regex::new(r"\.git/").unwrap();
     files.retain(|f| !re.is_match(f.as_str()));
 
-    // pre-compile all file name regex
-
-    for mut f in conf.files.iter_mut() {
-        f.name_regex = Some(Regex::new(f.name.as_str()).expect("Regex compilation failed"));
-    }
 
     // result collectors
     let mut processed_files: Vec<String> = Vec::new();
@@ -50,8 +45,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // loop through all the files and process them one by one
     for file_path in &files {
         // loop through the rules and process the file if it's a match
-        for file_rules in &conf.files {
-            if file_rules.name_regex.as_ref().unwrap().is_match(file_path.as_str()) {
+        for file_rules in &mut conf.files {
+
+            // &mut conf.files is required to do this JIT compilation
+            file_rules.compile_other_regex();
+
+            // there can be multiple patterns per rule - loop through the list with the closure
+            if file_rules.file_names_regex.as_ref().unwrap().iter().any(|r| r.is_match(file_path.as_str())) {
                 if let Ok(tech) = processors::process_file(&file_path, &file_rules) {
                     processed_files.push(file_path.clone());
                     report.add_tech_record(tech);
