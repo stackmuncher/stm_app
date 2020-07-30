@@ -3,6 +3,9 @@ use regex::Regex;
 use serde::Serialize;
 use serde_json;
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::prelude::*;
+use tracing::{error, info};
 
 #[derive(Serialize, Debug)]
 #[serde(rename = "tech")]
@@ -75,12 +78,19 @@ impl Report {
     }
 
     /// Add a file that won't be processed because it is of unknown type.
-    pub(crate) fn add_unprocessed_file(&mut self, file_name: &String) {
+    pub(crate) fn add_unprocessed_file(&mut self, file_name: &String, project_dir_path: &String) {
+        // remove the project path from the file name
+        let mut file_name = file_name.clone(); // I don't like `mut` in the function signature
+        file_name.drain(..project_dir_path.len()); // remove the path
+        if file_name.starts_with("/") || file_name.starts_with("\\") {
+            file_name.drain(..1); // remove the leading / or \, if any
+        }
+
         // add the file name to the list
         self.unprocessed_file_names.insert(file_name.clone());
 
         // check if this particular extension was encountered
-        if let Some(ext) = Regex::new(r"\.[\w\d_]+$").unwrap().captures(file_name) {
+        if let Some(ext) = Regex::new(r"\.[\w\d_]+$").unwrap().captures(&file_name) {
             if ext.len() == 1 {
                 let ext = ext[0].to_string();
                 Report::increment_hashmap_counter(&mut self.unknown_file_types, ext, 1);
@@ -100,6 +110,31 @@ impl Report {
                 hashmap.insert(key, value);
             }
         }
+    }
+
+    /// First it tries to save into the specified location. If that failed it saves into the local folder.
+    pub(crate) fn save_as_local_file(&self, file_name: &String) {
+        // prep the file path
+        let cur_dir = std::env::current_dir();
+        let mut cur_dir = cur_dir.expect("Cannot save in the current directory.");
+        cur_dir.push(file_name);
+
+        // a string version of the path for logging
+        let cur_dir_str = cur_dir.to_string_lossy().to_string();
+
+        // try to create the file
+        let mut file = match File::create(cur_dir) {
+            Err(e) => {
+                error!("Cannot save in {} due to {}", cur_dir_str, e);
+                panic!();
+            }
+            Ok(f) => {
+                info!("Saving into {}", cur_dir_str);
+                f
+            }
+        };
+
+        write!(file, "{}", self).expect("Failed to save in the specified location. ");
     }
 }
 

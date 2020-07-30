@@ -21,13 +21,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Stack munching started ...");
 
-    
-
-    //let dir = "/home/ubuntu/rust/cm_repos/eShopOnWeb/".to_string();
-
     // load config
-    //let conf = Path::new("/home/ubuntu/rust/stackmuncher/assets/config.json");
-    let conf = fs::File::open(params.config_path).expect("Cannot read config file");
+    let conf = fs::File::open(params.config_file_path).expect("Cannot read config file");
     let mut conf: config::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
 
     // pre-compile regex rules for file names
@@ -36,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // get list of files
-    let mut files = get_file_names_recursively(Path::new(params.project_path.as_str()));
+    let mut files = get_file_names_recursively(Path::new(params.project_dir_path.as_str()));
 
     // remove .git/ files from the list
     let re = Regex::new(r"\.git/").unwrap();
@@ -74,15 +69,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // log unprocessed files in the report
     for f in &files {
-        report.add_unprocessed_file(f);
+        report.add_unprocessed_file(f, &params.project_dir_path);
     }
 
     // output the report as json
     //report.unknown_file_types.clear();
-    report.unprocessed_file_names.clear();
-    info!("\n\n{}", report);
+    //report.unprocessed_file_names.clear();
+    //info!("\n\n{}", report);
 
-
+    report.save_as_local_file(&params.report_file_name);
 
     Ok(())
 }
@@ -112,10 +107,13 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
 }
 
 struct Params {
-    config_path: String,
+    /// Full path to the config file. Absolute or relative to the working dir.
+    config_file_path: String,
     log_level: tracing::Level,
-    project_path: String,
-    report_name: String,
+    /// Absolute or relative path to the project directory with the files to analyze.
+    project_dir_path: String,
+    /// File name only. Reports are always saved in the current dir
+    report_file_name: String,
 }
 
 impl Params {
@@ -130,10 +128,10 @@ impl Params {
 
         // init the structure from env vars
         let mut params = Params {
-            config_path: std::env::var(ENV_CONF_PATH).unwrap_or_default(),
+            config_file_path: std::env::var(ENV_CONF_PATH).unwrap_or_default(),
             log_level: Params::string_to_log_level(std::env::var(ENV_LOG_LEVEL).unwrap_or_default()),
-            project_path: std::env::var(ENV_PROJECT_PATH).unwrap_or_default(),
-            report_name: std::env::var(ENV_REPORT_NAME).unwrap_or_default(),
+            project_dir_path: std::env::var(ENV_PROJECT_PATH).unwrap_or_default(),
+            report_file_name: std::env::var(ENV_REPORT_NAME).unwrap_or_default(),
         };
 
         // check if there were any arguments passed to override the ENV vars
@@ -141,9 +139,9 @@ impl Params {
         loop {
             if let Some(arg) = args.next() {
                 match arg.to_lowercase().as_str() {
-                    "-c" => params.config_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-p" => params.project_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-r" => params.report_name = args.peek().expect(ERR_INVALID_PARAMS).into(),
+                    "-c" => params.config_file_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
+                    "-p" => params.project_dir_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
+                    "-r" => params.report_file_name = args.peek().expect(ERR_INVALID_PARAMS).into(),
                     "-l" => {
                         params.log_level = Params::string_to_log_level(args.peek().expect(ERR_INVALID_PARAMS).into())
                     }
@@ -156,14 +154,19 @@ impl Params {
         }
 
         // check if the params are correct
-        if !Path::new(&params.config_path).is_file() {
-            println!("Invalid config file location: {}", params.config_path);
+        if !Path::new(&params.config_file_path).is_file() {
+            println!("Invalid config file location: {}", params.config_file_path);
             panic!();
         }
 
-        if !Path::new(&params.project_path).is_dir() {
-            println!("Invalid project dir location: {}", params.project_path);
+        if !Path::new(&params.project_dir_path).is_dir() {
+            println!("Invalid project dir location: {}", params.project_dir_path);
             panic!();
+        }
+
+        // generate a random file name based on the current timestamp
+        if params.report_file_name.is_empty() {
+            params.report_file_name = [chrono::Utc::now().timestamp().to_string().as_str(), ".json"].concat();
         }
 
         params
@@ -176,7 +179,7 @@ impl Params {
             "debug" => tracing::Level::DEBUG,
             "error" => tracing::Level::DEBUG,
             "warn" => tracing::Level::WARN,
-            _ => tracing::Level::INFO
+            _ => tracing::Level::INFO,
         }
     }
 }
