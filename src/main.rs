@@ -164,9 +164,14 @@ impl Params {
             panic!();
         }
 
-        // generate a random file name based on the current timestamp
+        // generate a random report file name based on the current timestamp if none was provided
         if params.report_file_name.is_empty() {
             params.report_file_name = [chrono::Utc::now().timestamp().to_string().as_str(), ".json"].concat();
+        }
+        // check if the report file can be created
+        if let Err(e) = std::fs::File::create(&params.report_file_name) {
+            println! {"Invalid report file name: {} due to {}.", params.report_file_name, e};
+            panic!();
         }
 
         params

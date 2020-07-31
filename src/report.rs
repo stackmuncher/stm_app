@@ -114,22 +114,15 @@ impl Report {
 
     /// First it tries to save into the specified location. If that failed it saves into the local folder.
     pub(crate) fn save_as_local_file(&self, file_name: &String) {
-        // prep the file path
-        let cur_dir = std::env::current_dir();
-        let mut cur_dir = cur_dir.expect("Cannot save in the current directory.");
-        cur_dir.push(file_name);
-
-        // a string version of the path for logging
-        let cur_dir_str = cur_dir.to_string_lossy().to_string();
 
         // try to create the file
-        let mut file = match File::create(cur_dir) {
+        let mut file = match File::create(file_name) {
             Err(e) => {
-                error!("Cannot save in {} due to {}", cur_dir_str, e);
+                error!("Cannot save in {} due to {}", file_name, e);
                 panic!();
             }
             Ok(f) => {
-                info!("Saving into {}", cur_dir_str);
+                info!("Saving into {}", file_name);
                 f
             }
         };
