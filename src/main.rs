@@ -44,10 +44,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // loop through all the files and process them one by one
     for file_path in &files {
         // loop through the rules and process the file if it's a match
+        // &mut conf.files is required to do JIT compilation (compile_other_regex)
         for file_rules in &mut conf.files {
-            // &mut conf.files is required to do this JIT compilation
-            file_rules.compile_other_regex();
-
             // there can be multiple patterns per rule - loop through the list with the closure
             if file_rules
                 .file_names_regex
@@ -56,6 +54,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .iter()
                 .any(|r| r.is_match(file_path.as_str()))
             {
+                // JIT compilation of the rules for this file type
+                file_rules.compile_other_regex();
+
                 if let Ok(tech) = processors::process_file(&file_path, &file_rules) {
                     processed_files.push(file_path.clone());
                     report.add_tech_record(tech);

@@ -5,7 +5,7 @@ use serde_json;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
-use tracing::{error, info};
+use tracing::{error, info, trace};
 
 #[derive(Serialize, Debug)]
 #[serde(rename = "tech")]
@@ -38,12 +38,14 @@ impl Report {
     pub(crate) fn add_tech_record(&mut self, tech: Tech) {
         // add it to the hashmap if there no matching tech record
         if !self.tech.contains_key(&tech.name) {
+            trace!("Inserting report for {}", tech.name);
             self.tech.insert(tech.name.clone(), tech);
             return;
         }
 
         // add totals to the existing record
         if let Some(master) = self.tech.get_mut(&tech.name) {
+            trace!("Adding totals for {}", tech.name);
             // add up numeric values
             master.docs_comments += tech.docs_comments;
             master.files += 1;
@@ -114,7 +116,6 @@ impl Report {
 
     /// First it tries to save into the specified location. If that failed it saves into the local folder.
     pub(crate) fn save_as_local_file(&self, file_name: &String) {
-
         // try to create the file
         let mut file = match File::create(file_name) {
             Err(e) => {

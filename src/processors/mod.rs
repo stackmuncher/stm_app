@@ -16,7 +16,7 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
     // prepare the blank structure
     let mut tech = report::Tech {
         name: file_rule_name,
-        files: 0,
+        files: 1,
         total_lines: 0,
         code_lines: 0,
         line_comments: 0,
@@ -151,7 +151,13 @@ fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashmap: &mut HashMa
 
                 // grab the exact match, if any, otherwise grab the whole string match
                 let (cap, group_len) = if groups.len() > 1 {
-                    (groups[1].to_string(), groups.len() - 1)
+                    // for g in groups.iter().skip(1) {
+                    //     g.unwrap_or_default().as_str()
+                    // }
+
+                    let gr_ar: Vec<&str> = groups.iter().skip(1).map(|g| g.unwrap().as_str()).collect();
+                    (gr_ar.join(" "), groups.len() - 1)
+                //(groups[1].to_string(), groups.len() - 1)
                 } else {
                     (groups[0].to_string(), 1)
                 };

@@ -143,7 +143,9 @@
       "refs": [
         "(?i)sdk\\s*=\\s*\"([.[^\"]]+)\"",
         "(?i)<TargetFramework>([.[^<]]+)<",
-        "(?i)<PackageReference.+Include=\"([.[^\"]]+)\""
+        "(?i)<PackageReference.+Include=\"([.[^\"]]+)\"",
+        "(?i)<(TargetFrameworkVersion)>([.[^<]]+)<",
+        "(?i)<Reference[.\\s[^>]]+Include=\"([.[^\"]]+)\""
       ]
     }
   ]
