@@ -1,11 +1,12 @@
 use crate::config;
 use crate::report;
-use content_inspector::ContentType;
+use encoding_rs as _;
+use encoding_rs_io::DecodeReaderBytes;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, BufRead};
-use tracing::trace;
+use std::io::Read;
+use tracing::{error, trace};
 
 pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Result<report::Tech, String> {
     let file_rule_name = rules.file_names.join(", ");
@@ -29,7 +30,6 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
         refs: HashMap::new(),     // they should be Option<>
     };
 
-    
     // get file contents
     let lines = get_file_lines(&file_path);
     if lines.len() == 0 {
@@ -125,37 +125,23 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
 fn get_file_lines(asset_path: &String) -> Vec<String> {
     // read the file
     let file = fs::File::open(asset_path.as_str()).expect("Cannot open the file");
-    let reader = io::BufReader::new(file);
+    // this decoder is required to read non-UTF-8 files
+    let mut decoder = DecodeReaderBytes::new(file);
 
-    // check if the content is text and can be split into lines
-    let content_type = content_inspector::inspect(&reader.buffer());
-    trace!("Content type: {}", content_type);
-    match content_type {
-        ContentType::UTF_8 | ContentType::UTF_8_BOM => {
-            // success - we will process the lines later
-        }
-        _ => {
-            // the content is not text - return an empty array
-            trace!("Binary file: {}", content_type);
-            return Vec::new();
-        }
-    };
-
-    // convert the file into a collection of lines
+    // output collector
     let mut lines: Vec<String> = Vec::new();
-    for line in reader.lines() {
-        match line {
-            Ok(l) => lines.push(l),
-            Err(e) => trace!("Unreadable line: {:?}", e),
-        }
+
+    // try to read the file
+    let mut utf8_string = String::new();
+    if let Err(e) = decoder.read_to_string(&mut utf8_string) {
+        // just skip if it cannot be read
+        error!("Cannot decode {} due to {}", asset_path, e);
+        return lines;
     }
 
-    // check if there is a Byte Order Mark symbol - it interferes with some regex that starts with ^\s*
-    if let Some(bom) = lines[0].chars().next() {
-        if bom == '\u{feff}' {
-            trace!("Removing Unicode BOM symbol");
-            lines[0] = lines[0].trim_start_matches('\u{feff}').to_string();
-        }
+    // convert the file into a collection of lines
+    for line in utf8_string.as_str().lines() {
+        lines.push(line.into());
     }
 
     lines
