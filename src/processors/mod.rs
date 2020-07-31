@@ -29,6 +29,7 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
         refs: HashMap::new(),     // they should be Option<>
     };
 
+    
     // get file contents
     let lines = get_file_lines(&file_path);
     if lines.len() == 0 {
@@ -40,10 +41,41 @@ pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Res
     // get total lines
     tech.total_lines = lines.len();
 
+    // set to true when the line is inside a block comment
+    let mut inside_block_comment = false;
+
     // evaluate every line
     for line in lines {
         trace!("{}", line);
         // check for non-code parts
+
+        // check if it's inside a block comment
+        if inside_block_comment {
+            tech.block_comments += 1;
+            trace!("block_comments");
+            // is it a closing block?
+            if match_line(&rules.block_comments_end_regex, &line) {
+                inside_block_comment = false;
+            }
+            continue;
+        }
+
+        if match_line(&rules.block_comments_start_regex, &line) {
+            tech.block_comments += 1;
+            trace!("block_comments");
+
+            // mark it as the start of the block if there is no closing part on the same line
+            if !match_line(&rules.block_comments_end_regex, &line) {
+                inside_block_comment = true;
+            }
+
+            continue;
+
+            // It is possible that some code may have multiple opening / closing comments on the same page.
+            // That would probably be just messy code that can be ignored.
+            // Those comments may also be inside string literals, e.g. "some text like this /*".
+            // The same applies to other types of comments - they can be inside " ... "
+        }
 
         if match_line(&rules.doc_comments_regex, &line) {
             tech.docs_comments += 1;
@@ -97,6 +129,7 @@ fn get_file_lines(asset_path: &String) -> Vec<String> {
 
     // check if the content is text and can be split into lines
     let content_type = content_inspector::inspect(&reader.buffer());
+    trace!("Content type: {}", content_type);
     match content_type {
         ContentType::UTF_8 | ContentType::UTF_8_BOM => {
             // success - we will process the lines later
@@ -114,6 +147,14 @@ fn get_file_lines(asset_path: &String) -> Vec<String> {
         match line {
             Ok(l) => lines.push(l),
             Err(e) => trace!("Unreadable line: {:?}", e),
+        }
+    }
+
+    // check if there is a Byte Order Mark symbol - it interferes with some regex that starts with ^\s*
+    if let Some(bom) = lines[0].chars().next() {
+        if bom == '\u{feff}' {
+            trace!("Removing Unicode BOM symbol");
+            lines[0] = lines[0].trim_start_matches('\u{feff}').to_string();
         }
     }
 

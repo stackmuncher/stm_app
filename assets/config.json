@@ -127,10 +127,10 @@
         "^\\s+///\\s+.{8,}"
       ],
       "block_comments_start": [
-        "/*"
+        "(?i)^\\s*/\\*"
       ],
       "block_comments_end": [
-        "*/"
+        "(?i)\\*/\\s*$"
       ],
       "refs": [
         "^\\s*using\\s+([.[^;]]+);"
@@ -138,15 +138,35 @@
     },
     {
       "file_names": [
-        ".\\.csproj$"
+        ".\\.csproj_$"
       ],
       "refs": [
         "(?i)sdk\\s*=\\s*\"([.[^\"]]+)\"",
         "(?i)<TargetFramework>([.[^<]]+)<",
-        "(?i)<PackageReference.+Include=\"([.[^\"]]+)\"",
+        "(?i)<PackageReference.+Include=\"([.[^\"]]+)\".+Version=\"([.[^\"]]+)\"",
         "(?i)<(TargetFrameworkVersion)>([.[^<]]+)<",
         "(?i)<Reference[.\\s[^>]]+Include=\"([.[^\"]]+)\""
       ]
-    }
+    },
+    {      "file_names": [
+      ".\\.ps1$"
+    ],
+    "bracket_only": [
+      "^\\s*[{}\\[\\]][\\s;,]*$"
+    ],
+    "line_comments": [
+      "^\\s*#.{10,}"
+    ],
+    "inline_comments": [
+      "^.+\\s+#.{5,}"
+    ],
+     "block_comments_start": [
+      "^\\s*<#"
+    ],
+    "block_comments_end": [
+      "^.*#>"
+    ]
+  }
+
   ]
 }
