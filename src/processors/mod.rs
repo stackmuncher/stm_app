@@ -1,5 +1,5 @@
-use crate::config;
-use crate::report;
+use super::config;
+use super::report;
 use encoding_rs as _;
 use encoding_rs_io::DecodeReaderBytes;
 use regex::Regex;

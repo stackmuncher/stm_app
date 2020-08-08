@@ -4,7 +4,7 @@ use tracing::{error, trace};
 
 #[derive(Deserialize)]
 #[serde(rename = "file")]
-pub(crate) struct FileRules {
+pub struct FileRules {
     pub file_names: Vec<String>,
     pub keywords: Option<Vec<String>>,
     pub bracket_only: Option<Vec<String>>,
@@ -44,7 +44,7 @@ pub(crate) struct FileRules {
 }
 
 #[derive(Deserialize)]
-pub(crate) struct Config {
+pub struct Config {
     pub files: Vec<FileRules>,
 }
 

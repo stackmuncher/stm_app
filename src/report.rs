@@ -9,7 +9,7 @@ use tracing::{error, info, trace};
 
 #[derive(Serialize, Debug)]
 #[serde(rename = "tech")]
-pub(crate) struct Tech {
+pub struct Tech {
     pub name: String,
     pub files: usize,
     pub total_lines: usize,
@@ -26,7 +26,7 @@ pub(crate) struct Tech {
 
 #[derive(Serialize, Debug)]
 #[serde(rename = "tech")]
-pub(crate) struct Report {
+pub struct Report {
     pub tech: HashMap<String, Tech>,
     pub timestamp: String,
     pub unprocessed_file_names: HashSet<String>,
@@ -115,7 +115,7 @@ impl Report {
     }
 
     /// First it tries to save into the specified location. If that failed it saves into the local folder.
-    pub(crate) fn save_as_local_file(&self, file_name: &String) {
+    pub fn save_as_local_file(&self, file_name: &String) {
         // try to create the file
         let mut file = match File::create(file_name) {
             Err(e) => {
