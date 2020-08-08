@@ -1,5 +1,6 @@
 use regex::Regex;
 use serde::Deserialize;
+use std::fs;
 use tracing::{error, trace};
 
 #[derive(Deserialize)]
@@ -44,8 +45,25 @@ pub struct FileRules {
 }
 
 #[derive(Deserialize)]
-pub struct Config {
+pub struct CodeRules {
     pub files: Vec<FileRules>,
+}
+
+impl CodeRules {
+
+    /// Create a new instance from a file at `code_rules_path` and pre-compile regex for file names.
+    pub fn new(code_rules_path: &String) -> Self {
+        // load code analysis rules config
+        let conf = fs::File::open(code_rules_path).expect("Cannot read config file");
+        let mut conf: Self = serde_json::from_reader(conf).expect("Cannot parse config file");
+
+        // pre-compile regex rules for file names
+        for file_rules in conf.files.iter_mut() {
+            file_rules.compile_file_name_regex();
+        };
+
+        conf
+    }
 }
 
 impl FileRules {

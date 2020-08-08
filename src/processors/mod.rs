@@ -1,4 +1,4 @@
-use super::config;
+use super::code_rules;
 use super::report;
 use encoding_rs as _;
 use encoding_rs_io::DecodeReaderBytes;
@@ -8,7 +8,7 @@ use std::fs;
 use std::io::Read;
 use tracing::{error, trace};
 
-pub(crate) fn process_file(file_path: &String, rules: &config::FileRules) -> Result<report::Tech, String> {
+pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<report::Tech, String> {
     let file_rule_name = rules.file_names.join(", ");
 
     trace!("\n");

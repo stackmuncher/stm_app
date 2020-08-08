@@ -1,12 +1,10 @@
-use serde_json;
 use std::error::Error;
-use std::fs;
-use tracing::{error, info};
+use tracing::{info};
 
 //  mod config;
 //  mod processors;
 //  mod report;
- mod lib;
+mod lib;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // get input params
@@ -22,20 +20,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let instant = std::time::Instant::now();
 
-    // load config
-    let conf = fs::File::open(&params.config_file_path).expect("Cannot read config file");
-    let mut conf: lib::config::Config = serde_json::from_reader(conf).expect("Cannot parse config file");
+    // load code rules
+    let mut code_rules = lib::code_rules::CodeRules::new(&params.config_file_path);
 
-    // pre-compile regex rules for file names
-    for file_rules in conf.files.iter_mut() {
-        file_rules.compile_file_name_regex();
-    }
-
-    let report = lib::process_project(&params, &mut conf)?;
+    let report = lib::process_project(&mut code_rules, &params.project_dir_path)?;
 
     report.save_as_local_file(&params.report_file_name);
 
-    info!("Done in {}ms",instant.elapsed().as_millis());
+    info!("Done in {}ms", instant.elapsed().as_millis());
 
     Ok(())
 }

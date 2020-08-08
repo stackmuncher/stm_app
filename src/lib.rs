@@ -1,19 +1,22 @@
 use regex::Regex;
-use std::error::Error;
 use std::fs;
 use std::path::Path;
-use tracing::error;
+use tracing::{error, info};
+use anyhow::Error;
 
-#[path = "config.rs"]
-pub mod config;
+#[path = "code_rules.rs"]
+pub mod code_rules;
 #[path = "processors/mod.rs"]
 pub mod processors;
 #[path = "report.rs"]
 pub mod report;
 
-pub fn process_project(params: &Params, conf: &mut config::Config) -> Result<report::Report, Box<dyn Error>> {
+pub fn process_project(conf: &mut code_rules::CodeRules, project_dir: &String) -> Result<report::Report, Error> {
+
+    info!("Analyzing code from {}", project_dir);
+
     // get list of files
-    let mut files = get_file_names_recursively(Path::new(params.project_dir_path.as_str()));
+    let mut files = get_file_names_recursively(Path::new(project_dir));
 
     // remove .git/ files from the list
     let re = Regex::new(r"\.git/").unwrap();
@@ -48,13 +51,15 @@ pub fn process_project(params: &Params, conf: &mut config::Config) -> Result<rep
     }
 
     // discard processed files
+    info!("Adding un-processed files");
     files.retain(|f| !processed_files.contains(&f));
 
     // log unprocessed files in the report
     for f in &files {
-        report.add_unprocessed_file(f, &params.project_dir_path);
+        report.add_unprocessed_file(f, project_dir);
     }
-
+    
+    info!("Analysis finished");
     Ok(report)
 }
 
@@ -92,10 +97,21 @@ pub struct Params {
     pub report_file_name: String,
 }
 
+pub const ENV_CONF_PATH: &'static str = "STACK_MUNCHER_CODERULES_PATH";
+
 impl Params {
+    /// Returns a minimal version of Self with no validation.
+    pub fn from_ext_config(code_rules_file_location: String) -> Self {
+        Params {
+            log_level: tracing::Level::INFO,
+            config_file_path: code_rules_file_location,
+            project_dir_path: String::new(),
+            report_file_name: String::new(),
+        }
+    }
+
     /// Inits values from ENV vars and the command line arguments
     pub fn new() -> Self {
-        const ENV_CONF_PATH: &'static str = "STACK_MUNCHER_CONFIG_PATH";
         const ENV_LOG_LEVEL: &'static str = "STACK_MUNCHER_LOG_LEVEL";
         const ENV_PROJECT_PATH: &'static str = "STACK_MUNCHER_PROJECT_PATH";
         const ENV_REPORT_NAME: &'static str = "STACK_MUNCHER_REPORT_NAME";
