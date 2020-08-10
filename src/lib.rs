@@ -1,8 +1,8 @@
+use anyhow::Error;
 use regex::Regex;
 use std::fs;
 use std::path::Path;
 use tracing::{error, info};
-use anyhow::Error;
 
 #[path = "code_rules.rs"]
 pub mod code_rules;
@@ -11,8 +11,12 @@ pub mod processors;
 #[path = "report.rs"]
 pub mod report;
 
-pub fn process_project(conf: &mut code_rules::CodeRules, project_dir: &String) -> Result<report::Report, Error> {
-
+pub fn process_project(
+    conf: &mut code_rules::CodeRules,
+    project_dir: &String,
+    user_name: &String,
+    repo_name: &String,
+) -> Result<report::Report, Error> {
     info!("Analyzing code from {}", project_dir);
 
     // get list of files
@@ -24,7 +28,7 @@ pub fn process_project(conf: &mut code_rules::CodeRules, project_dir: &String) -
 
     // result collectors
     let mut processed_files: Vec<String> = Vec::new();
-    let mut report = report::Report::new();
+    let mut report = report::Report::new(user_name.clone(), repo_name.clone());
 
     // loop through all the files and process them one by one
     for file_path in &files {
@@ -58,7 +62,7 @@ pub fn process_project(conf: &mut code_rules::CodeRules, project_dir: &String) -
     for f in &files {
         report.add_unprocessed_file(f, project_dir);
     }
-    
+
     info!("Analysis finished");
     Ok(report)
 }
@@ -95,88 +99,24 @@ pub struct Params {
     pub project_dir_path: String,
     /// File name only. Reports are always saved in the current dir
     pub report_file_name: String,
+    /// registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
+    pub user_name: String,
+    /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
+    pub repo_name: String,
 }
 
 pub const ENV_CONF_PATH: &'static str = "STACK_MUNCHER_CODERULES_PATH";
 
 impl Params {
     /// Returns a minimal version of Self with no validation.
-    pub fn from_ext_config(code_rules_file_location: String) -> Self {
+    pub fn from_ext_config(code_rules_file_location: String, user_name: String, repo_name: String) -> Self {
         Params {
             log_level: tracing::Level::INFO,
             config_file_path: code_rules_file_location,
             project_dir_path: String::new(),
             report_file_name: String::new(),
-        }
-    }
-
-    /// Inits values from ENV vars and the command line arguments
-    pub fn new() -> Self {
-        const ENV_LOG_LEVEL: &'static str = "STACK_MUNCHER_LOG_LEVEL";
-        const ENV_PROJECT_PATH: &'static str = "STACK_MUNCHER_PROJECT_PATH";
-        const ENV_REPORT_NAME: &'static str = "STACK_MUNCHER_REPORT_NAME";
-        const ERR_INVALID_PARAMS: &'static str =
-            "Available params: -c config_path -p project_path -r report_path -l log_level(trace,error)";
-
-        // init the structure from env vars
-        let mut params = Params {
-            config_file_path: std::env::var(ENV_CONF_PATH).unwrap_or_default(),
-            log_level: Params::string_to_log_level(std::env::var(ENV_LOG_LEVEL).unwrap_or_default()),
-            project_dir_path: std::env::var(ENV_PROJECT_PATH).unwrap_or_default(),
-            report_file_name: std::env::var(ENV_REPORT_NAME).unwrap_or_default(),
-        };
-
-        // check if there were any arguments passed to override the ENV vars
-        let mut args = std::env::args().peekable();
-        loop {
-            if let Some(arg) = args.next() {
-                match arg.to_lowercase().as_str() {
-                    "-c" => params.config_file_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-p" => params.project_dir_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-r" => params.report_file_name = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-l" => {
-                        params.log_level = Params::string_to_log_level(args.peek().expect(ERR_INVALID_PARAMS).into())
-                    }
-                    _ => { //do nothing
-                    }
-                };
-            } else {
-                break;
-            }
-        }
-
-        // check if the params are correct
-        if !Path::new(&params.config_file_path).is_file() {
-            println!("Invalid config file location: {}", params.config_file_path);
-            panic!();
-        }
-
-        if !Path::new(&params.project_dir_path).is_dir() {
-            println!("Invalid project dir location: {}", params.project_dir_path);
-            panic!();
-        }
-
-        // generate a random report file name based on the current timestamp if none was provided
-        if params.report_file_name.is_empty() {
-            params.report_file_name = [chrono::Utc::now().timestamp().to_string().as_str(), ".json"].concat();
-        }
-        // check if the report file can be created
-        if let Err(e) = std::fs::File::create(&params.report_file_name) {
-            println! {"Invalid report file name: {} due to {}.", params.report_file_name, e};
-            panic!();
-        }
-
-        params
-    }
-
-    /// Converts case insensitive level as String into Enum, defaults to INFO
-    pub fn string_to_log_level(s: String) -> tracing::Level {
-        match s.to_lowercase().as_str() {
-            "trace" => tracing::Level::TRACE,
-            "debug" => tracing::Level::DEBUG,
-            "error" => tracing::Level::DEBUG,
-            "warn" => tracing::Level::WARN,
-            _ => tracing::Level::INFO,
+            user_name,
+            repo_name,
         }
     }
 }

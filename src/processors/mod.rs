@@ -3,7 +3,7 @@ use super::report;
 use encoding_rs as _;
 use encoding_rs_io::DecodeReaderBytes;
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use tracing::{error, trace};
@@ -26,8 +26,8 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
         inline_comments: 0,
         blank_lines: 0,
         bracket_only_lines: 0,
-        keywords: HashMap::new(), // this is wasteful
-        refs: HashMap::new(),     // they should be Option<>
+        keywords: HashSet::new(), // this is wasteful
+        refs: HashSet::new(),     // they should be Option<>
     };
 
     // get file contents
@@ -163,11 +163,9 @@ fn match_line(regex: &Option<Vec<Regex>>, line: &String) -> bool {
 }
 
 /// Returns true if there is a regex and it matches the line.
-fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashmap: &mut HashMap<String, usize>) {
-    // the output collector
-    //let mut hashmap: HashMap<String, usize> = HashMap::new();
+fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashset: &mut HashSet<report::KeywordCounter>) {
 
-    // process if there is a regex
+    // process if there is a regex in the list of rules
     if let Some(v) = regex {
         for r in v {
             if let Some(groups) = r.captures(line) {
@@ -191,7 +189,12 @@ fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashmap: &mut HashMa
 
                 trace!("{} x {} for {}", cap, groups.len(), r);
 
-                report::Report::increment_hashmap_counter(hashmap, cap, group_len);
+                let kwc = report::KeywordCounter {
+                    k: cap,
+                    c: group_len,
+                };
+
+                report::Report::increment_keyword_counter(hashset, kwc);
             }
         }
     }
