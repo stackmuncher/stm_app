@@ -5,9 +5,9 @@ use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use tracing::{error, info, trace};
+use tracing::{error, info};
 
-#[derive(Debug, Serialize, Eq)]
+#[derive(Debug, Serialize, Eq, Clone)]
 pub struct KeywordCounter {
     /// keyword
     pub k: String,
@@ -15,7 +15,7 @@ pub struct KeywordCounter {
     pub c: usize,
 }
 
-#[derive(Serialize, Debug, Eq)]
+#[derive(Serialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
     pub name: String,
@@ -32,7 +32,7 @@ pub struct Tech {
     pub refs: HashSet<KeywordCounter>,     // has to be Option<>
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(rename = "tech")]
 pub struct Report {
     pub tech: HashSet<Tech>,
