@@ -1,13 +1,13 @@
 use chrono;
 use regex::Regex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use tracing::{error, info};
 
-#[derive(Debug, Serialize, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, Clone)]
 pub struct KeywordCounter {
     /// keyword
     pub k: String,
@@ -15,7 +15,7 @@ pub struct KeywordCounter {
     pub c: usize,
 }
 
-#[derive(Serialize, Debug, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
     pub name: String,
@@ -32,7 +32,7 @@ pub struct Tech {
     pub refs: HashSet<KeywordCounter>,     // has to be Option<>
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "tech")]
 pub struct Report {
     pub tech: HashSet<Tech>,
@@ -43,6 +43,7 @@ pub struct Report {
     pub repo_name: String,
     pub report_id: String,
     pub report_name: String,
+    pub reports_included: usize,
 }
 
 impl std::hash::Hash for KeywordCounter {
@@ -78,13 +79,25 @@ impl PartialEq for Tech {
 }
 
 impl Report {
+    /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
+    pub fn merge(&mut self, other_report: Self) {
+        // merge all tech records
+        for tech in other_report.tech {
+            self.add_tech_record(tech);
+        }
+
+        // remove redundant info
+        self.unprocessed_file_names.clear();
+        self.unknown_file_types.clear();
+    }
+
     /// Add a new Tech record merging with the existing records.
     pub(crate) fn add_tech_record(&mut self, tech: Tech) {
         // add totals to the existing record, if any
         if let Some(mut master) = self.tech.take(&tech) {
             // add up numeric values
             master.docs_comments += tech.docs_comments;
-            master.files += 1;
+            master.files += tech.files;
             master.inline_comments += tech.inline_comments;
             master.line_comments += tech.line_comments;
             master.total_lines += tech.total_lines;
@@ -124,11 +137,12 @@ impl Report {
                 user_name,
                 "/".to_string(),
                 repo_name,
-                "report.".to_string(),
+                ".report.".to_string(),
                 timestamp_as_s3_name(),
             ]
             .concat(),
             report_id: uuid::Uuid::new_v4().to_string(),
+            reports_included: 1,
         }
     }
 
@@ -203,7 +217,7 @@ impl std::fmt::Display for Report {
 }
 
 /// Returns a timestamp as `20200101T163957`
-fn timestamp_as_s3_name() -> String {
+pub fn timestamp_as_s3_name() -> String {
     let ts = chrono::Utc::now().to_rfc3339().into_bytes();
 
     String::from(String::from_utf8_lossy(&[
