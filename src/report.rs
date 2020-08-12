@@ -5,12 +5,15 @@ use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Serialize, Deserialize, Eq, Clone)]
 pub struct KeywordCounter {
     /// keyword
     pub k: String,
+    /// array of free text after the keyword
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub t: Option<HashSet<String>>,
     /// count
     pub c: usize,
 }
@@ -163,6 +166,7 @@ impl Report {
             if ext.len() == 1 {
                 let ext = KeywordCounter {
                     k: ext[0].to_string(),
+                    t: None,
                     c: 1,
                 };
                 Report::increment_keyword_counter(&mut self.unknown_file_types, ext);
@@ -174,9 +178,27 @@ impl Report {
 
     /// Insert a new record or increment the counter for the existing one
     pub(crate) fn increment_keyword_counter(hashset: &mut HashSet<KeywordCounter>, new_kw_counter: KeywordCounter) {
+        // this should not happen, but handling it just in case
+        if new_kw_counter.c == 0 {
+            warn!("Empty keywod counter.");
+            return;
+        }
+
         // increment if the record exists
         if let Some(mut existing_kw_counter) = hashset.take(&new_kw_counter) {
             existing_kw_counter.c += new_kw_counter.c;
+
+            // additional parts of the keyword need to be added to the set
+            if let Some(new_t) = new_kw_counter.t {
+                if existing_kw_counter.t.is_none() {
+                    existing_kw_counter.t = Some(new_t);
+                } else {
+                    if let Some(s) = new_t.iter().next().to_owned() {
+                        existing_kw_counter.t.as_mut().unwrap().insert(s.to_owned());
+                    }
+                }
+            };
+
             hashset.insert(existing_kw_counter);
         } else {
             // insert if it's a new one
@@ -213,6 +235,64 @@ impl std::fmt::Display for Report {
             }
         }
         Ok(())
+    }
+}
+
+impl KeywordCounter {
+    /// Returns Self with `t` as `None`. Panics if `keyword` is empty.
+    pub(crate) fn new_keyword(keyword: String, count: usize) -> Self {
+        if keyword.is_empty() {
+            error!("Empty keyword for KeywordCounter in new_keyword");
+            panic!();
+        }
+
+        Self {
+            k: keyword,
+            t: None,
+            c: count,
+        }
+    }
+
+    /// Splits `keyword` into `k` and `t`. Panics if `keyword` is empty.
+    pub(crate) fn new_ref(keyword: String, count: usize) -> Self {
+        if keyword.is_empty() {
+            error!("Empty keyword for KeywordCounter in new_ref");
+            panic!();
+        }
+
+        // output collector
+        let mut kwc = Self {
+            k: keyword,
+            t: None,
+            c: count,
+        };
+
+        // loop through the characters to find the first boundary
+        for (i, c) in kwc.k.as_bytes().iter().enumerate() {
+            // keep iterating until the first separator (not ._"')
+            if c.is_ascii_alphanumeric() || *c == 46u8 || *c == 95u8 {
+                continue;
+            }
+
+            // the very first character is a boundary - return as-is
+            if i == 0 {
+                warn!("Invalid ref: {}", kwc.k);
+                return kwc;
+            }
+
+            // split the keyword at the boundary
+            let (k, t) = kwc.k.split_at(i);
+            let mut ths: HashSet<String> = HashSet::new();
+            ths.insert(t.to_string());
+            kwc.t = Some(ths);
+            kwc.k = k.to_string();
+
+            return kwc;
+        }
+
+        // return as-is if the keyword is taking the entire length
+        // or starts with a boundary
+        kwc
     }
 }
 

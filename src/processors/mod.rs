@@ -112,8 +112,8 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
         trace!("code_lines");
 
         // get the dependency, if any
-        count_matches(&rules.refs_regex, &line, &mut tech.refs);
-        count_matches(&rules.keywords_regex, &line, &mut tech.keywords);
+        count_matches(&rules.refs_regex, &line, &mut tech.refs, true);
+        count_matches(&rules.keywords_regex, &line, &mut tech.keywords, false);
     }
 
     Ok(tech)
@@ -162,9 +162,14 @@ fn match_line(regex: &Option<Vec<Regex>>, line: &String) -> bool {
     false
 }
 
-/// Returns true if there is a regex and it matches the line.
-fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashset: &mut HashSet<report::KeywordCounter>) {
-
+/// Returns true if there is a regex and it matches the line. Set is_ref = true if the value is a strict reference and
+/// should be split into the ref and everything after it.
+fn count_matches(
+    regex: &Option<Vec<Regex>>,
+    line: &String,
+    hashset: &mut HashSet<report::KeywordCounter>,
+    is_ref: bool,
+) {
     // process if there is a regex in the list of rules
     if let Some(v) = regex {
         for r in v {
@@ -189,9 +194,15 @@ fn count_matches(regex: &Option<Vec<Regex>>, line: &String, hashset: &mut HashSe
 
                 trace!("{} x {} for {}", cap, groups.len(), r);
 
-                let kwc = report::KeywordCounter {
-                    k: cap,
-                    c: group_len,
+                // do not allow empty keywords or references
+                if cap.is_empty() {
+                    continue;
+                }
+
+                let kwc = if is_ref {
+                    report::KeywordCounter::new_ref(cap, group_len)
+                } else {
+                    report::KeywordCounter::new_keyword(cap, group_len)
                 };
 
                 report::Report::increment_keyword_counter(hashset, kwc);
