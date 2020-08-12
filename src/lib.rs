@@ -78,7 +78,10 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
                 let mut f = get_file_names_recursively(&path);
                 files.append(&mut f);
             } else if path.is_file() {
-                files.push(entry.path().to_str().unwrap().to_owned());
+                // some files cropped up with None after the conversion, so unwrapping safely
+                if let Some(f_n) = entry.path().to_str() {
+                    files.push(f_n.to_owned());
+                }
             }
         }
     } else {
