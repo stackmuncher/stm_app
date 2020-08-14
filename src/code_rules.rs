@@ -6,6 +6,8 @@ use tracing::{error, trace};
 #[derive(Deserialize)]
 #[serde(rename = "file")]
 pub struct FileRules {
+    pub language: Option<String>,
+    pub technology: Option<String>,
     pub file_names: Vec<String>,
     pub keywords: Option<Vec<String>>,
     pub bracket_only: Option<Vec<String>>,

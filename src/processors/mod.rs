@@ -16,6 +16,8 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
 
     // prepare the blank structure
     let mut tech = report::Tech {
+        language: rules.language.clone(),
+        technology: rules.technology.clone(),
         name: file_rule_name,
         files: 1,
         total_lines: 0,

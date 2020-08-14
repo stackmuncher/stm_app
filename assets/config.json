@@ -1,6 +1,7 @@
 {
   "files": [
     {
+      "language":"C#",
       "file_names": [
         ".\\.cs$"
       ],
@@ -137,6 +138,7 @@
       ]
     },
     {
+      "language":"C#",
       "file_names": [
         ".\\.csproj$"
       ],
@@ -148,7 +150,8 @@
         "(?i)<Reference[.\\s[^>]]+Include=\"([.[^\"]]+)\""
       ]
     },
-    {      "file_names": [
+    { "language":"PowerShell",    
+       "file_names": [
       ".\\.ps1$"
     ],
     "bracket_only": [

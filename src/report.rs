@@ -22,6 +22,10 @@ pub struct KeywordCounter {
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub technology: Option<String>,
     pub name: String,
     pub files: usize,
     pub total_lines: usize,
@@ -44,10 +48,16 @@ pub struct Report {
     pub unprocessed_file_names: HashSet<String>,
     pub unknown_file_types: HashSet<KeywordCounter>,
     pub user_name: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub repo_name: String,
+    /// A UUID of the report
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub report_id: String,
+    /// A unique name containing user name and project name
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub report_name: String,
-    pub reports_included: usize,
+    /// s3 keys of the reports merged into this one
+    pub reports_included: HashSet<String>,
 }
 
 impl std::hash::Hash for KeywordCounter {
@@ -87,15 +97,30 @@ impl Report {
     pub const REPORT_FILE_NAME_SUFFIX: &'static str = ".report";
 
     /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
-    pub fn merge(&mut self, other_report: Self) {
-        // merge all tech records
-        for tech in other_report.tech {
-            self.add_tech_record(tech);
+    pub fn merge(merge_into: Option<Self>, other_report: Self) -> Option<Self> {
+        let mut merge_into = merge_into;
+
+        // the very first report is added with minimal changes
+        if merge_into.is_none() {
+            info!("Adding 1st report");
+            let mut other_report = other_report;
+            other_report.unprocessed_file_names.clear();
+            merge_into = Some(other_report);
+        } else {
+            // additional reports are merged
+            info!("Merging reports");
+            let merge_into_inner = merge_into.as_mut().unwrap();
+
+            // merge all tech records
+            for tech in other_report.tech {
+                merge_into_inner.add_tech_record(tech);
+            }
+
+            // collect names of sub-reports in an array for easy retrieval
+            merge_into_inner.reports_included.insert(other_report.report_name);
         }
 
-        // remove redundant info
-        self.unprocessed_file_names.clear();
-        self.unknown_file_types.clear();
+        merge_into
     }
 
     /// Add a new Tech record merging with the existing records.
@@ -197,6 +222,10 @@ impl Report {
 
     /// Create a blank report with the current timestamp.
     pub(crate) fn new(user_name: String, repo_name: String) -> Self {
+        let report_name = Report::generate_report_name(&user_name, &repo_name);
+        let mut reports_included: HashSet<String> = HashSet::new();
+        reports_included.insert(report_name.clone());
+
         Report {
             tech: HashSet::new(),
             timestamp: chrono::Utc::now().to_rfc3339(),
@@ -204,9 +233,9 @@ impl Report {
             unknown_file_types: HashSet::new(),
             user_name: user_name.clone(),
             repo_name: repo_name.clone(),
-            report_name: Report::generate_report_name(&user_name, &repo_name),
+            report_name,
             report_id: uuid::Uuid::new_v4().to_string(),
-            reports_included: 1,
+            reports_included,
         }
     }
 
