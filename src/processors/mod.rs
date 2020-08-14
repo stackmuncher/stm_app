@@ -6,7 +6,7 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
-use tracing::{error, trace};
+use tracing::{warn, trace};
 
 pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<report::Tech, String> {
     let file_rule_name = rules.file_names.join(", ");
@@ -135,7 +135,7 @@ fn get_file_lines(asset_path: &String) -> Vec<String> {
     let mut utf8_string = String::new();
     if let Err(e) = decoder.read_to_string(&mut utf8_string) {
         // just skip if it cannot be read
-        error!("Cannot decode {} due to {}", asset_path, e);
+        warn!("Cannot decode {} due to {}", asset_path, e);
         return lines;
     }
 

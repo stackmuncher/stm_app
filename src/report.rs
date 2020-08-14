@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Error};
 use chrono;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -82,6 +83,9 @@ impl PartialEq for Tech {
 }
 
 impl Report {
+    /// .report
+    pub const REPORT_FILE_NAME_SUFFIX: &'static str = ".report";
+
     /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
     pub fn merge(&mut self, other_report: Self) {
         // merge all tech records
@@ -127,6 +131,70 @@ impl Report {
         }
     }
 
+    /// Generates a new report name in a consistent way.
+    pub fn generate_report_name(user_name: &String, repo_name: &String) -> String {
+        [
+            user_name,
+            "/",
+            repo_name,
+            ".",
+            timestamp_as_s3_name().as_str(),
+            Report::REPORT_FILE_NAME_SUFFIX,
+        ]
+        .concat()
+    }
+
+    /// Returns true if `name` looks like a report's name.
+    /// E.g. AceofGrades/ProceduralMazes.20200811T064638.report
+    /// Any leading part is ignored. It only looks at the ending.
+    pub fn is_report_name(name: &String) -> bool {
+        if name.ends_with(Report::REPORT_FILE_NAME_SUFFIX) {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Extracts repo name and date parts of the report name as a tuple.
+    /// E.g. AceofGrades/ProceduralMazes.20200811T064638.report
+    /// Returns an error if any of the parts cannot be extracted.
+    pub fn into_parts(name: &String) -> Result<(String, String), Error> {
+        // check if the name is long enough
+        if name.len() < 26 {
+            error!("Invalid report name {}", name);
+            return Err(anyhow!(""));
+        }
+
+        // get the start idx of the repo name
+        let repo_name_start = match name.rfind("/") {
+            None => {
+                error!("Invalid report name {}", name);
+                return Err(anyhow!(""));
+            }
+            Some(v) => v,
+        };
+
+        let date = &name.as_bytes()[name.len() - 23..name.len() - Report::REPORT_FILE_NAME_SUFFIX.len()];
+        let date = match String::from_utf8(date.to_vec()) {
+            Err(_e) => {
+                error!("Cannot extract date from report name {}", name);
+                return Err(anyhow!(""));
+            }
+            Ok(v) => v,
+        };
+
+        let repo_name = &name.as_bytes()[repo_name_start..name.len() - 23];
+        let repo_name = match String::from_utf8(repo_name.to_vec()) {
+            Err(_e) => {
+                error!("Cannot extract repo name from report name {}", name);
+                return Err(anyhow!(""));
+            }
+            Ok(v) => v,
+        };
+
+        Ok((repo_name, date))
+    }
+
     /// Create a blank report with the current timestamp.
     pub(crate) fn new(user_name: String, repo_name: String) -> Self {
         Report {
@@ -136,14 +204,7 @@ impl Report {
             unknown_file_types: HashSet::new(),
             user_name: user_name.clone(),
             repo_name: repo_name.clone(),
-            report_name: [
-                user_name,
-                "/".to_string(),
-                repo_name,
-                ".report.".to_string(),
-                timestamp_as_s3_name(),
-            ]
-            .concat(),
+            report_name: Report::generate_report_name(&user_name, &repo_name),
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included: 1,
         }
