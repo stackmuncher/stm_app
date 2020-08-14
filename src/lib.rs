@@ -44,7 +44,7 @@ pub fn process_project(
                 .any(|r| r.is_match(file_path.as_str()))
             {
                 // JIT compilation of the rules for this file type
-                file_rules.compile_other_regex();
+                conf.recompiled = conf.recompiled | file_rules.compile_other_regex();
 
                 if let Ok(tech) = processors::process_file(&file_path, file_rules) {
                     processed_files.push(file_path.clone());
@@ -93,7 +93,7 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
 
     files
 }
-
+#[derive(Debug)]
 pub struct Params {
     /// Full path to the config file. Absolute or relative to the working dir.
     pub config_file_path: String,

@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::fs;
 use tracing::{error, trace};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename = "file")]
 pub struct FileRules {
     pub language: Option<String>,
@@ -46,9 +46,13 @@ pub struct FileRules {
     pub compiled: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CodeRules {
     pub files: Vec<FileRules>,
+    /// Set to true if there was a compilation for any file-specific regex
+    /// to assist merging multiple instances
+    #[serde(skip)]
+    pub recompiled: bool,
 }
 
 impl CodeRules {
@@ -91,13 +95,13 @@ impl FileRules {
     /// Compiles regex strings other than `file_names`. It is safe to call it multiple times.
     /// It will only try to compile once per lifetime of the object using `compiled` field as
     /// a flag.
-    pub(crate) fn compile_other_regex(&mut self) {
+    pub(crate) fn compile_other_regex(&mut self) -> bool  {
         trace!("compile_other_regex for {}", self.file_names.join(", "));
 
         // check if it was compiled before
         if self.compiled {
             trace!("Already compiled.");
-            return;
+            return false;
         }
 
         // resets to `false` if any of the regex statements failed to compile
@@ -159,7 +163,11 @@ impl FileRules {
             panic!();
         }
 
+        // indicate this file struct has been compiled
         self.compiled = true;
+
+        // return true
+        true
     }
 }
 
