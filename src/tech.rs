@@ -51,7 +51,7 @@ impl Tech {
     }
 
     pub(crate) fn count_keywords(&mut self, regex: &Option<Vec<Regex>>, line: &String) {
-        Self::count_matches(regex, line, &mut self.refs, &KeywordCounter::new_keyword);
+        Self::count_matches(regex, line, &mut self.keywords, &KeywordCounter::new_keyword);
     }
 
     fn count_matches<B>(
