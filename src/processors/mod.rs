@@ -1,5 +1,4 @@
 use super::code_rules;
-use super::report;
 use encoding_rs as _;
 use encoding_rs_io::DecodeReaderBytes;
 use regex::Regex;
@@ -7,15 +6,16 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use tracing::{warn, trace};
+use super::tech::Tech;
 
-pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<report::Tech, String> {
+pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<Tech, String> {
     let file_rule_name = rules.file_names.join(", ");
 
     trace!("\n");
     trace!("{}: {}", file_rule_name, file_path);
 
     // prepare the blank structure
-    let mut tech = report::Tech {
+    let mut tech = Tech {
         language: rules.language.clone(),
         technology: rules.technology.clone(),
         name: file_rule_name,
@@ -30,6 +30,7 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
         bracket_only_lines: 0,
         keywords: HashSet::new(), // this is wasteful
         refs: HashSet::new(),     // they should be Option<>
+        refs_kw: None,
     };
 
     // get file contents
@@ -114,8 +115,8 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
         trace!("code_lines");
 
         // get the dependency, if any
-        count_matches(&rules.refs_regex, &line, &mut tech.refs, true);
-        count_matches(&rules.keywords_regex, &line, &mut tech.keywords, false);
+        tech.count_refs(&rules.refs_regex, &line);
+        tech.count_keywords(&rules.keywords_regex, &line);
     }
 
     Ok(tech)
@@ -164,51 +165,50 @@ fn match_line(regex: &Option<Vec<Regex>>, line: &String) -> bool {
     false
 }
 
-/// Returns true if there is a regex and it matches the line. Set is_ref = true if the value is a strict reference and
-/// should be split into the ref and everything after it.
-fn count_matches(
-    regex: &Option<Vec<Regex>>,
-    line: &String,
-    hashset: &mut HashSet<report::KeywordCounter>,
-    is_ref: bool,
-) {
-    // process if there is a regex in the list of rules
-    if let Some(v) = regex {
-        for r in v {
-            if let Some(groups) = r.captures(line) {
-                // The regex may or may not have capture groups. The counts depend on that.
-                // We'll assume that if there is only capture[0], which is the whole string,
-                // then it's one match. If there is > 1, then it's .len()-1, because capture[0]
-                // is always present as the full string match.
 
-                // grab the exact match, if any, otherwise grab the whole string match
-                let (cap, group_len) = if groups.len() > 1 {
-                    // for g in groups.iter().skip(1) {
-                    //     g.unwrap_or_default().as_str()
-                    // }
+// fn count_matches(
+//     regex: &Option<Vec<Regex>>,
+//     line: &String,
+//     hashset: &mut HashSet<report::KeywordCounter>,
+//     is_ref: bool,
+// ) {
+//     // process if there is a regex in the list of rules
+//     if let Some(v) = regex {
+//         for r in v {
+//             if let Some(groups) = r.captures(line) {
+//                 // The regex may or may not have capture groups. The counts depend on that.
+//                 // We'll assume that if there is only capture[0], which is the whole string,
+//                 // then it's one match. If there is > 1, then it's .len()-1, because capture[0]
+//                 // is always present as the full string match.
 
-                    let gr_ar: Vec<&str> = groups.iter().skip(1).map(|g| g.unwrap().as_str()).collect();
-                    (gr_ar.join(" "), groups.len() - 1)
-                //(groups[1].to_string(), groups.len() - 1)
-                } else {
-                    (groups[0].to_string(), 1)
-                };
+//                 // grab the exact match, if any, otherwise grab the whole string match
+//                 let (cap, group_len) = if groups.len() > 1 {
+//                     // for g in groups.iter().skip(1) {
+//                     //     g.unwrap_or_default().as_str()
+//                     // }
 
-                trace!("{} x {} for {}", cap, groups.len(), r);
+//                     let gr_ar: Vec<&str> = groups.iter().skip(1).map(|g| g.unwrap().as_str()).collect();
+//                     (gr_ar.join(" "), groups.len() - 1)
+//                 //(groups[1].to_string(), groups.len() - 1)
+//                 } else {
+//                     (groups[0].to_string(), 1)
+//                 };
 
-                // do not allow empty keywords or references
-                if cap.is_empty() {
-                    continue;
-                }
+//                 trace!("{} x {} for {}", cap, groups.len(), r);
 
-                let kwc = if is_ref {
-                    report::KeywordCounter::new_ref(cap, group_len)
-                } else {
-                    report::KeywordCounter::new_keyword(cap, group_len)
-                };
+//                 // do not allow empty keywords or references
+//                 if cap.is_empty() {
+//                     continue;
+//                 }
 
-                report::Report::increment_keyword_counter(hashset, kwc);
-            }
-        }
-    }
-}
+//                 let kwc = if is_ref {
+//                     report::KeywordCounter::new_ref(cap, group_len)
+//                 } else {
+//                     report::KeywordCounter::new_keyword(cap, group_len)
+//                 };
+
+//                 report::Report::increment_keyword_counter(hashset, kwc);
+//             }
+//         }
+//     }
+// }

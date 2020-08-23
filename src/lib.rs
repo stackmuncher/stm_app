@@ -10,6 +10,10 @@ pub mod code_rules;
 pub mod processors;
 #[path = "report.rs"]
 pub mod report;
+#[path = "tech.rs"]
+pub mod tech;
+#[path = "kwc.rs"]
+pub mod kwc;
 
 pub fn process_project(
     conf: &mut code_rules::CodeRules,
