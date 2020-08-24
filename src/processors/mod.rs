@@ -1,12 +1,13 @@
 use super::code_rules;
+use super::tech::Tech;
 use encoding_rs as _;
-use encoding_rs_io::DecodeReaderBytes;
+use encoding_rs::WINDOWS_1252;
+use encoding_rs_io::{DecodeReaderBytes, DecodeReaderBytesBuilder};
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
-use tracing::{warn, trace};
-use super::tech::Tech;
+use tracing::{trace, warn};
 
 pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<Tech, String> {
     let file_rule_name = rules.file_names.join(", ");
@@ -33,11 +34,24 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
         refs_kw: None,
     };
 
-    // get file contents
-    let lines = get_file_lines(&file_path);
+    // get file contents as UTF
+    let lines = match get_file_lines(&file_path, false) {
+        Ok(v) => v,
+        Err(_) => {
+            // try ANSI if that fails
+            match get_file_lines(&file_path, true) {
+                Err(_) => {
+                    // exit now if the file is either empty or binary
+                    trace!("Empty or binary file - not processing.");
+                    return Ok(tech);
+                }
+                Ok(v) => v,
+            }
+        }
+    };
     if lines.len() == 0 {
-        // exit now if the file is either empty or binary
-        trace!("Empty or binary file - not processing.");
+        // no point processing an empty file further
+        trace!("The file is empty - not processing.");
         return Ok(tech);
     }
 
@@ -122,14 +136,19 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
     Ok(tech)
 }
 
-/// Returns multiple lines from a text file. It does not check if the file
-/// is text or binary. Will return an empty array if the file is empty or
-/// is not text. Panics if the file cannot be open,
-fn get_file_lines(asset_path: &String) -> Vec<String> {
+/// Returns multiple lines from a text file, if the encoding is UTF-something.
+/// Returns an error if the file cannot be read or cannot be decoded.
+/// ANSI files may be incompatible with UTF, so use it with try_ansi=false first
+/// and then try_ansi=true to read it as WINDOWS_1252
+fn get_file_lines(asset_path: &String, try_ansi: bool) -> Result<Vec<String>, ()> {
     // read the file
     let file = fs::File::open(asset_path.as_str()).expect("Cannot open the file");
     // this decoder is required to read non-UTF-8 files
-    let mut decoder = DecodeReaderBytes::new(file);
+    let mut decoder = if try_ansi {
+        DecodeReaderBytesBuilder::new().encoding(Some(WINDOWS_1252)).build(file)
+    } else {
+        DecodeReaderBytes::new(file)
+    };
 
     // output collector
     let mut lines: Vec<String> = Vec::new();
@@ -137,17 +156,23 @@ fn get_file_lines(asset_path: &String) -> Vec<String> {
     // try to read the file
     let mut utf8_string = String::new();
     if let Err(e) = decoder.read_to_string(&mut utf8_string) {
-        // just skip if it cannot be read
-        warn!("Cannot decode {} due to {}", asset_path, e);
-        return lines;
-    }
+        // log an error only on the 2nd run of this function when ANSI is ON
+        if try_ansi {
+            warn!(
+                "Cannot decode {} as UTF due to {} with ANSI={}",
+                asset_path, e, try_ansi
+            );
+        }
+
+        return Err(());
+    };
 
     // convert the file into a collection of lines
     for line in utf8_string.as_str().lines() {
         lines.push(line.into());
     }
 
-    lines
+    Ok(lines)
 }
 
 /// Returns true if there is a regex and it matches the line.
