@@ -1,14 +1,13 @@
+use super::kwc::{KeywordCounter, KeywordCounterSet};
+use super::tech::Tech;
 use anyhow::{anyhow, Error};
 use chrono;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use tracing::{error, info};
-use super::kwc::{KeywordCounter, KeywordCounterSet};
-use super::tech::Tech;
+use tracing::{error, info, warn};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "tech")]
@@ -29,7 +28,6 @@ pub struct Report {
     /// s3 keys of the reports merged into this one
     pub reports_included: HashSet<String>,
 }
-
 
 impl Report {
     /// .report
@@ -212,16 +210,17 @@ impl Report {
         self.unprocessed_file_names.insert(file_name.clone());
 
         // check if this particular extension was encountered
-        if let Some(ext) = Regex::new(r"\.[\w\d_]+$").unwrap().captures(&file_name) {
-            if ext.len() == 1 {
+        if let Some(position) = file_name.rfind(".") {
+            let ext = file_name.split_at(position);
+            if !ext.1.is_empty() {
                 let ext = KeywordCounter {
-                    k: ext[0].to_string(),
+                    k: ext.1.to_string(),
                     t: None,
                     c: 1,
                 };
                 self.unknown_file_types.increment_counters(ext);
             } else {
-                println!("Extension regex failed on {}", file_name);
+                warn!("No extension on {}", file_name);
             }
         }
     }
