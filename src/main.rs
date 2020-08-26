@@ -1,10 +1,11 @@
 use std::error::Error;
-use tracing::{info};
 use std::path::Path;
+use tracing::info;
 
 mod lib;
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     // get input params
     let params = lib::Params::new();
 
@@ -21,7 +22,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // load code rules
     let mut code_rules = lib::code_rules::CodeRules::new(&params.config_file_path);
 
-    let report = lib::process_project(&mut code_rules, &params.project_dir_path, &params.user_name, &params.repo_name)?;
+    let report = lib::process_project(
+        &mut code_rules,
+        &params.project_dir_path,
+        &params.user_name,
+        &params.repo_name,
+    )
+    .await?;
 
     report.save_as_local_file(&params.report_file_name);
 
@@ -31,7 +38,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 impl lib::Params {
-
     /// Inits values from ENV vars and the command line arguments
     pub fn new() -> Self {
         const ENV_LOG_LEVEL: &'static str = "STACK_MUNCHER_LOG_LEVEL";
@@ -59,7 +65,8 @@ impl lib::Params {
                     "-p" => params.project_dir_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
                     "-r" => params.report_file_name = args.peek().expect(ERR_INVALID_PARAMS).into(),
                     "-l" => {
-                        params.log_level = lib::Params::string_to_log_level(args.peek().expect(ERR_INVALID_PARAMS).into())
+                        params.log_level =
+                            lib::Params::string_to_log_level(args.peek().expect(ERR_INVALID_PARAMS).into())
                     }
                     _ => { //do nothing
                     }

@@ -15,7 +15,7 @@ pub mod tech;
 #[path = "kwc.rs"]
 pub mod kwc;
 
-pub fn process_project(
+pub async fn process_project(
     conf: &mut code_rules::CodeRules,
     project_dir: &String,
     user_name: &String,
@@ -57,6 +57,9 @@ pub fn process_project(
             }
         }
     }
+
+    // add commit details
+    report.extract_commit_info(&project_dir).await;
 
     // discard processed files
     info!("Adding un-processed files");

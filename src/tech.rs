@@ -113,12 +113,14 @@ impl Tech {
         for kwc in &self.refs {
             // split at . and add them app
             for kw in kwc.k.split('.') {
-                let split_kwc = KeywordCounter {
-                    k: kw.to_owned(),
-                    t: None,
-                    c: kwc.c,
-                };
-                kw_sum.increment_counters(split_kwc);
+                if kw.len() > 2 {
+                    let split_kwc = KeywordCounter {
+                        k: kw.to_owned(),
+                        t: None,
+                        c: kwc.c,
+                    };
+                    kw_sum.increment_counters(split_kwc);
+                }
             }
         }
 
