@@ -357,6 +357,7 @@ impl Report {
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
                     trace!("Parsed as: {}", d.to_rfc3339());
                     self.date_head = Some(d.to_rfc3339());
+                    break;
                 } else {
                     error! {"Invalid commit date format: {}", date};
                 };
@@ -381,6 +382,7 @@ impl Report {
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
                     trace!("Parsed as: {}", d.to_rfc3339());
                     self.date_init = Some(d.to_rfc3339());
+                    break;
                 } else {
                     error! {"Invalid commit date format: {}", date};
                 };
