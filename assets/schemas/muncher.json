@@ -4,8 +4,20 @@
   "title": "muncher",
   "description": "Describes an analyser for a particular file type for a particular language. E.g. .cs or .csproj - same language, different structure.",
   "type": "object",
-  "required": ["language"],
+  "required": [
+    "language",
+    "$schema",
+    "line_endings"
+  ],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URL of the JSON schema. Specific to VSCode."
+    },
+    "line_endings": {
+      "const": "unix",
+      "description": "Only LF line endings are allowed for consistency."
+    },
     "language": {
       "type": "string",
       "description": "Computer language name for humans, e.g. Rust."

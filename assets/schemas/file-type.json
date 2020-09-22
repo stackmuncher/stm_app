@@ -2,10 +2,9 @@
   "$id": "https://schemas.stackmuncher.com/file-type.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "file_type",
-  "description": "Possible language matches for a file type by extension.",
+  "description": "Possible language matches for a file type by extension taken from the name of the file. E.g. `cs.json` matches `*.cs` files.",
   "type": "object",
   "required": [
-    "ext",
     "$schema",
     "line_endings"
   ],
@@ -17,10 +16,6 @@
     "line_endings": {
       "const": "unix",
       "description": "Only LF line endings are allowed for consistency."
-    },
-    "ext": {
-      "type": "string",
-      "description": "Lower-case extension. If the . is missing here it will be added in the code, e.g. .cs or .py"
     },
     "matches": {
       "type": "array",
@@ -51,7 +46,8 @@
               "minItems": 1,
               "uniqueItems": true
             }
-          }
+          },
+          "additionalProperties": false
         }
       ],
       "additionalItems": false
