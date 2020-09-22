@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "C#",
+  "packages": [
+    "(?i)sdk\\s*=\\s*\"([.[^\"]]+)\"",
+    "(?i)<TargetFramework>([.[^<]]+)<",
+    "(?i)<PackageReference.+Include=\"([.[^\"]]+)\".+Version=\"([.[^\"]]+)\"",
+    "(?i)<(TargetFrameworkVersion)>([.[^<]]+)<",
+    "(?i)<Reference[.\\s[^>]]+Include=\"([.[^\"]]+)\""
+  ]
+}

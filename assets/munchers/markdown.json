@@ -1,0 +1,5 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Markdown"
+}
