@@ -1,0 +1,66 @@
+{
+  "$id": "https://schemas.stackmuncher.com/muncher.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "muncher",
+  "description": "Describes an analyser for a particular file type for a particular language. E.g. .cs or .csproj - same language, different structure.",
+  "type": "object",
+  "required": ["language"],
+  "properties": {
+    "language": {
+      "type": "string",
+      "description": "Computer language name for humans, e.g. Rust."
+    },
+    "keywords": {
+      "type": "array",
+      "description": "List of Regex for keywords.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "bracket_only": {
+      "type": "array",
+      "description": "List of Regex for lines with block brackets, e.g. {}.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "line_comments": {
+      "type": "array",
+      "description": "List of Regex for full line comments.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "inline_comments": {
+      "type": "array",
+      "description": "List of Regex for inline comments.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "doc_comments": {
+      "type": "array",
+      "description": "List of Regex for documentation comments.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "block_comments_start": {
+      "type": "array",
+      "description": "List of Regex for starting a block comment.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "block_comments_end": {
+      "type": "array",
+      "description": "List of Regex for ending a block comment."
+    },
+    "refs": {
+      "type": "array",
+      "description": "List of Regex for `use` or `include` references. Can refer to the package, namespace or inner members.",
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "packages": {
+      "type": "array",
+      "description": "List of Regex for package references for the package manger. Only refer to the package, not inner members.",
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}

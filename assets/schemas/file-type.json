@@ -1,0 +1,61 @@
+{
+  "$id": "https://schemas.stackmuncher.com/file-type.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "file_type",
+  "description": "Possible language matches for a file type by extension.",
+  "type": "object",
+  "required": [
+    "ext",
+    "$schema",
+    "line_endings"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URL of the JSON schema. Specific to VSCode."
+    },
+    "line_endings": {
+      "const": "unix",
+      "description": "Only LF line endings are allowed for consistency."
+    },
+    "ext": {
+      "type": "string",
+      "description": "Lower-case extension. If the . is missing here it will be added in the code, e.g. .cs or .py"
+    },
+    "matches": {
+      "type": "array",
+      "description": "List of possible language matches for the file type. The conditions described inside this object must be met for the match to activate.",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "muncher": {
+              "type": "string",
+              "description": "The ID of the analyzer (muncher) for this match. It becomes `id.json` file name."
+            },
+            "in_path": {
+              "type": "array",
+              "description": "Multiple Regex of the paths the file can be in.",
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "found_with": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Multiple Regex of other files that should be present in the project. The files can be located at any level."
+            },
+            "contains": {
+              "type": "array",
+              "description": "Multiple Regex of the file contents. E.g. .json files with `$schema` prop are classed as json schemas.",
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        }
+      ],
+      "additionalItems": false
+    }
+  },
+  "additionalProperties": false
+}
