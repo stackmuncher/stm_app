@@ -1,4 +1,3 @@
-use super::code_rules;
 use super::tech::Tech;
 use encoding_rs as _;
 use encoding_rs::WINDOWS_1252;
@@ -8,18 +7,16 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use tracing::{trace, warn};
+use super::muncher::Muncher;
 
-pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) -> Result<Tech, String> {
-    let file_rule_name = rules.file_names.join(", ");
+pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, String> {
 
-    trace!("\n");
-    trace!("{}: {}", file_rule_name, file_path);
+    trace!("\n\n{}: {}", rules.muncher_name, file_path);
 
     // prepare the blank structure
     let mut tech = Tech {
         language: rules.language.clone(),
-        technology: rules.technology.clone(),
-        name: file_rule_name,
+        muncher_name: rules.muncher_name.clone(),
         files: 1,
         total_lines: 0,
         code_lines: 0,
@@ -130,6 +127,7 @@ pub(crate) fn process_file(file_path: &String, rules: &code_rules::FileRules) ->
 
         // get the dependency, if any
         tech.count_refs(&rules.refs_regex, &line);
+        tech.count_refs(&rules.packages_regex, &line);
         tech.count_keywords(&rules.keywords_regex, &line);
     }
 

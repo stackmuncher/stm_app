@@ -77,14 +77,14 @@ impl lib::Params {
         }
 
         // check if the params are correct
-        if !Path::new(&params.config_file_path).is_file() {
-            println!("Invalid config file location: {}", params.config_file_path);
-            panic!();
+        if !Path::new(&params.config_file_path).is_dir() {
+            println!("Invalid config files folder: {}", params.config_file_path);
+            std::process::exit(1);
         }
 
         if !Path::new(&params.project_dir_path).is_dir() {
             println!("Invalid project dir location: {}", params.project_dir_path);
-            panic!();
+            std::process::exit(1);
         }
 
         // generate a random report file name based on the current timestamp if none was provided
@@ -94,7 +94,7 @@ impl lib::Params {
         // check if the report file can be created
         if let Err(e) = std::fs::File::create(&params.report_file_name) {
             println! {"Invalid report file name: {} due to {}.", params.report_file_name, e};
-            panic!();
+            std::process::exit(1);
         }
 
         params

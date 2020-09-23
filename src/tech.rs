@@ -7,11 +7,8 @@ use tracing::trace;
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub language: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub technology: Option<String>,
-    pub name: String,
+    pub language: String,
+    pub muncher_name: String,
     pub files: usize,
     pub total_lines: usize,
     pub blank_lines: usize,
@@ -34,14 +31,14 @@ impl std::hash::Hash for Tech {
     where
         H: std::hash::Hasher,
     {
-        state.write(self.name.as_bytes());
+        state.write(self.muncher_name.as_bytes());
         state.finish();
     }
 }
 
 impl PartialEq for Tech {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.muncher_name == other.muncher_name
     }
 }
 

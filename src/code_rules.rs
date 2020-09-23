@@ -1,194 +1,127 @@
+use super::file_type::FileType;
+use super::muncher::Muncher;
 use regex::Regex;
-use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fs;
-use tracing::{error, trace};
+use tracing::{error, info, trace};
 
-#[derive(Deserialize, Clone, Debug)]
-#[serde(rename = "file")]
-pub struct FileRules {
-    pub language: Option<String>,
-    pub technology: Option<String>,
-    pub file_names: Vec<String>,
-    pub keywords: Option<Vec<String>>,
-    pub bracket_only: Option<Vec<String>>,
-    pub line_comments: Option<Vec<String>>,
-    pub inline_comments: Option<Vec<String>>,
-    pub doc_comments: Option<Vec<String>>,
-    pub block_comments_start: Option<Vec<String>>,
-    pub block_comments_end: Option<Vec<String>>,
-    pub refs: Option<Vec<String>>,
-
-    // Regex section is compiled once from the above strings
-    /// `file_names` field is always compiled to identify files
-    #[serde(skip)]
-    pub file_names_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub bracket_only_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub line_comments_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub inline_comments_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub doc_comments_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub block_comments_start_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub block_comments_end_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub refs_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub blank_line_regex: Option<Vec<Regex>>,
-    #[serde(skip)]
-    pub keywords_regex: Option<Vec<Regex>>,
-
-    /// Set to true if all the regex for this object was compiled
-    #[serde(skip)]
-    pub compiled: bool,
-}
-
-#[derive(Deserialize, Clone, Debug)]
 pub struct CodeRules {
-    pub files: Vec<FileRules>,
+    /// All file types are added at init time
+    pub files_types: BTreeMap<String, FileType>,
+
+    /// Munchers are loaded on-demand
+    pub munchers: BTreeMap<String, Option<Muncher>>,
+
+    /// Directory path where muncher files are stored
+    muncher_files_dir: String,
+
+    /// A compiled regex for fetching a file extension from the full
+    /// file path, including directories
+    pub file_ext_regex: Regex,
+
+    /// A compiled regex for extracting the file name without path or extension.
+    /// E.g. `/dir/dir/cs.json` -> `cs`
+    pub file_name_as_ext_regex: Regex,
+
     /// Set to true if there was a compilation for any file-specific regex
     /// to assist merging multiple instances
-    #[serde(skip)]
     pub recompiled: bool,
 }
 
 impl CodeRules {
+    /// Create a new instance from a a list of file-type files at `file_type_dir`
+    /// File-type rules are loaded upfront, munchers are loaded dynamically
+    pub fn new(config_dir: &String) -> Self {
+        // assume that the rule-files live in subfolders of the config dir
+        let file_type_dir = [
+            config_dir.trim_end_matches("/").to_owned(),
+            "/assets/file-types".to_owned(),
+        ]
+        .concat();
+        let muncher_dir = [
+            config_dir.trim_end_matches("/").to_owned(),
+            "/assets/munchers".to_owned(),
+        ]
+        .concat();
 
-    /// Create a new instance from a file at `code_rules_path` and pre-compile regex for file names.
-    pub fn new(code_rules_path: &String) -> Self {
-        // load code analysis rules config
-        let conf = fs::File::open(code_rules_path).expect("Cannot read config file");
-        let mut conf: Self = serde_json::from_reader(conf).expect("Cannot parse config file");
+        info!(
+            "Loading config file for file_types from {} and munchers from {}",
+            file_type_dir, muncher_dir
+        );
 
-        // pre-compile regex rules for file names
-        for file_rules in conf.files.iter_mut() {
-            file_rules.compile_file_name_regex();
+        // get the list of files from the target folder
+        let dir = match fs::read_dir(&file_type_dir) {
+            Err(e) => {
+                error!("Cannot load file rules from {} with {}. Aborting.", file_type_dir, e);
+                std::process::exit(1);
+            }
+            Ok(v) => v,
         };
 
-        conf
-    }
-}
-
-impl FileRules {
-    /// Compiles `file_names` field only. Idempotent. Will recompile anew on every call.
-    pub(crate) fn compile_file_name_regex(&mut self) {
-        // are there any names?
-        if self.file_names.is_empty() {
-            error!("An empty list of names in the config!");
-            panic!();
-        }
-
-        trace!("compile_file_name_regex for {}", self.file_names.join(", "));
-
-        // reset the list in case this function was called more than once
-        self.file_names_regex = None;
-
-        // compile regex for file names
-        for s in &self.file_names {
-            add_regex_to_list(&mut self.file_names_regex, s);
-        }
-    }
-
-    /// Compiles regex strings other than `file_names`. It is safe to call it multiple times.
-    /// It will only try to compile once per lifetime of the object using `compiled` field as
-    /// a flag.
-    pub(crate) fn compile_other_regex(&mut self) -> bool  {
-        trace!("compile_other_regex for {}", self.file_names.join(", "));
-
-        // check if it was compiled before
-        if self.compiled {
-            trace!("Already compiled.");
-            return false;
-        }
-
-        // resets to `false` if any of the regex statements failed to compile
-        let mut compilation_success = true;
-
-        if let Some(v) = self.bracket_only.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.bracket_only_regex, s);
+        // collect relevant file names, ignore the rest
+        let mut file_names: Vec<String> = Vec::new();
+        for f in dir {
+            if let Ok(entry) = f {
+                let path = entry.path();
+                let f_n = path.to_str().expect("Invalid file-type file name");
+                if f_n.ends_with(".json") {
+                    file_names.push(f_n.to_owned());
+                }
             }
         }
 
-        if let Some(v) = self.line_comments.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.line_comments_regex, s);
+        info!("FileTypes files found: {}", file_names.len());
+
+        // prepare the output collector
+        let mut code_rules = CodeRules {
+            files_types: BTreeMap::new(),
+            munchers: BTreeMap::new(),
+            muncher_files_dir: muncher_dir.clone(),
+            file_ext_regex: Regex::new("\\.[a-zA-Z0-1_]+$").unwrap(),
+            file_name_as_ext_regex: Regex::new("[a-zA-Z0-1_]+\\.json$").unwrap(),
+            recompiled: false,
+        };
+
+        // load the files one by one
+        for file in file_names {
+            if let Some(ft) = FileType::new(&file, &code_rules.file_name_as_ext_regex) {
+                code_rules.files_types.insert(ft.file_ext.clone(), ft);
             }
         }
 
-        if let Some(v) = self.inline_comments.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.inline_comments_regex, s);
-            }
-        }
-
-        if let Some(v) = self.doc_comments.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.doc_comments_regex, s);
-            }
-        }
-
-        if let Some(v) = self.block_comments_start.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.block_comments_start_regex, s);
-            }
-        }
-
-        if let Some(v) = self.block_comments_end.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.block_comments_end_regex, s);
-            }
-        }
-
-        if let Some(v) = self.refs.as_ref() {
-            for s in v {
-                compilation_success &= add_regex_to_list(&mut self.refs_regex, s);
-            }
-        }
-
-        if let Some(v) = self.keywords.as_ref() {
-            for s in v {
-                add_regex_to_list(&mut self.keywords_regex, s);
-            }
-        }
-
-        // empty strings should have the same regex, but this may change - odd one out
-        compilation_success &= add_regex_to_list(&mut self.blank_line_regex, &r"^\s*$".to_string());
-
-        // panic if there were compilation errors
-        if !compilation_success {
-            panic!();
-        }
-
-        // indicate this file struct has been compiled
-        self.compiled = true;
-
-        // return true
-        true
-    }
-}
-
-/// Adds the `regex` to the supplied `list`. Creates an instance of Vec<Regex> on the first insert.
-/// Always returns Some(). Returns FALSE on regex compilation error.
-fn add_regex_to_list(list: &mut Option<Vec<Regex>>, regex: &String) -> bool {
-    // try to compile the regex
-    let compiled_regex = match Regex::new(regex) {
-        Ok(r) => r,
-        Err(e) => {
-            error!("Failed to compile regex {} with {}", regex, e);
-            return false;
-        }
-    };
-
-    // get the existing vector or create a new one
-    if list.is_none() {
-        list.replace(Vec::new());
+        code_rules
     }
 
-    // add the new regex to the list
-    list.as_mut().unwrap().push(compiled_regex);
-    true
+    /// Return the right muncher for the file extension extracted from the full path.
+    pub fn get_muncher(&mut self, file_path: &String) -> Option<&Muncher> {
+        // try to get file extension
+        if let Some(ext) = self.file_ext_regex.find(&file_path) {
+            // try to find a file_type match for the ext
+            if let Some(file_type) = self.files_types.get(ext.as_str()) {
+                // try to find a matching muncher
+                if let Some(muncher_name) = file_type.get_muncher_name() {
+                    // load the muncher from its file on the first use
+                    if !self.munchers.contains_key(&muncher_name) {
+                        let muncher_file_name = [
+                            self.muncher_files_dir.clone(),
+                            "/".to_owned(),
+                            muncher_name.clone(),
+                            ".json".to_owned(),
+                        ]
+                        .concat();
+
+                        trace!("Loading muncher {} for the 1st time", muncher_file_name);
+
+                        // Insert None if the muncher could not be loaded so that it doesn't try to load it again
+                        self.munchers
+                            .insert(muncher_name.clone(), Muncher::new(&muncher_file_name, &muncher_name));
+                    }
+
+                    return self.munchers.get(&muncher_name).unwrap().as_ref();
+                }
+            }
+        }
+
+        None
+    }
 }

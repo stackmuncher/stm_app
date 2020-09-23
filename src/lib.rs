@@ -6,14 +6,18 @@ use tracing::{error, info};
 
 #[path = "code_rules.rs"]
 pub mod code_rules;
+#[path = "file_type.rs"]
+pub mod file_type;
+#[path = "kwc.rs"]
+pub mod kwc;
+#[path = "muncher.rs"]
+pub mod muncher;
 #[path = "processors/mod.rs"]
 pub mod processors;
 #[path = "report.rs"]
 pub mod report;
 #[path = "tech.rs"]
 pub mod tech;
-#[path = "kwc.rs"]
-pub mod kwc;
 
 pub async fn process_project(
     conf: &mut code_rules::CodeRules,
@@ -36,24 +40,12 @@ pub async fn process_project(
 
     // loop through all the files and process them one by one
     for file_path in &files {
-        // loop through the rules and process the file if it's a match
-        // &mut conf.files is required to do JIT compilation (compile_other_regex)
-        for file_rules in &mut conf.files {
-            // there can be multiple patterns per rule - loop through the list with the closure
-            if file_rules
-                .file_names_regex
-                .as_ref()
-                .unwrap()
-                .iter()
-                .any(|r| r.is_match(file_path.as_str()))
-            {
-                // JIT compilation of the rules for this file type
-                conf.recompiled = conf.recompiled | file_rules.compile_other_regex();
-
-                if let Ok(tech) = processors::process_file(&file_path, file_rules) {
-                    processed_files.push(file_path.clone());
-                    report.add_tech_record(tech);
-                }
+        // fetch the right muncher
+        if let Some(muncher) = conf.get_muncher(file_path) {
+            // process the file with the rules from the muncher
+            if let Ok(tech) = processors::process_file(&file_path, muncher) {
+                processed_files.push(file_path.clone());
+                report.add_tech_record(tech);
             }
         }
     }
