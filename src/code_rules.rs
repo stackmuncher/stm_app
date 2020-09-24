@@ -52,8 +52,7 @@ impl CodeRules {
         // get the list of files from the target folder
         let dir = match fs::read_dir(&file_type_dir) {
             Err(e) => {
-                error!("Cannot load file rules from {} with {}. Aborting.", file_type_dir, e);
-                std::process::exit(1);
+                panic!("Cannot load file rules from {} with {}. Aborting.", file_type_dir, e);
             }
             Ok(v) => v,
         };

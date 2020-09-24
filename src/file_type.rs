@@ -29,8 +29,7 @@ impl FileType {
         // load the file definition from a json file
         let conf = match fs::File::open(json_definition_file_path) {
             Err(e) => {
-                error!("Cannot read config file {} with {}", json_definition_file_path, e);
-                std::process::exit(1);
+                panic!("Cannot read config file {} with {}", json_definition_file_path, e);
             }
             Ok(v) => v,
         };
@@ -48,10 +47,10 @@ impl FileType {
         // e.g. `/dir/dir/cs.json` -> `.cs`
         if let Some(file_ext) = file_name_as_ext_regex.find(&json_definition_file_path) {
             let file_ext = file_ext.as_str();
-            let file_ext = file_ext[..file_ext.len()-5].to_owned();
+            let file_ext = file_ext[..file_ext.len() - 5].to_owned();
             conf.file_ext = [".".to_owned(), file_ext].concat();
 
-           return Some(conf);
+            return Some(conf);
         }
 
         error!("Invalid config file name {}", json_definition_file_path);
