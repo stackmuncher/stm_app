@@ -93,28 +93,26 @@ fn get_file_names_recursively(dir: &Path) -> Vec<String> {
     files
 }
 #[derive(Debug)]
-pub struct Params {
-    /// Full path to the config file. Absolute or relative to the working dir.
-    pub config_file_path: String,
+pub struct Config {
+    /// Full path to the dir with code rules. Absolute or relative to the working dir.
+    pub code_rules_dir: String,
     pub log_level: tracing::Level,
     /// Absolute or relative path to the project directory with the files to analyze.
     pub project_dir_path: String,
-    /// File name only. Reports are always saved in the current dir
+    /// Absolute or relative path for the project report produced by the app.
     pub report_file_name: String,
-    /// registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
+    /// Registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
     pub user_name: String,
     /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
     pub repo_name: String,
 }
 
-pub const ENV_CONF_PATH: &'static str = "STACK_MUNCHER_CODERULES_PATH";
-
-impl Params {
+impl Config {
     /// Returns a minimal version of Self with no validation.
-    pub fn from_ext_config(code_rules_file_location: String, user_name: String, repo_name: String) -> Self {
-        Params {
+    pub fn from_ext_config(code_rules_dir: String, user_name: String, repo_name: String) -> Self {
+        Config {
             log_level: tracing::Level::INFO,
-            config_file_path: code_rules_file_location,
+            code_rules_dir,
             project_dir_path: String::new(),
             report_file_name: String::new(),
             user_name,

@@ -1,3 +1,5 @@
+use core::iter::Peekable;
+use std::env::Args;
 use std::error::Error;
 use std::path::Path;
 use tracing::info;
@@ -7,7 +9,7 @@ mod lib;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // get input params
-    let params = lib::Params::new();
+    let params = lib::Config::new();
 
     tracing_subscriber::fmt()
         .with_max_level(params.log_level.clone())
@@ -20,7 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let instant = std::time::Instant::now();
 
     // load code rules
-    let mut code_rules = lib::code_rules::CodeRules::new(&params.config_file_path);
+    let mut code_rules = lib::code_rules::CodeRules::new(&params.code_rules_dir);
 
     let report = lib::process_project(
         &mut code_rules,
@@ -37,21 +39,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-impl lib::Params {
+impl lib::Config {
     /// Inits values from ENV vars and the command line arguments
     pub fn new() -> Self {
-        const ENV_LOG_LEVEL: &'static str = "STACK_MUNCHER_LOG_LEVEL";
-        const ENV_PROJECT_PATH: &'static str = "STACK_MUNCHER_PROJECT_PATH";
-        const ENV_REPORT_NAME: &'static str = "STACK_MUNCHER_REPORT_NAME";
-        const ERR_INVALID_PARAMS: &'static str =
-            "Available params: -c config_path -p project_path -r report_path -l log_level(trace,error)";
+        pub const ENV_RULES_PATH: &'static str = "STACK_MUNCHER_CODERULES_DIR";
+        const CMD_ARGS: &'static str = "Available CLI params: [-c code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, [-p project_path] defaults to the current dir, [-r report_path] defaults to report.json, [-l log_level] defaults to info.";
 
-        // init the structure from env vars
-        let mut params = lib::Params {
-            config_file_path: std::env::var(lib::ENV_CONF_PATH).unwrap_or_default(),
-            log_level: lib::Params::string_to_log_level(std::env::var(ENV_LOG_LEVEL).unwrap_or_default()),
-            project_dir_path: std::env::var(ENV_PROJECT_PATH).unwrap_or_default(),
-            report_file_name: std::env::var(ENV_REPORT_NAME).unwrap_or_default(),
+        // Output it every time for now. Review and remove later when it's better documented.
+        println!("{}", CMD_ARGS);
+
+        // init the structure with the default values
+        let mut config = lib::Config {
+            code_rules_dir: std::env::var(ENV_RULES_PATH).unwrap_or_default(),
+            log_level: tracing::Level::INFO,
+            // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
+            project_dir_path: std::env::current_dir()
+                .expect("Cannot access the current directory.")
+                .to_str()
+                .unwrap_or_default()
+                .to_owned(),
+            report_file_name: "stm-report.json".to_owned(),
             user_name: String::new(),
             repo_name: String::new(),
         };
@@ -61,12 +68,29 @@ impl lib::Params {
         loop {
             if let Some(arg) = args.next() {
                 match arg.to_lowercase().as_str() {
-                    "-c" => params.config_file_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-p" => params.project_dir_path = args.peek().expect(ERR_INVALID_PARAMS).into(),
-                    "-r" => params.report_file_name = args.peek().expect(ERR_INVALID_PARAMS).into(),
+                    "-c" => {
+                        config.code_rules_dir =
+                            lib::Config::peek_cmd_arg(&mut args, "-c requires a path to the folder with code rules")
+                    }
+
+                    "-p" => {
+                        config.project_dir_path = lib::Config::peek_cmd_arg(
+                            &mut args,
+                            "-p requires a path to the root of the project to be analyzed",
+                        )
+                    }
+
+                    "-r" => {
+                        config.report_file_name = lib::Config::peek_cmd_arg(
+                            &mut args,
+                            "-r requires a report file name with or without a path",
+                        )
+                    }
                     "-l" => {
-                        params.log_level =
-                            lib::Params::string_to_log_level(args.peek().expect(ERR_INVALID_PARAMS).into())
+                        config.log_level = lib::Config::string_to_log_level(lib::Config::peek_cmd_arg(
+                            &mut args,
+                            "-l requires a valid logging level",
+                        ))
                     }
                     _ => { //do nothing
                     }
@@ -77,27 +101,20 @@ impl lib::Params {
         }
 
         // check if the params are correct
-        if !Path::new(&params.config_file_path).is_dir() {
-            println!("Invalid config files folder: {}", params.config_file_path);
-            std::process::exit(1);
+        if !Path::new(&config.code_rules_dir).is_dir() {
+            panic!("Invalid config files folder: {}", config.code_rules_dir);
         }
 
-        if !Path::new(&params.project_dir_path).is_dir() {
-            println!("Invalid project dir location: {}", params.project_dir_path);
-            std::process::exit(1);
+        if !Path::new(&config.project_dir_path).is_dir() {
+            panic!("Invalid project dir location: {}", config.project_dir_path);
         }
 
-        // generate a random report file name based on the current timestamp if none was provided
-        if params.report_file_name.is_empty() {
-            params.report_file_name = [chrono::Utc::now().timestamp().to_string().as_str(), ".json"].concat();
-        }
         // check if the report file can be created
-        if let Err(e) = std::fs::File::create(&params.report_file_name) {
-            println! {"Invalid report file name: {} due to {}.", params.report_file_name, e};
-            std::process::exit(1);
+        if let Err(e) = std::fs::File::create(&config.report_file_name) {
+            panic! {"Invalid report file name: {} due to {}.", config.report_file_name, e};
         }
 
-        params
+        config
     }
 
     /// Converts case insensitive level as String into Enum, defaults to INFO
@@ -105,9 +122,22 @@ impl lib::Params {
         match s.to_lowercase().as_str() {
             "trace" => tracing::Level::TRACE,
             "debug" => tracing::Level::DEBUG,
-            "error" => tracing::Level::DEBUG,
+            "error" => tracing::Level::ERROR,
             "warn" => tracing::Level::WARN,
-            _ => tracing::Level::INFO,
+            _ => {
+                panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
+            }
+        }
+    }
+
+    /// Peek the next argument in the iterator and try to safely unwrap.
+    /// Panics if failed.
+    fn peek_cmd_arg(args: &mut Peekable<Args>, msg: &str) -> String {
+        match args.peek() {
+            Some(v) => v.to_owned(),
+            None => {
+                panic!("{}", msg);
+            }
         }
     }
 }
