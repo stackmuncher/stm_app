@@ -1,3 +1,4 @@
+use super::muncher::Muncher;
 use super::tech::Tech;
 use encoding_rs as _;
 use encoding_rs::WINDOWS_1252;
@@ -7,10 +8,8 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use tracing::{trace, warn};
-use super::muncher::Muncher;
 
 pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, String> {
-
     trace!("\n\n{}: {}", rules.muncher_name, file_path);
 
     // prepare the blank structure
@@ -29,6 +28,8 @@ pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, 
         keywords: HashSet::new(), // this is wasteful
         refs: HashSet::new(),     // they should be Option<>
         refs_kw: None,
+        pkgs: HashSet::new(), // they should be Option<>
+        pkgs_kw: None,
     };
 
     // get file contents as UTF
@@ -125,9 +126,9 @@ pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, 
         tech.code_lines += 1;
         trace!("code_lines");
 
-        // get the dependency, if any
+        // count keywords and package references
         tech.count_refs(&rules.refs_regex, &line);
-        tech.count_refs(&rules.packages_regex, &line);
+        tech.count_pkgs(&rules.packages_regex, &line);
         tech.count_keywords(&rules.keywords_regex, &line);
     }
 
@@ -174,6 +175,7 @@ fn get_file_lines(asset_path: &String, try_ansi: bool) -> Result<Vec<String>, ()
 }
 
 /// Returns true if there is a regex and it matches the line.
+#[inline(always)]
 fn match_line(regex: &Option<Vec<Regex>>, line: &String) -> bool {
     if let Some(v) = regex {
         for r in v {

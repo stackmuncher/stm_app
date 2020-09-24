@@ -20,10 +20,20 @@ pub struct Tech {
     pub docs_comments: usize,
     /// Language-specific keywords, e.g. static, class, try-catch
     pub keywords: HashSet<KeywordCounter>, // has to be Option<>
-    /// References to other libs and packages
+    /// References to other libs, packages and namespaces
+    /// E.g. `use` keyword
     pub refs: HashSet<KeywordCounter>, // has to be Option<>
-    /// Unique words from refs
+    /// Unique words from refs. Only populated during the final merge of
+    /// all user reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub refs_kw: Option<HashSet<KeywordCounter>>,
+    /// References to other libs and packages in pkg managers
+    /// E.g. refs from NuGet or Cargo.toml
+    pub pkgs: HashSet<KeywordCounter>, // has to be Option<>
+    /// Unique words from pkgs. Only populated during the final merge of
+    /// all user reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pkgs_kw: Option<HashSet<KeywordCounter>>,
 }
 
 impl std::hash::Hash for Tech {
@@ -43,14 +53,27 @@ impl PartialEq for Tech {
 }
 
 impl Tech {
+    /// Extract and count matches for `self.refs`
+    #[inline]
     pub(crate) fn count_refs(&mut self, regex: &Option<Vec<Regex>>, line: &String) {
         Self::count_matches(regex, line, &mut self.refs, &KeywordCounter::new_ref);
     }
 
+    /// Extract and count keywords for `self.keywords`
+    #[inline]
     pub(crate) fn count_keywords(&mut self, regex: &Option<Vec<Regex>>, line: &String) {
         Self::count_matches(regex, line, &mut self.keywords, &KeywordCounter::new_keyword);
     }
 
+    /// Extract and count matches for `self.pkgs`
+    #[inline]
+    pub(crate) fn count_pkgs(&mut self, regex: &Option<Vec<Regex>>, line: &String) {
+        Self::count_matches(regex, line, &mut self.pkgs, &KeywordCounter::new_ref);
+    }
+
+    /// Count `regex` matches in the given `line` using `kw_counter_factory` Fn
+    /// and add the counts to `kw_counter`.
+    #[inline]
     fn count_matches<B>(
         regex: &Option<Vec<Regex>>,
         line: &String,
@@ -95,10 +118,10 @@ impl Tech {
         }
     }
 
-    /// Generate a summary of keywords for Tech.refs_kw
-    pub(crate) fn new_kw_summary(&self) -> Option<HashSet<KeywordCounter>> {
+    /// Generate a summary of keywords for Tech.refs_kw or Tech.pkgs_kw
+    pub(crate) fn new_kw_summary(refs: &HashSet<KeywordCounter>) -> Option<HashSet<KeywordCounter>> {
         // exit early if there are no refs
-        if self.refs.is_empty() {
+        if refs.is_empty() {
             return None;
         };
 
@@ -107,7 +130,7 @@ impl Tech {
         let mut kw_sum: HashSet<KeywordCounter> = HashSet::new();
 
         // loop through all Tech.refs
-        for kwc in &self.refs {
+        for kwc in refs {
             // split at . and add them app
             for kw in kwc.k.split('.') {
                 if kw.len() > 2 {

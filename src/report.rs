@@ -47,7 +47,8 @@ impl Report {
         // update keyword summaries in all tech records
         let mut new_rep_tech: HashSet<Tech> = HashSet::new();
         for mut tech in other_report.tech.drain() {
-            tech.refs_kw = tech.new_kw_summary();
+            tech.refs_kw = Tech::new_kw_summary(&tech.refs);
+            tech.pkgs_kw = Tech::new_kw_summary(&tech.pkgs);
             new_rep_tech.insert(tech);
         }
         other_report.tech = new_rep_tech;

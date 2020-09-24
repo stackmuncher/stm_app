@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::fs;
-use tracing::{trace, error};
+use tracing::{error, trace};
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Muncher {
@@ -65,7 +65,6 @@ impl Muncher {
             Ok(v) => v,
         };
 
-        
         conf.muncher_name = muncher_name.clone();
 
         // compile all regex strings
@@ -77,7 +76,7 @@ impl Muncher {
     }
 
     /// Compiles regex strings.
-    fn compile_all_regex(&mut self) -> Result<(),()> {
+    fn compile_all_regex(&mut self) -> Result<(), ()> {
         trace!("Compiling regex for {}", self.muncher_name);
 
         // resets to `false` if any of the regex statements failed to compile
@@ -145,18 +144,15 @@ impl Muncher {
         // panic if there were compilation errors
         if compilation_success {
             return Ok(());
-        }
-        else {
+        } else {
             error!("Compilation for {} failed.", self.muncher_name);
             return Err(());
         }
-
-
     }
 
     /// Adds the `regex` to the supplied `list`. Creates an instance of Vec<Regex> on the first insert.
     /// Always returns Some(). Returns FALSE on regex compilation error.
-   pub fn add_regex_to_list(list: &mut Option<Vec<Regex>>, regex: &String) -> bool {
+    pub fn add_regex_to_list(list: &mut Option<Vec<Regex>>, regex: &String) -> bool {
         // try to compile the regex
         let compiled_regex = match Regex::new(regex) {
             Ok(r) => r,
