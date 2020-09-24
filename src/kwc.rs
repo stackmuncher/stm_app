@@ -70,7 +70,6 @@ impl KeywordCounter {
     pub(crate) fn new_keyword(keyword: String, count: usize) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_keyword");
-            panic!();
         }
 
         Self {
@@ -84,7 +83,6 @@ impl KeywordCounter {
     pub(crate) fn new_ref(keyword: String, count: usize) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_ref");
-            panic!();
         }
 
         // output collector
