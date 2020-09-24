@@ -1,5 +1,3 @@
-use core::iter::Peekable;
-use std::env::Args;
 use std::error::Error;
 use std::path::Path;
 use tracing::info;
@@ -69,28 +67,29 @@ impl lib::Config {
             if let Some(arg) = args.next() {
                 match arg.to_lowercase().as_str() {
                     "-c" => {
-                        config.code_rules_dir =
-                            lib::Config::peek_cmd_arg(&mut args, "-c requires a path to the folder with code rules")
+                        config.code_rules_dir = args
+                            .peek()
+                            .expect("-c requires a path to the folder with code rules")
+                            .into()
                     }
 
                     "-p" => {
-                        config.project_dir_path = lib::Config::peek_cmd_arg(
-                            &mut args,
-                            "-p requires a path to the root of the project to be analyzed",
-                        )
+                        config.project_dir_path = args
+                            .peek()
+                            .expect("-p requires a path to the root of the project to be analyzed")
+                            .into()
                     }
 
                     "-r" => {
-                        config.report_file_name = lib::Config::peek_cmd_arg(
-                            &mut args,
-                            "-r requires a report file name with or without a path",
-                        )
+                        config.report_file_name = args
+                            .peek()
+                            .expect("-r requires a report file name with or without a path")
+                            .into()
                     }
                     "-l" => {
-                        config.log_level = lib::Config::string_to_log_level(lib::Config::peek_cmd_arg(
-                            &mut args,
-                            "-l requires a valid logging level",
-                        ))
+                        config.log_level = lib::Config::string_to_log_level(
+                            args.peek().expect("-l requires a valid logging level").into(),
+                        )
                     }
                     _ => { //do nothing
                     }
@@ -126,17 +125,6 @@ impl lib::Config {
             "warn" => tracing::Level::WARN,
             _ => {
                 panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
-            }
-        }
-    }
-
-    /// Peek the next argument in the iterator and try to safely unwrap.
-    /// Panics if failed.
-    fn peek_cmd_arg(args: &mut Peekable<Args>, msg: &str) -> String {
-        match args.peek() {
-            Some(v) => v.to_owned(),
-            None => {
-                panic!("{}", msg);
             }
         }
     }
