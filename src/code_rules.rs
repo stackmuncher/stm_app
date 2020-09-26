@@ -1,10 +1,11 @@
 use super::file_type::FileType;
 use super::muncher::Muncher;
 use regex::Regex;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
-use tracing::{error, info, trace};
+use tracing::{info, trace};
 
+#[derive(Debug, Clone)]
 pub struct CodeRules {
     /// All file types are added at init time
     pub files_types: BTreeMap<String, FileType>,
@@ -23,9 +24,9 @@ pub struct CodeRules {
     /// E.g. `/dir/dir/cs.json` -> `cs`
     pub file_name_as_ext_regex: Regex,
 
-    /// Set to true if there was a compilation for any file-specific regex
-    /// to assist merging multiple instances
-    pub recompiled: bool,
+    /// Contains names of newly added munchers to assist merging multiple instances
+    /// of CodeRules for parallel processing.
+    pub new_munchers: Option<HashSet<String>>,
 }
 
 impl CodeRules {
@@ -35,12 +36,12 @@ impl CodeRules {
         // assume that the rule-files live in subfolders of the config dir
         let file_type_dir = [
             config_dir.trim_end_matches("/").to_owned(),
-            "/assets/file-types".to_owned(),
+            "/file-types".to_owned(),
         ]
         .concat();
         let muncher_dir = [
             config_dir.trim_end_matches("/").to_owned(),
-            "/assets/munchers".to_owned(),
+            "/munchers".to_owned(),
         ]
         .concat();
 
@@ -78,7 +79,7 @@ impl CodeRules {
             muncher_files_dir: muncher_dir.clone(),
             file_ext_regex: Regex::new("\\.[a-zA-Z0-1_]+$").unwrap(),
             file_name_as_ext_regex: Regex::new("[a-zA-Z0-1_]+\\.json$").unwrap(),
-            recompiled: false,
+            new_munchers: None,
         };
 
         // load the files one by one
@@ -114,6 +115,11 @@ impl CodeRules {
                         // Insert None if the muncher could not be loaded so that it doesn't try to load it again
                         self.munchers
                             .insert(muncher_name.clone(), Muncher::new(&muncher_file_name, &muncher_name));
+                        // indicate to the caller that there were new munchers added so they can be shared with other threads
+                        if self.new_munchers.is_none() {
+                            self.new_munchers=Some(HashSet::new());  
+                        }
+                        self.new_munchers.as_mut().unwrap().insert(muncher_name.clone());
                     }
 
                     return self.munchers.get(&muncher_name).unwrap().as_ref();

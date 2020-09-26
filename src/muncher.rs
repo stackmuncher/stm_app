@@ -39,6 +39,10 @@ pub struct Muncher {
     pub blank_line_regex: Option<Vec<Regex>>,
     #[serde(skip)]
     pub keywords_regex: Option<Vec<Regex>>,
+    /// Set to true for newly added munchers to help upstream code
+    /// identify them and share with other threads
+    #[serde(skip)]
+    pub brand_new: bool,
 }
 
 impl Muncher {
@@ -66,6 +70,7 @@ impl Muncher {
         };
 
         conf.muncher_name = muncher_name.clone();
+        conf.brand_new = true;
 
         // compile all regex strings
         if conf.compile_all_regex().is_err() {
