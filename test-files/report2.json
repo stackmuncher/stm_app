@@ -1,0 +1,547 @@
+{
+	"tech": [
+		{
+			"language": "Markdown",
+			"muncher_name": "markdown",
+			"files": 1,
+			"total_lines": 22,
+			"blank_lines": 4,
+			"bracket_only_lines": 0,
+			"code_lines": 18,
+			"inline_comments": 0,
+			"line_comments": 0,
+			"block_comments": 0,
+			"docs_comments": 0,
+			"keywords": [],
+			"refs": [],
+			"pkgs": []
+		},
+		{
+			"language": "C#",
+			"muncher_name": "csharp.cs",
+			"files": 21,
+			"total_lines": 1428,
+			"blank_lines": 148,
+			"bracket_only_lines": 351,
+			"code_lines": 707,
+			"inline_comments": 0,
+			"line_comments": 47,
+			"block_comments": 3,
+			"docs_comments": 172,
+			"keywords": [
+				{
+					"k": "this",
+					"c": 1
+				},
+				{
+					"k": "async",
+					"c": 3
+				},
+				{
+					"k": "base",
+					"c": 2
+				},
+				{
+					"k": "string",
+					"c": 61
+				},
+				{
+					"k": "class",
+					"c": 35
+				},
+				{
+					"k": "static",
+					"c": 39
+				},
+				{
+					"k": "set",
+					"c": 104
+				},
+				{
+					"k": "bool",
+					"c": 6
+				},
+				{
+					"k": "typeof",
+					"c": 2
+				},
+				{
+					"k": "null",
+					"c": 30
+				},
+				{
+					"k": "var",
+					"c": 29
+				},
+				{
+					"k": "object",
+					"c": 3
+				},
+				{
+					"k": "interface",
+					"c": 1
+				},
+				{
+					"k": "await",
+					"c": 3
+				},
+				{
+					"k": "true",
+					"c": 5
+				},
+				{
+					"k": "long",
+					"c": 4
+				},
+				{
+					"k": "catch",
+					"c": 2
+				},
+				{
+					"k": "new",
+					"c": 44
+				},
+				{
+					"k": "get",
+					"c": 117
+				},
+				{
+					"k": "using",
+					"c": 109
+				},
+				{
+					"k": "do",
+					"c": 1
+				},
+				{
+					"k": "decimal",
+					"c": 32
+				},
+				{
+					"k": "finally",
+					"c": 2
+				},
+				{
+					"k": "void",
+					"c": 19
+				},
+				{
+					"k": "int",
+					"c": 34
+				},
+				{
+					"k": "lock",
+					"c": 2
+				},
+				{
+					"k": "private",
+					"c": 25
+				},
+				{
+					"k": "throw",
+					"c": 5
+				},
+				{
+					"k": "readonly",
+					"c": 3
+				},
+				{
+					"k": "namespace",
+					"c": 21
+				},
+				{
+					"k": "public",
+					"c": 192
+				},
+				{
+					"k": "if",
+					"c": 30
+				},
+				{
+					"k": "false",
+					"c": 9
+				},
+				{
+					"k": "default",
+					"c": 2
+				},
+				{
+					"k": "while",
+					"c": 2
+				},
+				{
+					"k": "override",
+					"c": 2
+				},
+				{
+					"k": "try",
+					"c": 2
+				},
+				{
+					"k": "return",
+					"c": 36
+				},
+				{
+					"k": "value",
+					"c": 7
+				}
+			],
+			"refs": [
+				{
+					"k": "System.IO",
+					"c": 3
+				},
+				{
+					"k": "Microsoft.AspNetCore.Hosting",
+					"c": 4
+				},
+				{
+					"k": "Microsoft.Extensions.Configuration",
+					"c": 7
+				},
+				{
+					"k": "Solitude.Exchange.Core.RabbitMQ",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.PlatformAbstractions",
+					"c": 1
+				},
+				{
+					"k": "Swashbuckle.AspNetCore.Swagger",
+					"c": 1
+				},
+				{
+					"k": "Solitude.Exchange.Core.Redis",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.DependencyInjection.Extensions",
+					"c": 1
+				},
+				{
+					"k": "Hangfire.Dashboard.BasicAuthorization",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.DependencyInjection",
+					"c": 2
+				},
+				{
+					"k": "Microsoft.AspNetCore.Http",
+					"c": 4
+				},
+				{
+					"k": "System.Collections.Concurrent",
+					"c": 1
+				},
+				{
+					"k": "Solitude.Exchange.Core",
+					"c": 7
+				},
+				{
+					"k": "Microsoft.AspNetCore.Mvc.RazorPages",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.AspNetCore.SignalR",
+					"c": 2
+				},
+				{
+					"k": "System.Text",
+					"c": 5
+				},
+				{
+					"k": "MassTransit",
+					"c": 2
+				},
+				{
+					"k": "Microsoft.AspNetCore.Mvc.Filters",
+					"c": 1
+				},
+				{
+					"k": "RabbitMQ.Client.Events",
+					"c": 1
+				},
+				{
+					"k": "Newtonsoft.Json",
+					"c": 2
+				},
+				{
+					"k": "RabbitMQ.Client",
+					"c": 2
+				},
+				{
+					"k": "System.Threading.Tasks",
+					"c": 6
+				},
+				{
+					"k": "Microsoft.AspNetCore.Mvc",
+					"c": 5
+				},
+				{
+					"k": "Microsoft.AspNetCore.Builder",
+					"c": 2
+				},
+				{
+					"k": "Microsoft.AspNetCore",
+					"c": 2
+				},
+				{
+					"k": "System.Collections.Generic",
+					"c": 11
+				},
+				{
+					"k": "System",
+					"c": 19
+				},
+				{
+					"k": "StackExchange.Redis",
+					"c": 2
+				},
+				{
+					"k": "System.ComponentModel",
+					"c": 1
+				},
+				{
+					"k": "Hangfire",
+					"c": 2
+				},
+				{
+					"k": "Solitude.Exchange.Service",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.Logging",
+					"c": 1
+				},
+				{
+					"k": "Solitude.Exchange.Model",
+					"c": 3
+				},
+				{
+					"k": "System.Linq",
+					"c": 4
+				}
+			],
+			"pkgs": []
+		},
+		{
+			"language": "C#",
+			"muncher_name": "csharp.csproj",
+			"files": 6,
+			"total_lines": 153,
+			"blank_lines": 30,
+			"bracket_only_lines": 0,
+			"code_lines": 123,
+			"inline_comments": 0,
+			"line_comments": 0,
+			"block_comments": 0,
+			"docs_comments": 0,
+			"keywords": [],
+			"refs": [],
+			"pkgs": [
+				{
+					"k": "Microsoft.Extensions.Configuration.Abstractions",
+					"c": 1
+				},
+				{
+					"k": "Newtonsoft.Json",
+					"t": [
+						" 11.0.2"
+					],
+					"c": 2
+				},
+				{
+					"k": "netcoreapp2.1",
+					"c": 1
+				},
+				{
+					"k": "MassTransit.RabbitMQ",
+					"t": [
+						" 5.1.5"
+					],
+					"c": 2
+				},
+				{
+					"k": "Microsoft.Extensions.Configuration.Json",
+					"t": [
+						" 2.1.1"
+					],
+					"c": 2
+				},
+				{
+					"k": "Microsoft.NET.Sdk",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.Configuration",
+					"t": [
+						" 2.1.1"
+					],
+					"c": 2
+				},
+				{
+					"k": "MassTransit",
+					"t": [
+						" 5.1.5"
+					],
+					"c": 2
+				},
+				{
+					"k": "StackExchange.Redis.StrongName",
+					"t": [
+						" 1.2.6"
+					],
+					"c": 2
+				},
+				{
+					"k": "Microsoft.AspNetCore.Http.Abstractions",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Extensions.Configuration.FileExtensions",
+					"t": [
+						" 2.1.1"
+					],
+					"c": 2
+				}
+			]
+		}
+	],
+	"timestamp": "2020-09-27T08:28:11.869958640+00:00",
+	"unprocessed_file_names": [
+		"Solitude.Exchange.SignalR/appsettings.Development.json",
+		"Solitude.Exchange.RabbitMQ/appsettings.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery/LICENSE.txt",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation-unobtrusive/LICENSE.txt",
+		"Solitude.Exchange.SignalR/wwwroot/images/banner3.svg",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap-theme.min.css",
+		"Solitude.Exchange.SignalR/wwwroot/lib/signalr/dist/browser/signalr.min.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/fonts/glyphicons-halflings-regular.woff",
+		"Solitude.Exchange.SignalR/wwwroot/css/site.min.css",
+		"Solitude.Exchange.Hangfire/appsettings.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery/dist/jquery.min.map",
+		"Solitude.Exchange.SignalR/wwwroot/favicon.ico",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/LICENSE",
+		"Solitude.Exchange.Hangfire/Properties/launchSettings.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/fonts/glyphicons-halflings-regular.eot",
+		"Solitude.Exchange.sln",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap-theme.css.map",
+		"Solitude.Exchange.SignalR/Pages/Index.cshtml",
+		"Solitude.Exchange.SignalR/Properties/PublishProfiles/FolderProfile.pubxml",
+		"Solitude.Exchange.SignalR/appsettings.json",
+		"Solitude.Exchange.RabbitMQ/Properties/PublishProfiles/FolderProfile.pubxml",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/fonts/glyphicons-halflings-regular.svg",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/js/bootstrap.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery/.bower.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery/dist/jquery.min.js",
+		"libman.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation/dist/additional-methods.min.js",
+		"Solitude.Exchange.SignalR/wwwroot/js/site.min.js",
+		"Solitude.Exchange.SignalR/wwwroot/js/chat.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css.map",
+		"Solitude.Exchange.SignalR/wwwroot/js/site.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap-theme.min.css.map",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation/dist/jquery.validate.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap-theme.css",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation-unobtrusive/.bower.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation/.bower.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2",
+		"Solitude.Exchange.Hangfire/Properties/PublishProfiles/FolderProfile.pubxml",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery/dist/jquery.js",
+		"Solitude.Exchange.SignalR/wwwroot/css/site.css",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap.css.map",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/.bower.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/js/bootstrap.min.js",
+		"Solitude.Exchange.SignalR/wwwroot/images/banner1.svg",
+		"Solitude.Exchange.SignalR/wwwroot/images/banner2.svg",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap.css",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css",
+		"Solitude.Exchange.SignalR/wwwroot/lib/signalr/dist/browser/signalr.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation/dist/additional-methods.js",
+		"Solitude.Exchange.SignalR/wwwroot/lib/bootstrap/dist/js/npm.js",
+		"Solitude.Exchange.SignalR/Properties/launchSettings.json",
+		"Solitude.Exchange.SignalR/wwwroot/lib/jquery-validation/dist/jquery.validate.min.js"
+	],
+	"unknown_file_types": [
+		{
+			"k": ".cshtml",
+			"c": 1
+		},
+		{
+			"k": ".woff2",
+			"c": 1
+		},
+		{
+			"k": ".woff",
+			"c": 1
+		},
+		{
+			"k": ".ttf",
+			"c": 1
+		},
+		{
+			"k": ".js",
+			"c": 16
+		},
+		{
+			"k": ".ico",
+			"c": 1
+		},
+		{
+			"k": ".css",
+			"c": 6
+		},
+		{
+			"k": ".eot",
+			"c": 1
+		},
+		{
+			"k": ".txt",
+			"c": 2
+		},
+		{
+			"k": ".pubxml",
+			"c": 3
+		},
+		{
+			"k": ".SignalR/wwwroot/lib/bootstrap/LICENSE",
+			"c": 1
+		},
+		{
+			"k": ".map",
+			"c": 5
+		},
+		{
+			"k": ".svg",
+			"c": 4
+		},
+		{
+			"k": ".json",
+			"c": 11
+		},
+		{
+			"k": ".sln",
+			"c": 1
+		}
+	],
+	"user_name": "277366155",
+	"repo_name": "Hangfire-SwaggerDemo",
+	"report_id": "67e52145-4b26-492c-bab7-0eae2b390efa",
+	"report_name": "277366155/Hangfire-SwaggerDemo.20200927T082811.report",
+	"reports_included": [
+		"277366155/Hangfire-SwaggerDemo.20200927T082811.report"
+	],
+	"collaborators": [
+		[
+			"zhengbo",
+			"277366155@163.com"
+		]
+	],
+	"date_init": "2018-10-23T18:58:48+08:00",
+	"date_head": "2018-11-05T10:38:42+08:00"
+}

@@ -1,0 +1,722 @@
+{
+	"tech": [
+		{
+			"language": "Markdown",
+			"muncher_name": "markdown",
+			"files": 1,
+			"total_lines": 1,
+			"blank_lines": 0,
+			"bracket_only_lines": 0,
+			"code_lines": 1,
+			"inline_comments": 0,
+			"line_comments": 0,
+			"block_comments": 0,
+			"docs_comments": 0,
+			"keywords": [],
+			"refs": [],
+			"pkgs": []
+		},
+		{
+			"language": "PowerShell",
+			"muncher_name": "powershell",
+			"files": 4,
+			"total_lines": 791,
+			"blank_lines": 23,
+			"bracket_only_lines": 16,
+			"code_lines": 60,
+			"inline_comments": 0,
+			"line_comments": 692,
+			"block_comments": 0,
+			"docs_comments": 0,
+			"keywords": [],
+			"refs": [],
+			"pkgs": []
+		},
+		{
+			"language": "C#",
+			"muncher_name": "csharp.cs",
+			"files": 11,
+			"total_lines": 461,
+			"blank_lines": 59,
+			"bracket_only_lines": 119,
+			"code_lines": 257,
+			"inline_comments": 0,
+			"line_comments": 21,
+			"block_comments": 0,
+			"docs_comments": 5,
+			"keywords": [
+				{
+					"k": "typeof",
+					"c": 2
+				},
+				{
+					"k": "if",
+					"c": 5
+				},
+				{
+					"k": "static",
+					"c": 4
+				},
+				{
+					"k": "this",
+					"c": 2
+				},
+				{
+					"k": "namespace",
+					"c": 10
+				},
+				{
+					"k": "null",
+					"c": 6
+				},
+				{
+					"k": "base",
+					"c": 2
+				},
+				{
+					"k": "else",
+					"c": 1
+				},
+				{
+					"k": "string",
+					"c": 8
+				},
+				{
+					"k": "void",
+					"c": 7
+				},
+				{
+					"k": "new",
+					"c": 17
+				},
+				{
+					"k": "return",
+					"c": 14
+				},
+				{
+					"k": "continue",
+					"c": 1
+				},
+				{
+					"k": "true",
+					"c": 1
+				},
+				{
+					"k": "false",
+					"c": 5
+				},
+				{
+					"k": "sealed",
+					"c": 2
+				},
+				{
+					"k": "var",
+					"c": 24
+				},
+				{
+					"k": "where",
+					"c": 2
+				},
+				{
+					"k": "private",
+					"c": 4
+				},
+				{
+					"k": "readonly",
+					"c": 1
+				},
+				{
+					"k": "from",
+					"c": 1
+				},
+				{
+					"k": "class",
+					"c": 12
+				},
+				{
+					"k": "protected",
+					"c": 3
+				},
+				{
+					"k": "public",
+					"c": 32
+				},
+				{
+					"k": "set",
+					"c": 9
+				},
+				{
+					"k": "byte",
+					"c": 2
+				},
+				{
+					"k": "using",
+					"c": 69
+				},
+				{
+					"k": "internal",
+					"c": 1
+				},
+				{
+					"k": "get",
+					"c": 12
+				},
+				{
+					"k": "int",
+					"c": 17
+				},
+				{
+					"k": "override",
+					"c": 4
+				},
+				{
+					"k": "for",
+					"c": 7
+				}
+			],
+			"refs": [
+				{
+					"k": "ExcelExport.EF",
+					"c": 2
+				},
+				{
+					"k": "System.Reflection",
+					"c": 3
+				},
+				{
+					"k": "System.Linq",
+					"c": 8
+				},
+				{
+					"k": "System.Collections.Generic",
+					"c": 7
+				},
+				{
+					"k": "System.Text",
+					"c": 1
+				},
+				{
+					"k": "System.Data.Entity.ModelConfiguration",
+					"c": 1
+				},
+				{
+					"k": "System",
+					"c": 9
+				},
+				{
+					"k": "ExcelExport.Common",
+					"c": 1
+				},
+				{
+					"k": "System.ComponentModel.DataAnnotations.Schema",
+					"c": 1
+				},
+				{
+					"k": "System.ComponentModel.DataAnnotations",
+					"c": 1
+				},
+				{
+					"k": "MySql.Data",
+					"c": 1
+				},
+				{
+					"k": "System.Runtime.CompilerServices",
+					"c": 1
+				},
+				{
+					"k": "System.Runtime.InteropServices",
+					"c": 1
+				},
+				{
+					"k": "System.Data.Entity.Migrations.Infrastructure",
+					"c": 1
+				},
+				{
+					"k": "System.ComponentModel",
+					"c": 3
+				},
+				{
+					"k": "System.Data.Entity.Migrations",
+					"c": 3
+				},
+				{
+					"k": "System.Web.Mvc",
+					"c": 3
+				},
+				{
+					"k": "System.CodeDom.Compiler",
+					"c": 1
+				},
+				{
+					"k": "System.IO",
+					"c": 2
+				},
+				{
+					"k": "NPOI.HSSF.UserModel",
+					"c": 2
+				},
+				{
+					"k": "ICSharpCode.SharpZipLib.Zip",
+					"c": 1
+				},
+				{
+					"k": "NPOI.SS.UserModel",
+					"c": 1
+				},
+				{
+					"k": "System.Web",
+					"c": 6
+				},
+				{
+					"k": "System.Web.Routing",
+					"c": 2
+				},
+				{
+					"k": "System.Data.Entity.ModelConfiguration.Conventions",
+					"c": 1
+				},
+				{
+					"k": "System.Data.Entity",
+					"c": 2
+				},
+				{
+					"k": "System.Resources",
+					"c": 1
+				}
+			],
+			"pkgs": []
+		},
+		{
+			"language": "C#",
+			"muncher_name": "csharp.csproj",
+			"files": 1,
+			"total_lines": 210,
+			"blank_lines": 0,
+			"bracket_only_lines": 0,
+			"code_lines": 210,
+			"inline_comments": 0,
+			"line_comments": 0,
+			"block_comments": 0,
+			"docs_comments": 0,
+			"keywords": [],
+			"refs": [],
+			"pkgs": [
+				{
+					"k": "System.EnterpriseServices",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Webpages",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Webpages.Razor",
+					"c": 1
+				},
+				{
+					"k": "NPOI.OOXML",
+					"t": [
+						", Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "MySql.Data",
+					"t": [
+						", Version=6.10.7.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "MySql.Data.Entity.EF6",
+					"t": [
+						", Version=6.10.7.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "System.Security",
+					"c": 1
+				},
+				{
+					"k": "System.Transactions",
+					"c": 1
+				},
+				{
+					"k": "System",
+					"c": 1
+				},
+				{
+					"k": "TargetFrameworkVersion",
+					"t": [
+						" v4.6.1"
+					],
+					"c": 2
+				},
+				{
+					"k": "System.Web.Mvc",
+					"c": 1
+				},
+				{
+					"k": "System.Data",
+					"c": 1
+				},
+				{
+					"k": "EntityFramework",
+					"t": [
+						", Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "EntityFramework.SqlServer",
+					"t": [
+						", Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "Microsoft.CSharp",
+					"c": 1
+				},
+				{
+					"k": "System.Management",
+					"c": 1
+				},
+				{
+					"k": "System.Web.ApplicationServices",
+					"c": 1
+				},
+				{
+					"k": "System.ComponentModel.DataAnnotations",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Extensions",
+					"c": 1
+				},
+				{
+					"k": "NPOI",
+					"t": [
+						", Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "System.Web.Helpers",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.Web.Infrastructure",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Services",
+					"c": 1
+				},
+				{
+					"k": "System.Configuration.Install",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Razor",
+					"c": 1
+				},
+				{
+					"k": "System.Xml.Linq",
+					"c": 1
+				},
+				{
+					"k": "System.Web.Webpages.Deployment",
+					"c": 1
+				},
+				{
+					"k": "System.Drawing.Design",
+					"c": 1
+				},
+				{
+					"k": "System.ComponentModel",
+					"c": 1
+				},
+				{
+					"k": "System.Drawing",
+					"c": 1
+				},
+				{
+					"k": "Microsoft.CodeDom.Providers.DotNetCompilerPlatform",
+					"c": 1
+				},
+				{
+					"k": "System.Xml",
+					"c": 1
+				},
+				{
+					"k": "ICSharpCode.SharpZipLib",
+					"t": [
+						", Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "System.Web.DynamicData",
+					"c": 1
+				},
+				{
+					"k": "NPOI.OpenXml4Net",
+					"t": [
+						", Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "System.Web.Entity",
+					"c": 1
+				},
+				{
+					"k": "System.Data.DataSetExtensions",
+					"c": 1
+				},
+				{
+					"k": "NPOI.OpenXmlFormats",
+					"t": [
+						", Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL"
+					],
+					"c": 1
+				},
+				{
+					"k": "System.Web",
+					"c": 1
+				},
+				{
+					"k": "System.Configuration",
+					"c": 1
+				}
+			]
+		}
+	],
+	"timestamp": "2020-09-27T08:27:56.935978648+00:00",
+	"unprocessed_file_names": [
+		"src/packages/Microsoft.AspNet.Mvc.zh-Hans.5.2.4/lib/net45/zh-Hans/System.Web.Mvc.xml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/ThirdPartyNotices.rtf",
+		"src/packages/MySql.Data.6.10.7/lib/netstandard2.0/MySql.Data.xml",
+		"src/ExcelExport/Web.config",
+		"src/packages/NPOI.2.3.0/LICENSE",
+		"src/packages/NPOI.2.3.0/lib/net40/NPOI.XML",
+		"src/ExcelExport/Migrations/201807230741123_InitUserTable.resx",
+		"src/.vs/config/applicationhost.config",
+		"src/packages/NPOI.2.3.0/lib/net20/NPOI.XML",
+		"src/packages/NPOI.2.3.0/logo/120_120.jpg",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/zh-Hans/system.web.webpages.deployment.xml",
+		"src/packages/MySql.Data.Entity.6.10.7/contentFiles/any/net452/web.config.transform",
+		"src/packages/Microsoft.AspNet.WebPages.zh-Hans.3.2.4/Microsoft.AspNet.WebPages.zh-Hans.3.2.4.nupkg",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/build/net45/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props",
+		"src/.vs/ExcelExport/v15/Server/sqlite3/storage.ide-wal",
+		"src/packages/Microsoft.AspNet.Razor.3.2.4/lib/net45/System.Web.Razor.xml",
+		"src/packages/MySql.Data.6.10.7/lib/net452/MySql.Data.xml",
+		"src/.vs/ExcelExport/DesignTimeBuild/.dtbcache",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/build/Microsoft.Net.Compilers.props",
+		"src/packages/MySql.Data.Entity.6.10.7/lib/net452/MySql.Data.Entity.EF6.xml",
+		"src/packages/Microsoft.AspNet.Mvc.5.2.4/Microsoft.AspNet.Mvc.5.2.4.nupkg",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/Content/Web.config.uninstall.xdt",
+		"src/ExcelExport/Global.asax",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/zh-Hans/system.web.webpages.xml",
+		"src/packages/Microsoft.AspNet.WebPages.zh-Hans.3.2.4/lib/net45/zh-Hans/system.web.helpers.xml",
+		"src/packages/EntityFramework.6.2.0/tools/about_EntityFramework.help.txt",
+		"src/packages/Microsoft.AspNet.WebPages.zh-Hans.3.2.4/lib/net45/zh-Hans/system.web.webpages.deployment.xml",
+		"src/ExcelExport.sln",
+		"src/packages/MySql.Data.6.10.7/MySql.Data.6.10.7.nupkg",
+		"src/ExcelExport/Web.Release.config",
+		"src/packages/EntityFramework.6.2.0/content/net40/Web.config.transform",
+		"src/packages/NPOI.2.3.0/Read Me.txt",
+		"src/packages/Microsoft.AspNet.WebPages.zh-Hans.3.2.4/lib/net45/zh-Hans/system.web.webpages.razor.xml",
+		"src/packages/NPOI.2.3.0/logo/240_240.png",
+		"src/packages/Microsoft.AspNet.Razor.zh-Hans.3.2.4/Microsoft.AspNet.Razor.zh-Hans.3.2.4.nupkg",
+		"src/packages/Microsoft.AspNet.Razor.zh-Hans.3.2.4/lib/net45/zh-Hans/system.web.razor.xml",
+		"src/packages/NPOI.2.3.0/logo/32_32.jpg",
+		"src/packages/Microsoft.AspNet.Mvc.5.2.4/Content/Web.config.install.xdt",
+		"src/packages/Microsoft.AspNet.Mvc.5.2.4/lib/net45/System.Web.Mvc.xml",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/Microsoft.AspNet.WebPages.3.2.4.nupkg",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/csc.rsp",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/zh-Hans/system.web.webpages.razor.xml",
+		"src/packages/Microsoft.AspNet.Mvc.5.2.4/Content/Web.config.uninstall.xdt",
+		"src/ExcelExport/Web.Debug.config",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/Content/Web.config.install.xdt",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/VBCSCompiler.exe.config",
+		"src/packages/EntityFramework.6.2.0/lib/net40/EntityFramework.xml",
+		"src/packages/EntityFramework.6.2.0/EntityFramework.6.2.0.nupkg",
+		"src/packages/EntityFramework.6.2.0/tools/EntityFramework.psm1",
+		"src/.vs/ExcelExport/v15/Server/sqlite3/storage.ide",
+		"src/packages/MySql.Data.Entity.6.10.7/content/app.config.transform",
+		"src/packages/MySql.Data.Entity.6.10.7/contentFiles/any/net452/app.config.transform",
+		"src/packages/SharpZipLib.0.86.0/SharpZipLib.0.86.0.nupkg",
+		"src/ExcelExport/Views/_ViewStart.cshtml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/csi.rsp",
+		"src/packages/Microsoft.AspNet.WebPages.zh-Hans.3.2.4/lib/net45/zh-Hans/system.web.webpages.xml",
+		"src/packages/MySql.Data.Entity.6.10.7/MySql.Data.Entity.6.10.7.nupkg",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/lib/net45/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/System.Web.WebPages.Razor.xml",
+		"src/.vs/ExcelExport/v15/Server/sqlite3/storage.ide-shm",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/Microsoft.Net.Compilers.2.6.1.nupkg",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/vbc.exe.config",
+		"src/packages/Microsoft.AspNet.Mvc.zh-Hans.5.2.4/Microsoft.AspNet.Mvc.zh-Hans.5.2.4.nupkg",
+		"src/packages/Microsoft.AspNet.Razor.3.2.4/Microsoft.AspNet.Razor.3.2.4.nupkg",
+		"src/packages/Microsoft.AspNet.Razor.3.2.4/lib/net45/zh-Hans/system.web.razor.xml",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/System.Web.WebPages.Deployment.xml",
+		"src/packages/Microsoft.Web.Infrastructure.1.0.0.0/Microsoft.Web.Infrastructure.1.0.0.0.nupkg",
+		"src/packages/MySql.Data.6.10.7/lib/netcoreapp2.0/MySql.Data.xml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/csc.exe.config",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/zh-Hans/system.web.helpers.xml",
+		"src/ExcelExport/Views/Test/Index.cshtml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/Microsoft.CSharp.Core.targets",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/System.Web.WebPages.xml",
+		"src/packages/Microsoft.AspNet.Mvc.5.2.4/lib/net45/zh-Hans/System.Web.Mvc.xml",
+		"src/packages/NPOI.2.3.0/logo/60_60.jpg",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8.nupkg",
+		"src/packages/EntityFramework.6.2.0/tools/EntityFramework.psd1",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/content/net45/web.config.uninstall.xdt",
+		"src/packages/EntityFramework.6.2.0/lib/net45/EntityFramework.SqlServer.xml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/csi.exe.config",
+		"src/packages/MySql.Data.Entity.6.10.7/content/web.config.transform",
+		"src/ExcelExport/Views/web.config",
+		"src/.vs/ExcelExport/v15/Server/sqlite3/db.lock",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/vbc.rsp",
+		"src/ExcelExport/packages.config",
+		"src/packages/EntityFramework.6.2.0/lib/net45/EntityFramework.xml",
+		"src/packages/NPOI.2.3.0/NPOI.2.3.0.nupkg",
+		"src/packages/NPOI.2.3.0/Release Notes.txt",
+		"src/packages/MySql.Data.6.10.7/lib/netstandard1.3/MySql.Data.xml",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/content/net46/web.config.uninstall.xdt",
+		"src/ExcelExport/Assets/JS/jquery-1.8.3.min.js",
+		"src/packages/EntityFramework.6.2.0/content/net40/App.config.transform",
+		"src/packages/EntityFramework.6.2.0/lib/net40/EntityFramework.SqlServer.xml",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/content/net46/web.config.install.xdt",
+		"src/packages/Microsoft.AspNet.WebPages.3.2.4/lib/net45/System.Web.Helpers.xml",
+		"src/packages/Microsoft.Net.Compilers.2.6.1/tools/Microsoft.VisualBasic.Core.targets",
+		"src/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.8/content/net45/web.config.install.xdt"
+	],
+	"unknown_file_types": [
+		{
+			"k": ".props",
+			"c": 2
+		},
+		{
+			"k": ".lock",
+			"c": 1
+		},
+		{
+			"k": ".targets",
+			"c": 2
+		},
+		{
+			"k": ".sln",
+			"c": 1
+		},
+		{
+			"k": ".asax",
+			"c": 1
+		},
+		{
+			"k": ".0/LICENSE",
+			"c": 1
+		},
+		{
+			"k": ".ide-wal",
+			"c": 1
+		},
+		{
+			"k": ".nupkg",
+			"c": 14
+		},
+		{
+			"k": ".js",
+			"c": 1
+		},
+		{
+			"k": ".xml",
+			"c": 28
+		},
+		{
+			"k": ".config",
+			"c": 10
+		},
+		{
+			"k": ".rsp",
+			"c": 3
+		},
+		{
+			"k": ".XML",
+			"c": 2
+		},
+		{
+			"k": ".ide-shm",
+			"c": 1
+		},
+		{
+			"k": ".txt",
+			"c": 3
+		},
+		{
+			"k": ".rtf",
+			"c": 1
+		},
+		{
+			"k": ".transform",
+			"c": 6
+		},
+		{
+			"k": ".dtbcache",
+			"c": 1
+		},
+		{
+			"k": ".psm1",
+			"c": 1
+		},
+		{
+			"k": ".jpg",
+			"c": 3
+		},
+		{
+			"k": ".resx",
+			"c": 1
+		},
+		{
+			"k": ".xdt",
+			"c": 8
+		},
+		{
+			"k": ".psd1",
+			"c": 1
+		},
+		{
+			"k": ".ide",
+			"c": 1
+		},
+		{
+			"k": ".cshtml",
+			"c": 2
+		},
+		{
+			"k": ".png",
+			"c": 1
+		}
+	],
+	"user_name": "277366155",
+	"repo_name": "ExcelExport",
+	"report_id": "170ae837-4be6-4d1b-a940-510c9fd17d81",
+	"report_name": "277366155/ExcelExport.20200927T082756.report",
+	"reports_included": [
+		"277366155/ExcelExport.20200927T082756.report"
+	],
+	"collaborators": [
+		[
+			"277366155",
+			"277366155@163.com"
+		],
+		[
+			"zhengbo",
+			"277366155@163.com"
+		]
+	],
+	"date_init": "2018-07-24T15:59:55+08:00",
+	"date_head": "2018-09-06T18:19:51+08:00"
+}

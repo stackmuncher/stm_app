@@ -44,19 +44,22 @@ impl Report {
         let mut merge_into = merge_into;
         let mut other_report = other_report;
 
-        // update keyword summaries in all tech records
-        let mut new_rep_tech: HashSet<Tech> = HashSet::new();
+        // update keyword summaries and muncher name in all tech records
+        let mut new_rep_tech = Report::new(String::new(), String::new());
         for mut tech in other_report.tech.drain() {
             tech.refs_kw = Tech::new_kw_summary(&tech.refs);
             tech.pkgs_kw = Tech::new_kw_summary(&tech.pkgs);
-            new_rep_tech.insert(tech);
+            // reset the muncher names on other_report to merge per-language
+            // tech1==tech2 if munchers and languages are the same
+            // we want to combine multiple munchers for the same language
+            tech.muncher_name = String::new();
+            new_rep_tech.add_tech_record(tech);
         }
-        other_report.tech = new_rep_tech;
+        other_report.tech = new_rep_tech.tech;
 
         // the very first report is added with minimal changes
         if merge_into.is_none() {
             info!("Adding 1st report");
-            let mut other_report = other_report;
             other_report.unprocessed_file_names.clear();
             merge_into = Some(other_report);
         } else {
@@ -67,6 +70,11 @@ impl Report {
             // merge all tech records
             for tech in other_report.tech {
                 merge_into_inner.add_tech_record(tech);
+            }
+
+            // merge unknown_file_types
+            for uft in other_report.unknown_file_types {
+                merge_into_inner.unknown_file_types.increment_counters(uft);
             }
 
             // collect names of sub-reports in an array for easy retrieval
@@ -118,8 +126,10 @@ impl Report {
 
     /// Add a new Tech record merging with the existing records.
     pub(crate) fn add_tech_record(&mut self, tech: Tech) {
+        trace!("lang: {}, files: {}", tech.language, tech.files);
         // add totals to the existing record, if any
         if let Some(mut master) = self.tech.take(&tech) {
+            trace!("match in master, lang: {}, files: {}", master.language, master.files);
             // add up numeric values
             master.docs_comments += tech.docs_comments;
             master.files += tech.files;
@@ -140,8 +150,11 @@ impl Report {
             for kw in tech.refs {
                 master.refs.increment_counters(kw);
             }
+            for kw in tech.pkgs {
+                master.pkgs.increment_counters(kw);
+            }
 
-            // add unique words from dependencies
+            // add unique words from dependencies - references
             if tech.refs_kw.is_some() {
                 // init the field if None
                 if master.refs_kw.is_none() {
@@ -153,6 +166,20 @@ impl Report {
                     refs_kw.increment_counters(kw);
                 }
             }
+
+            // add unique words from dependencies - packages
+            if tech.pkgs_kw.is_some() {
+                // init the field if None
+                if master.pkgs_kw.is_none() {
+                    master.pkgs_kw = Some(HashSet::new());
+                }
+
+                let pkgs_kw = master.pkgs_kw.as_mut().unwrap();
+                for kw in tech.pkgs_kw.unwrap() {
+                    pkgs_kw.increment_counters(kw);
+                }
+            }
+
             // re-insert the master record
             self.tech.insert(master);
         } else {
@@ -413,4 +440,127 @@ pub fn timestamp_as_s3_name() -> String {
     String::from(String::from_utf8_lossy(&[
         ts[0], ts[1], ts[2], ts[3], ts[5], ts[6], ts[8], ts[9], ts[10], ts[11], ts[12], ts[14], ts[15], ts[17], ts[18],
     ]))
+}
+
+#[cfg(test)]
+mod test_report {
+    use super::Report;
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    #[test]
+    fn test_merge() {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .with_ansi(false)
+            .init();
+
+        let r1 = File::open("test-files/report1.json").unwrap();
+        let r1: Report = serde_json::from_reader(r1).unwrap();
+
+        let r2 = File::open("test-files/report2.json").unwrap();
+        let r2: Report = serde_json::from_reader(r2).unwrap();
+
+        // calculate the expected sums of files
+        let cs_files: usize = r1
+            .tech
+            .iter()
+            .chain(r2.tech.iter())
+            .map(|t| if t.language == "C#" { t.files } else { 0 })
+            .sum();
+        let md_files: usize = r1
+            .tech
+            .iter()
+            .chain(r2.tech.iter())
+            .map(|t| if t.language == "Markdown" { t.files } else { 0 })
+            .sum();
+        let ps1_files: usize = r1
+            .tech
+            .iter()
+            .chain(r2.tech.iter())
+            .map(|t| if t.language == "PowerShell" { t.files } else { 0 })
+            .sum();
+
+        // do the same for refs and pkgs in C#
+        let cs_refs: usize = r1
+            .tech
+            .iter()
+            .chain(r2.tech.iter())
+            .map(|t| {
+                if t.language == "C#" {
+                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    rs
+                } else {
+                    0
+                }
+            })
+            .sum();
+            let cs_pkgs: usize = r1
+            .tech
+            .iter()
+            .chain(r2.tech.iter())
+            .map(|t| {
+                if t.language == "C#" {
+                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    rs
+                } else {
+                    0
+                }
+            })
+            .sum();
+
+        let rm = Report::merge(None, r1).unwrap();
+        let rm = Report::merge(Some(rm), r2).unwrap();
+        let rms = serde_json::to_string_pretty(&rm).unwrap();
+
+        let mut rmf = File::create("test-files/report_merged.json").unwrap();
+        let _ = rmf.write_all(&mut rms.as_bytes());
+
+        // compare number of files
+        for t in rm.tech.iter() {
+            match t.language.as_str() {
+                "C#" => {
+                    assert_eq!(t.files, cs_files, "C# file count");
+                }
+                "Markdown" => {
+                    assert_eq!(t.files, md_files, "Markdown file count");
+                }
+                "PowerShell" => {
+                    assert_eq!(t.files, ps1_files, "PowerShell file count");
+                }
+                _ => assert!(false, "Unexpected language {}", t.language),
+            }
+        }
+
+        // compare number of refs and pkgs for C#
+        let cs_refs_rm: usize = rm
+            .tech
+            .iter()
+            .map(|t| {
+                if t.language == "C#" {
+                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    rs
+                } else {
+                    0
+                }
+            })
+            .sum();
+        println!("Refs counts, merged: {}, expected {}", cs_refs_rm, cs_refs);
+        assert_eq!(cs_refs_rm, cs_refs, "C# refs count");
+        
+        let cs_pkgs_rm: usize = rm
+            .tech
+            .iter()
+            .map(|t| {
+                if t.language == "C#" {
+                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    rs
+                } else {
+                    0
+                }
+            })
+            .sum();
+        println!("Pkgs counts, merged: {}, expected {}", cs_pkgs_rm, cs_pkgs);
+        assert_eq!(cs_pkgs_rm, cs_pkgs, "C# pkgs count");
+    }
 }

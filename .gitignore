@@ -1,3 +1,4 @@
 /target
 /reports
 Cargo.lock
+stm-report.json
