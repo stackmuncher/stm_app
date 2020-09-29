@@ -22,11 +22,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // load code rules
     let mut code_rules = lib::code_rules::CodeRules::new(&params.code_rules_dir);
 
+    // keeping this block for testing
+    // let old_report = std::fs::File::open("stm-report-old.json").unwrap();
+    // let old_report: crate::lib::report::Report = serde_json::from_reader(old_report).unwrap();
+
     let report = lib::process_project(
         &mut code_rules,
         &params.project_dir_path,
         &params.user_name,
         &params.repo_name,
+        None,
+        // &"a".to_string(),
+        // &"b".to_string(),
+        // Some(old_report),
     )
     .await?;
 

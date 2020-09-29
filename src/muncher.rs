@@ -1,6 +1,7 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use tracing::{error, trace};
 
 #[derive(Deserialize, Clone, Debug)]
@@ -17,6 +18,7 @@ pub struct Muncher {
     pub block_comments_end: Option<Vec<String>>,
     pub refs: Option<Vec<String>>,
     pub packages: Option<Vec<String>>,
+    // REMEMBER TO ADD ANY NEW MEMBERS TO HASH TRAIT!!!
 
     // Regex section is compiled once from the above properties
     #[serde(skip)]
@@ -43,6 +45,9 @@ pub struct Muncher {
     /// identify them and share with other threads
     #[serde(skip)]
     pub brand_new: bool,
+    /// A short hash of the muncher rules to detect a change for reprocessing
+    #[serde(skip)]
+    pub muncher_hash: u64,
 }
 
 impl Muncher {
@@ -71,6 +76,11 @@ impl Muncher {
 
         conf.muncher_name = muncher_name.clone();
         conf.brand_new = true;
+
+        // hash the muncher to ID the rules and avoid reprocessing
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        conf.hash(&mut hasher);
+        conf.muncher_hash = hasher.finish();
 
         // compile all regex strings
         if conf.compile_all_regex().is_err() {
@@ -175,5 +185,21 @@ impl Muncher {
         // add the new regex to the list
         list.as_mut().unwrap().push(compiled_regex);
         true
+    }
+}
+
+impl Hash for Muncher {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.muncher_name.hash(state);
+        self.language.hash(state);
+        self.keywords.hash(state);
+        self.bracket_only.hash(state);
+        self.line_comments.hash(state);
+        self.inline_comments.hash(state);
+        self.doc_comments.hash(state);
+        self.block_comments_start.hash(state);
+        self.block_comments_end.hash(state);
+        self.refs.hash(state);
+        self.packages.hash(state);
     }
 }

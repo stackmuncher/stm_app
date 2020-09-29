@@ -9,6 +9,9 @@ use tracing::trace;
 pub struct Tech {
     pub language: String,
     pub muncher_name: String,
+    /// A short hash of the muncher rules to detect a change for reprocessing
+    #[serde(default)]
+    pub muncher_hash: u64,
     pub files: usize,
     pub total_lines: usize,
     pub blank_lines: usize,
@@ -42,13 +45,14 @@ impl std::hash::Hash for Tech {
         H: std::hash::Hasher,
     {
         state.write(self.muncher_name.as_bytes());
+        state.write(self.language.as_bytes());
         state.finish();
     }
 }
 
 impl PartialEq for Tech {
     fn eq(&self, other: &Self) -> bool {
-        self.muncher_name == other.muncher_name
+        self.muncher_name == other.muncher_name && self.language == other.language
     }
 }
 

@@ -190,15 +190,7 @@ impl Report {
 
     /// Generates a new report name in a consistent way.
     pub fn generate_report_name(user_name: &String, repo_name: &String) -> String {
-        [
-            user_name,
-            "/",
-            repo_name,
-            ".",
-            timestamp_as_s3_name().as_str(),
-            Report::REPORT_FILE_NAME_SUFFIX,
-        ]
-        .concat()
+        [user_name, "/", repo_name, Report::REPORT_FILE_NAME_SUFFIX].concat()
     }
 
     /// Create a blank report with the current timestamp.
@@ -433,15 +425,6 @@ impl std::fmt::Display for Report {
     }
 }
 
-/// Returns a timestamp as `20200101T163957`
-pub fn timestamp_as_s3_name() -> String {
-    let ts = chrono::Utc::now().to_rfc3339().into_bytes();
-
-    String::from(String::from_utf8_lossy(&[
-        ts[0], ts[1], ts[2], ts[3], ts[5], ts[6], ts[8], ts[9], ts[10], ts[11], ts[12], ts[14], ts[15], ts[17], ts[18],
-    ]))
-}
-
 #[cfg(test)]
 mod test_report {
     use super::Report;
@@ -495,7 +478,7 @@ mod test_report {
                 }
             })
             .sum();
-            let cs_pkgs: usize = r1
+        let cs_pkgs: usize = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
@@ -547,7 +530,7 @@ mod test_report {
             .sum();
         println!("Refs counts, merged: {}, expected {}", cs_refs_rm, cs_refs);
         assert_eq!(cs_refs_rm, cs_refs, "C# refs count");
-        
+
         let cs_pkgs_rm: usize = rm
             .tech
             .iter()

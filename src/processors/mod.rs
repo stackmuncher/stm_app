@@ -30,6 +30,7 @@ pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, 
         refs_kw: None,
         pkgs: HashSet::new(), // they should be Option<>
         pkgs_kw: None,
+        muncher_hash: rules.muncher_hash,
     };
 
     // get file contents as UTF
