@@ -215,6 +215,21 @@ impl Report {
         }
     }
 
+    /// A helper function to match the S3 output.
+    /// Returns None if there are any problems converting the S3 data into
+    /// the struct because it would be just regenerated downstream if None.
+    /// It's a bit of a hack.
+    pub fn from_s3_bytes(s3_bytes: Result<Vec<u8>, ()>) -> Option<Self> {
+        if let Ok(rpt) = s3_bytes {
+            if let Ok(rpt) = serde_json::from_slice::<Report>(rpt.as_slice()) {
+                info!("Loaded prev report from S3");
+                return Some(rpt);
+            }
+        };
+        error!("Failed to get the prev report from S3");
+        None
+    }
+
     /// Add a file that won't be processed because it is of unknown type.
     pub(crate) fn add_unprocessed_file(&mut self, file_name: &String, project_dir_path: &String) {
         // remove the project path from the file name
@@ -232,7 +247,7 @@ impl Report {
             let ext = file_name.split_at(position);
             if !ext.1.is_empty() {
                 let ext = KeywordCounter {
-                    k: ext.1.to_string(),
+                    k: ext.1.trim_start_matches(".").to_string(),
                     t: None,
                     c: 1,
                 };

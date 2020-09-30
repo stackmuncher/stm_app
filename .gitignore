@@ -2,3 +2,5 @@
 /reports
 Cargo.lock
 stm-report.json
+trace*.txt
+*report*.json
