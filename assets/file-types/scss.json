@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/file-type.json",
+  "line_endings": "unix",
+  "matches": [
+    {"muncher":"scss"}
+  ]
+  
+}

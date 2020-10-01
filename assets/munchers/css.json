@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "CSS",
+  "bracket_only": [
+    "^\\s*[{}\\[\\]][\\s]*$"
+  ],
+  "block_comments_start": [
+    "(?i)^\\s*/\\*"
+  ],
+  "block_comments_end": [
+    "(?i)\\*/\\s*$"
+  ]
+}

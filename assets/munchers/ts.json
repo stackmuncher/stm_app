@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "TypeScript",
+  "bracket_only": [
+    "^\\s*[{}\\[\\]][\\s;,)]*$"
+  ],
+  "line_comments": [
+    "^\\s*//\\s*.{10,}"
+  ],
+  "inline_comments": [
+    "^[.[^/\n]]+\\s//\\s.{10,}"
+  ],
+  "block_comments_start": [
+    "(?i)^\\s*/\\*"
+  ],
+  "block_comments_end": [
+    "(?i)\\*/\\s*$"
+  ]
+}
