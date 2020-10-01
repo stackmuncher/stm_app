@@ -245,7 +245,9 @@ impl Report {
         // check if this particular extension was encountered
         if let Some(position) = file_name.rfind(".") {
             let ext = file_name.split_at(position);
-            if !ext.1.is_empty() {
+            // filter out files with no extension and files that sit in a folder
+            // starting with a ., e.g. `.bin/license`
+            if !ext.1.is_empty() && ext.1.find("/").is_none() && ext.1.find("\\").is_none() {
                 let ext = KeywordCounter {
                     k: ext.1.trim_start_matches(".").to_string(),
                     t: None,
@@ -253,7 +255,7 @@ impl Report {
                 };
                 self.unknown_file_types.increment_counters(ext);
             } else {
-                warn!("No extension on {}", file_name);
+                trace!("No extension on {}", file_name);
             }
         }
     }
