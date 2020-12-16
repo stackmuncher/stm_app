@@ -96,16 +96,15 @@ impl Tech {
                     // is always present as the full string match.
 
                     // grab the exact match, if any, otherwise grab the whole string match
-                    let (cap, group_len) = if groups.len() > 1 {
-                        // for g in groups.iter().skip(1) {
-                        //     g.unwrap_or_default().as_str()
-                        // }
-
-                        let gr_ar: Vec<&str> = groups.iter().skip(1).map(|g| g.unwrap().as_str()).collect();
-                        (gr_ar.join(" "), groups.len() - 1)
-                    //(groups[1].to_string(), groups.len() - 1)
+                    let cap = if groups.len() > 1 {
+                        let gr_ar: Vec<&str> = groups
+                            .iter()
+                            .skip(1)
+                            .filter_map(|g| if g.is_some() { Some(g.unwrap().as_str()) } else { None })
+                            .collect();
+                        gr_ar.join(" ").trim().to_string()
                     } else {
-                        (groups[0].to_string(), 1)
+                        groups[0].to_string()
                     };
 
                     trace!("{} x {} for {}", cap, groups.len(), r);
@@ -116,7 +115,7 @@ impl Tech {
                     }
 
                     // add the counts depending with different factory functions for different Tech fields
-                    kw_counter.increment_counters(kw_counter_factory(cap, group_len));
+                    kw_counter.increment_counters(kw_counter_factory(cap, 1));
                 }
             }
         }

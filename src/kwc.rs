@@ -94,8 +94,8 @@ impl KeywordCounter {
 
         // loop through the characters to find the first boundary
         for (i, c) in kwc.k.as_bytes().iter().enumerate() {
-            // keep iterating until the first separator (not ._"')
-            if c.is_ascii_alphanumeric() || *c == 46u8 || *c == 95u8 {
+            // keep iterating until the first separator (not -._"')
+            if c.is_ascii_alphanumeric() || *c == 45u8 || *c == 46u8 || *c == 95u8 {
                 continue;
             }
 
@@ -108,7 +108,7 @@ impl KeywordCounter {
             // split the keyword at the boundary
             let (k, t) = kwc.k.split_at(i);
             let mut ths: HashSet<String> = HashSet::new();
-            ths.insert(t.to_string());
+            ths.insert(t.trim().to_string());
             kwc.t = Some(ths);
             kwc.k = k.to_string();
 
