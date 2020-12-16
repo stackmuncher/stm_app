@@ -19,7 +19,7 @@
     },
     "matches": {
       "type": "array",
-      "description": "List of possible language matches for the file type. The conditions described inside this object must be met for the match to activate.",
+      "description": "List of possible language matches for the file type. The conditions described inside this object must be met for the match to activate. The matches should be arranged in the order of specificity: the most generic first, the most specific last. The code will go with the very last match that met all its conditions.",
       "items": [
         {
           "type": "object",
@@ -30,7 +30,7 @@
             },
             "in_path": {
               "type": "array",
-              "description": "Multiple Regex of the paths the file can be in.",
+              "description": "Multiple Regex of the paths the file can be in. E.g. `Cargo\\.toml$` matches `Cargo.toml` files.",
               "minItems": 1,
               "uniqueItems": true
             },

@@ -34,16 +34,8 @@ impl CodeRules {
     /// File-type rules are loaded upfront, munchers are loaded dynamically
     pub fn new(config_dir: &String) -> Self {
         // assume that the rule-files live in subfolders of the config dir
-        let file_type_dir = [
-            config_dir.trim_end_matches("/").to_owned(),
-            "/file-types".to_owned(),
-        ]
-        .concat();
-        let muncher_dir = [
-            config_dir.trim_end_matches("/").to_owned(),
-            "/munchers".to_owned(),
-        ]
-        .concat();
+        let file_type_dir = [config_dir.trim_end_matches("/").to_owned(), "/file-types".to_owned()].concat();
+        let muncher_dir = [config_dir.trim_end_matches("/").to_owned(), "/munchers".to_owned()].concat();
 
         info!(
             "Loading config file for file_types from {} and munchers from {}",
@@ -99,7 +91,7 @@ impl CodeRules {
             // try to find a file_type match for the ext
             if let Some(file_type) = self.files_types.get(ext.as_str()) {
                 // try to find a matching muncher
-                if let Some(muncher_name) = file_type.get_muncher_name() {
+                if let Some(muncher_name) = file_type.get_muncher_name(file_path) {
                     // load the muncher from its file on the first use
                     if !self.munchers.contains_key(&muncher_name) {
                         let muncher_file_name = [
@@ -117,7 +109,7 @@ impl CodeRules {
                             .insert(muncher_name.clone(), Muncher::new(&muncher_file_name, &muncher_name));
                         // indicate to the caller that there were new munchers added so they can be shared with other threads
                         if self.new_munchers.is_none() {
-                            self.new_munchers=Some(HashSet::new());  
+                            self.new_munchers = Some(HashSet::new());
                         }
                         self.new_munchers.as_mut().unwrap().insert(muncher_name.clone());
                     }

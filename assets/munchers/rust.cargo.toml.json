@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Rust",
+  "packages": [
+    "^([\\w-]+)\\s*=\\s*(\"[\\d\\.]+\"|\\s*\\{[\\s\\.]*version\\s*=)"
+  ]
+}

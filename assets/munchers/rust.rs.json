@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rimutaka/stm/master/assets/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Rust",
+  "keywords": [
+    "\\bas\\b",
+    "\\bbreak\\b",
+    "\\bconst\\b",
+    "\\bcontinue\\b",
+    "\\bcrate\\b",
+    "\\belse\\b",
+    "\\benum\\b",
+    "\\bextern\\b",
+    "\\bfalse\\b",
+    "\\bfn\\b",
+    "\\bfor\\b",
+    "\\bif\\b",
+    "\\bimpl\\b",
+    "\\bin\\b",
+    "\\blet\\b",
+    "\\bloop\\b",
+    "\\bmatch\\b",
+    "\\bmod\\b",
+    "\\bmove\\b",
+    "\\bmut\\b",
+    "\\bpub\\b",
+    "\\bref\\b",
+    "\\breturn\\b",
+    "\\bself\\b",
+    "\\bSelf\\b",
+    "\\bstatic\\b",
+    "\\bstruct\\b",
+    "\\bsuper\\b",
+    "\\btrait\\b",
+    "\\btrue\\b",
+    "\\btype\\b",
+    "\\bunsafe\\b",
+    "\\buse\\b",
+    "\\bwhere\\b",
+    "\\bwhile\\b",
+    "\\basync\\b",
+    "\\bawait\\b",
+    "\\bdyn\\b",
+    "\\byield\\b",
+    "\\btry\\b",
+    "\\bunion\\b"
+  ],
+  "bracket_only": [
+    "^\\s*[{}\\[\\]][\\s;,]*$"
+  ],
+  "line_comments": [
+    "^\\s*//\\s*.{10,}"
+  ],
+  "inline_comments": [
+    "^[.[^/\n]]+\\s//\\s.{10,}"
+  ],
+  "doc_comments": [
+    "^\\s+///\\s+.{8,}",
+    "^//!\\s+.{8,}"
+  ],
+  "block_comments_start": [
+    "(?i)^\\s*/\\*"
+  ],
+  "block_comments_end": [
+    "(?i)\\*/\\s*$"
+  ]
+}
