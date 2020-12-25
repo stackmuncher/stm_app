@@ -1,0 +1,20 @@
+[package]
+name = "stmlib"
+version = "0.1.0"
+authors = ["rimutaka <max@onebro.me>"]
+edition = "2018"
+
+[dependencies]
+regex = "1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4"
+tracing = { version = "0.1", features = ["log"] }
+encoding_rs_io = "0.1"
+encoding_rs = "0.8"
+anyhow = "1.0"
+uuid = { version = "0.8", features = ["v4"] }
+tokio = { version = "0.2.22", features = ["full"] }
+
+[dev-dependencies]
+tracing-subscriber = "0.2"

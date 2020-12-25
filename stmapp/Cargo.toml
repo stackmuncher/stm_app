@@ -1,0 +1,12 @@
+[package]
+name = "stmapp"
+version = "0.1.0"
+authors = ["rimutaka <max@onebro.me>"]
+edition = "2018"
+
+[dependencies]
+stmlib = { version = "0.1", path = "../stmlib" }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = "0.2"
+log = "0.4"
+tokio = { version = "0.2.22", features = ["full"] }
