@@ -12,6 +12,9 @@ pub struct Tech {
     /// A short hash of the muncher rules to detect a change for reprocessing
     #[serde(default)]
     pub muncher_hash: u64,
+    /// The name of the file for individual file reports. Not present in combined tech reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
     pub files: usize,
     pub total_lines: usize,
     pub blank_lines: usize,
@@ -46,13 +49,16 @@ impl std::hash::Hash for Tech {
     {
         state.write(self.muncher_name.as_bytes());
         state.write(self.language.as_bytes());
+        if let Some(file_name) = &self.file_name {
+            state.write(file_name.as_bytes());
+        };
         state.finish();
     }
 }
 
 impl PartialEq for Tech {
     fn eq(&self, other: &Self) -> bool {
-        self.muncher_name == other.muncher_name && self.language == other.language
+        self.muncher_name == other.muncher_name && self.language == other.language && self.file_name == other.file_name
     }
 }
 

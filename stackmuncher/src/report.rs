@@ -7,12 +7,18 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use tokio::process::Command;
-use tracing::{error, info, debug, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "tech")]
 pub struct Report {
+    /// Combined summary per technology, e.g. Rust, C# or CSS
+    /// This member can be shared publicly after some clean up
     pub tech: HashSet<Tech>,
+    /// Per-file technology summary, e.g. Rust/main.rs.
+    /// This member should not be shared publicly, unless it's a public project
+    /// because file names are sensitive info that can be exploited.
+    pub per_file_tech: HashSet<Tech>,
     pub timestamp: String,
     pub unprocessed_file_names: HashSet<String>,
     pub unknown_file_types: HashSet<KeywordCounter>,
@@ -55,7 +61,7 @@ impl Report {
             // tech1==tech2 if munchers and languages are the same
             // we want to combine multiple munchers for the same language
             tech.muncher_name = String::new();
-            new_rep_tech.add_tech_record(tech);
+            new_rep_tech.merge_tech_record(tech);
         }
         other_report.tech = new_rep_tech.tech;
 
@@ -71,7 +77,7 @@ impl Report {
 
             // merge all tech records
             for tech in other_report.tech {
-                merge_into_inner.add_tech_record(tech);
+                merge_into_inner.merge_tech_record(tech);
             }
 
             // merge unknown_file_types
@@ -126,8 +132,9 @@ impl Report {
         merge_into
     }
 
-    /// Add a new Tech record merging with the existing records.
-    pub(crate) fn add_tech_record(&mut self, tech: Tech) {
+    /// Add a new Tech record merging with the existing records. It removes per-file and some other
+    /// potentially sensitive info used for local caching.
+    pub(crate) fn merge_tech_record(&mut self, tech: Tech) {
         trace!("lang: {}, files: {}", tech.language, tech.files);
         // add totals to the existing record, if any
         if let Some(mut master) = self.tech.take(&tech) {
@@ -186,6 +193,9 @@ impl Report {
             self.tech.insert(master);
         } else {
             // there no matching tech record - add it to the hashmap for the 1st time
+            // but reset file-specific data first
+            let mut tech = tech;
+            tech.file_name = None;
             self.tech.insert(tech);
         }
     }
@@ -203,6 +213,7 @@ impl Report {
 
         Report {
             tech: HashSet::new(),
+            per_file_tech: HashSet::new(),
             timestamp: chrono::Utc::now().to_rfc3339(),
             unprocessed_file_names: HashSet::new(),
             unknown_file_types: HashSet::new(),

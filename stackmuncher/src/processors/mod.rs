@@ -16,6 +16,7 @@ pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, 
     let mut tech = Tech {
         language: rules.language.clone(),
         muncher_name: rules.muncher_name.clone(),
+        file_name: Some(file_path.clone()),
         files: 1,
         total_lines: 0,
         code_lines: 0,

@@ -38,6 +38,7 @@ pub async fn process_project(
     // result collectors
     let mut processed_files: Vec<String> = Vec::new();
     let mut report = report::Report::new(user_name.clone(), repo_name.clone());
+    let mut per_file_tech: Vec<String> = Vec::new();
 
     // get the list of files to process (all files in the tree)
     let files = get_file_names_recursively(Path::new(project_dir)).await?;
@@ -57,21 +58,34 @@ pub async fn process_project(
             // process the file with the rules from the muncher
             if let Ok(tech) = processors::process_file(&file_path, muncher) {
                 processed_files.push(file_path.clone());
-                report.add_tech_record(tech);
+                report.per_file_tech.insert(tech.clone());
+                per_file_tech.push(file_path.clone());
+                report.merge_tech_record(tech);
             }
         }
     }
 
-    // copy tech reports for unchanged munchers from the old report, if any
+    // copy some parts from the old report, if any
     if let Some(old_report) = old_report {
+        // copy tech reports for unchanged munchers from the old report, if any
         for tech in old_report.tech {
             if tech.muncher_hash > 0 && unchanged_munchers.contains(&tech.muncher_hash) {
                 info!(
                     "Copied {}/{}/{} tech section from the old report",
                     tech.language, tech.muncher_name, tech.muncher_hash
                 );
-                report.add_tech_record(tech);
+                report.merge_tech_record(tech);
             }
+        }
+
+        // copy per-file tech sections that are still present in the tree, but were not re-processed
+        for tech in old_report.per_file_tech {
+            if let Some(file_name) = &tech.file_name {
+                if !per_file_tech.contains(file_name) && files.contains(file_name) {
+                    info!("Copied {} file-tech section from the old report", file_name);
+                    report.per_file_tech.insert(tech);
+                }
+            };
         }
 
         // copy the commit info because the repo has not changed
