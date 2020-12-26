@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::path::Path;
-use stmlib::{code_rules::CodeRules, config::Config, process_project};
+use stackmuncher::{code_rules::CodeRules, config::Config, process_project};
 use tracing::info;
 
 #[tokio::main]

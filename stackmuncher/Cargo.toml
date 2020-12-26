@@ -1,5 +1,5 @@
 [package]
-name = "stmlib"
+name = "stackmuncher"
 version = "0.1.0"
 authors = ["rimutaka <max@onebro.me>"]
 edition = "2018"

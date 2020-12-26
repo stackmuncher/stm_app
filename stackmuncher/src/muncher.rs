@@ -4,6 +4,9 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use tracing::{error, trace};
 
+// ===================================================================
+// IMPORTANT: update the hashing function after adding any new members
+// ===================================================================
 #[derive(Deserialize, Clone, Debug)]
 pub struct Muncher {
     #[serde(default)]
