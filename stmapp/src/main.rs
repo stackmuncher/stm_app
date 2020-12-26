@@ -1,10 +1,9 @@
-use std::error::Error;
 use std::path::Path;
 use stackmuncher::{code_rules::CodeRules, config::Config, process_project};
 use tracing::info;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), ()> {
     // get input params
     let params = new_config();
 

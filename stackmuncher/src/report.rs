@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use tokio::process::Command;
-use tracing::{error, info, trace, warn};
+use tracing::{error, info, debug, trace, warn};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "tech")]
@@ -33,6 +33,8 @@ pub struct Report {
     pub date_init: Option<String>,
     /// The date of the current HEAD
     pub date_head: Option<String>,
+    /// The current list of files in the GIT tree
+    pub tree_files: Option<Vec<String>>,
 }
 
 impl Report {
@@ -212,6 +214,7 @@ impl Report {
             collaborators: None,
             date_head: None,
             date_init: None,
+            tree_files: None,
         }
     }
 
@@ -231,14 +234,7 @@ impl Report {
     }
 
     /// Add a file that won't be processed because it is of unknown type.
-    pub(crate) fn add_unprocessed_file(&mut self, file_name: &String, project_dir_path: &String) {
-        // remove the project path from the file name
-        let mut file_name = file_name.clone(); // I don't like `mut` in the function signature
-        file_name.drain(..project_dir_path.len()); // remove the path
-        if file_name.starts_with("/") || file_name.starts_with("\\") {
-            file_name.drain(..1); // remove the leading / or \, if any
-        }
-
+    pub(crate) fn add_unprocessed_file(&mut self, file_name: &String) {
         // add the file name to the list
         self.unprocessed_file_names.insert(file_name.clone());
 
@@ -311,7 +307,7 @@ impl Report {
     /// Adds details about the commit history to the report.
     /// Exits early if the rev-list cannot be extracted.
     pub(crate) async fn extract_commit_info(&mut self, repo_dir: &String) {
-        info!("Extracting git rev-list");
+        debug!("Extracting git rev-list");
         let git_output = match Report::execute_git_command(
             vec!["log".into(), "--no-decorate".into(), "--encoding=utf-8".into()],
             repo_dir,

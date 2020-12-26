@@ -12,7 +12,6 @@ chrono = "0.4"
 tracing = { version = "0.1", features = ["log"] }
 encoding_rs_io = "0.1"
 encoding_rs = "0.8"
-anyhow = "1.0"
 uuid = { version = "0.8", features = ["v4"] }
 tokio = { version = "0.2.22", features = ["full"] }
 
