@@ -6,6 +6,7 @@ use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
 
@@ -23,13 +24,13 @@ pub struct Report {
     pub unprocessed_file_names: HashSet<String>,
     pub unknown_file_types: HashSet<KeywordCounter>,
     pub user_name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub repo_name: String,
     /// A UUID of the report
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_id: String,
     /// A unique name containing user name and project name
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_name: String,
     /// S3 keys of the reports merged into this one
     pub reports_included: HashSet<String>,
@@ -244,8 +245,46 @@ impl Report {
         None
     }
 
-    /// Add a file that won't be processed because it is of unknown type.
-    pub(crate) fn add_unprocessed_file(&mut self, file_name: &String) {
+    /// Load a report from the local storage, if one exists. Returns None and logs errors on failure.
+    pub fn from_disk(path: &String) -> Option<Self> {
+        // check if the file exists at all
+        let existing_report_file = Path::new(path);
+        if !existing_report_file.exists() {
+            info!("No report found at {}. The repo will be processed in full.", path,);
+
+            return None;
+        }
+
+        // try to load the file and read its contents
+        let mut existing_report_file = match File::open(path) {
+            Err(e) => {
+                error!("Cannot read report at {} due to {}.", path, e);
+                return None;
+            }
+            Ok(v) => v,
+        };
+        let mut report_contents = String::new();
+        if let Err(e) = existing_report_file.read_to_string(&mut report_contents) {
+            error!("Failed to read report contents from {} due to {}", path, e);
+            return None;
+        };
+
+        // convert to a struct and return
+        match serde_json::from_str::<Report>(&report_contents) {
+            Err(e) => {
+                error!("Failed to deser report contents from {} due to {}", path, e);
+                return None;
+            }
+            Ok(v) => {
+                info!("Loaded a report from {}", path);
+                return Some(v);
+            }
+        }
+    }
+
+    /// Add a file that won't be processed because it is of unknown type and count the number of files
+    /// with the same extension.
+    fn add_unprocessed_file(&mut self, file_name: &String) {
         // add the file name to the list
         self.unprocessed_file_names.insert(file_name.clone());
 
@@ -316,8 +355,9 @@ impl Report {
     }
 
     /// Adds details about the commit history to the report.
-    /// Exits early if the rev-list cannot be extracted.
-    pub(crate) async fn extract_commit_info(&mut self, repo_dir: &String) {
+    /// Does not panic (exits early) if `git rev-list` command fails.
+    pub async fn extract_commit_info(self, repo_dir: &String) -> Self {
+        let mut report = self;
         debug!("Extracting git rev-list");
         let git_output = match Report::execute_git_command(
             vec!["log".into(), "--no-decorate".into(), "--encoding=utf-8".into()],
@@ -326,7 +366,7 @@ impl Report {
         .await
         {
             Err(_) => {
-                return;
+                return report;
             }
             Ok(v) => v,
         };
@@ -335,7 +375,7 @@ impl Report {
         let git_output = String::from_utf8_lossy(&git_output);
         if git_output.len() == 0 {
             warn!("Zero-length rev-list");
-            return;
+            return report;
         }
 
         // loop through all the lines to get Authors
@@ -354,8 +394,8 @@ impl Report {
                     }
 
                     // there is some colab data - prepare the container
-                    if self.collaborators.is_none() {
-                        self.collaborators = Some(HashSet::new());
+                    if report.collaborators.is_none() {
+                        report.collaborators = Some(HashSet::new());
                     }
 
                     // try to split the author details into name and email
@@ -364,7 +404,8 @@ impl Report {
                             let (author_n, author_e) = author.split_at(idx);
                             trace!("Split: {}|{}", author_n, author_e);
                             let author_e = author_e.trim_end_matches(">").trim_start_matches(" <");
-                            self.collaborators
+                            report
+                                .collaborators
                                 .as_mut()
                                 .unwrap()
                                 .insert((author_n.to_owned(), author_e.to_owned()));
@@ -373,7 +414,8 @@ impl Report {
                     }
                     // split failed - add the entire line
                     trace!("Split failed");
-                    self.collaborators
+                    report
+                        .collaborators
                         .as_mut()
                         .unwrap()
                         .insert((author.to_owned(), "".to_owned()));
@@ -400,7 +442,7 @@ impl Report {
                 // Example: Mon Aug 10 22:47:56 2020 +0200
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
                     trace!("Parsed as: {}", d.to_rfc3339());
-                    self.date_head = Some(d.to_rfc3339());
+                    report.date_head = Some(d.to_rfc3339());
                     break;
                 } else {
                     error! {"Invalid commit date format: {}", date};
@@ -425,13 +467,57 @@ impl Report {
                 // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
                     trace!("Parsed as: {}", d.to_rfc3339());
-                    self.date_init = Some(d.to_rfc3339());
+                    report.date_init = Some(d.to_rfc3339());
                     break;
                 } else {
                     error! {"Invalid commit date format: {}", date};
                 };
             }
         }
+
+        report
+    }
+
+    /// Copy the list of collaborators, init and head dates from the old report.
+    pub async fn copy_commit_info(self, old_report: &Self) -> Self {
+        let mut report = self;
+
+        report.collaborators = old_report.collaborators.clone();
+        report.date_head = old_report.date_head.clone();
+        report.date_init = old_report.date_init.clone();
+        info!("Copied commit info from the old report");
+
+        report
+    }
+
+    /// Adds the entire list of tree files to the report, extracts names of unprocessed files
+    /// and counts their extensions.
+    pub fn update_list_of_tree_files(self, all_tree_files: Vec<String>) -> Self {
+        // result collector
+        let mut report = self;
+
+        // subtract processed files from all files to get the list of unprocessed files
+        let processed_files = report
+            .per_file_tech
+            .iter()
+            .map(|tech| tech.file_name.as_ref().unwrap_or(&String::new()).clone())
+            .collect::<HashSet<String>>();
+        let all_files = all_tree_files.iter().map(|f| f.clone()).collect::<HashSet<String>>();
+        let unprocessed_files = all_files
+            .difference(&processed_files)
+            .map(|f| f)
+            .collect::<Vec<&String>>();
+
+        // store the names of unprocessed files in the report
+        debug!("Found {} un-processed files", unprocessed_files.len());
+        for f in unprocessed_files {
+            report.add_unprocessed_file(f);
+        }
+
+        // add the entire list of files from the tree to the report
+        report.tree_files = Some(all_tree_files);
+
+        report
     }
 }
 

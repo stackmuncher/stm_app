@@ -1,14 +1,19 @@
+use stackmuncher::{
+    code_rules::CodeRules,
+    config::{Config, FileListType},
+    get_last_commit_files, process_project_files,
+    report::Report,
+};
 use std::path::Path;
-use stackmuncher::{code_rules::CodeRules, config::Config, process_project};
 use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     // get input params
-    let params = new_config();
+    let config = new_config();
 
     tracing_subscriber::fmt()
-        .with_max_level(params.log_level.clone())
+        .with_max_level(config.log_level.clone())
         .with_ansi(false)
         //.without_time()
         .init();
@@ -18,25 +23,38 @@ async fn main() -> Result<(), ()> {
     let instant = std::time::Instant::now();
 
     // load code rules
-    let mut code_rules = CodeRules::new(&params.code_rules_dir);
+    let mut code_rules = CodeRules::new(&config.code_rules_dir);
 
-    // keeping this block for testing
-    // let old_report = std::fs::File::open("stm-report-old.json").unwrap();
-    // let old_report: crate::lib::report::Report = serde_json::from_reader(old_report).unwrap();
+    // load the existing report
+    let existing_report = Report::from_disk(&config.report_file_name);
 
-    let report = process_project(
+    // we have to get the list of all tree files every time because the latest commit does not contain deleted files
+    let all_tree_files = get_last_commit_files(Path::new(&config.project_dir_path)).await?;
+
+    // get the list of files to process (all files in the tree)
+    let files = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
+        // this clone is unnecessary and can probably be avoided, but I couldn't see a quick way
+        all_tree_files.clone()
+    } else {
+        get_last_commit_files(Path::new(&config.project_dir_path)).await?
+    };
+
+    // generate the report
+    let report = process_project_files(
         &mut code_rules,
-        &params.project_dir_path,
-        &params.user_name,
-        &params.repo_name,
-        None,
-        // &"a".to_string(),
-        // &"b".to_string(),
-        // Some(old_report),
+        &config.project_dir_path,
+        &config.user_name,
+        &config.repo_name,
+        existing_report,
+        &files,
     )
     .await?;
 
-    report.save_as_local_file(&params.report_file_name);
+    // update the report with additional info
+    let report = report.extract_commit_info(&config.project_dir_path).await;
+    let report = report.update_list_of_tree_files(all_tree_files);
+
+    report.save_as_local_file(&config.report_file_name);
 
     info!("Done in {}ms", instant.elapsed().as_millis());
 
@@ -44,9 +62,12 @@ async fn main() -> Result<(), ()> {
 }
 
 /// Inits values from ENV vars and the command line arguments
-pub fn new_config() -> Config {
+fn new_config() -> Config {
     pub const ENV_RULES_PATH: &'static str = "STACK_MUNCHER_CODERULES_DIR";
-    const CMD_ARGS: &'static str = "Available CLI params: [-c code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, [-p project_path] defaults to the current dir, [-r report_path] defaults to report.json, [-l log_level] defaults to info.";
+    const CMD_ARGS: &'static str =
+        "Available CLI params: [--rules code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, \
+    [--project project_path] defaults to the current dir, [--report report_path] defaults to report.json, \
+    [--files all|recent] defaults for all, [--log log_level] defaults to info.";
 
     // Output it every time for now. Review and remove later when it's better documented.
     println!("{}", CMD_ARGS);
@@ -64,6 +85,7 @@ pub fn new_config() -> Config {
         report_file_name: "stm-report.json".to_owned(),
         user_name: String::new(),
         repo_name: String::new(),
+        file_list_type: FileListType::FullTree,
     };
 
     // check if there were any arguments passed to override the ENV vars
@@ -71,29 +93,36 @@ pub fn new_config() -> Config {
     loop {
         if let Some(arg) = args.next() {
             match arg.to_lowercase().as_str() {
-                "-c" => {
+                "--rules" => {
                     config.code_rules_dir = args
                         .peek()
-                        .expect("-c requires a path to the folder with code rules")
+                        .expect("--rules requires a path to the folder with code rules")
                         .into()
                 }
 
-                "-p" => {
+                "--project" => {
                     config.project_dir_path = args
                         .peek()
-                        .expect("-p requires a path to the root of the project to be analyzed")
+                        .expect("--project requires a path to the root of the project to be analyzed")
                         .into()
                 }
 
-                "-r" => {
+                "--report" => {
                     config.report_file_name = args
                         .peek()
-                        .expect("-r requires a report file name with or without a path")
+                        .expect("--report requires a report file name with or without a path")
                         .into()
                 }
-                "-l" => {
+                "--files" => {
+                    config.file_list_type = string_to_file_list_type(
+                        args.peek()
+                            .expect("--files requires `all` for full tree or `recent` for the last commit")
+                            .into(),
+                    )
+                }
+                "--log" => {
                     config.log_level =
-                        string_to_log_level(args.peek().expect("-l requires a valid logging level").into())
+                        string_to_log_level(args.peek().expect("--log requires a valid logging level").into())
                 }
                 _ => { //do nothing
                 }
@@ -112,11 +141,6 @@ pub fn new_config() -> Config {
         panic!("Invalid project dir location: {}", config.project_dir_path);
     }
 
-    // check if the report file can be created
-    if let Err(e) = std::fs::File::create(&config.report_file_name) {
-        panic! {"Invalid report file name: {} due to {}.", config.report_file_name, e};
-    }
-
     config
 }
 
@@ -129,6 +153,17 @@ fn string_to_log_level(s: String) -> tracing::Level {
         "warn" => tracing::Level::WARN,
         _ => {
             panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
+        }
+    }
+}
+
+/// Converts case insensitive name of the file list to an enum
+fn string_to_file_list_type(s: String) -> FileListType {
+    match s.to_lowercase().as_str() {
+        "all" => FileListType::FullTree,
+        "recent" => FileListType::LastCommit,
+        _ => {
+            panic!("Invalid FileListType value. Use `full` or `recent`. Default: `full`.");
         }
     }
 }

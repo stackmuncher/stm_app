@@ -7,10 +7,10 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 
 pub(crate) fn process_file(file_path: &String, rules: &Muncher) -> Result<Tech, String> {
-    trace!("\n\n{}: {}", rules.muncher_name, file_path);
+    debug!("\n\n{}: {}", rules.muncher_name, file_path);
 
     // prepare the blank structure
     let mut tech = Tech {

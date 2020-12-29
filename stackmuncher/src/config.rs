@@ -1,3 +1,12 @@
+/// Specifies which GIT objects (files) should be processed.
+#[derive(Debug, PartialEq)]
+pub enum FileListType {
+    /// Process the entire tree (all files) stored in GIT.
+    FullTree,
+    /// Only process the files affected by the last commit.
+    LastCommit,
+}
+
 #[derive(Debug)]
 pub struct Config {
     /// Full path to the dir with code rules. Absolute or relative to the working dir.
@@ -11,11 +20,13 @@ pub struct Config {
     pub user_name: String,
     /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
     pub repo_name: String,
+    /// Specifies which GIT objects (files) should be processed.
+    pub file_list_type: FileListType,
 }
 
 impl Config {
-    /// Returns a minimal version of Self with no validation.
-    pub fn from_ext_config(code_rules_dir: String, user_name: String, repo_name: String) -> Self {
+    /// Returns a minimal version of Self with no validation and default values.
+    pub fn new(code_rules_dir: String, user_name: String, repo_name: String) -> Self {
         Config {
             log_level: tracing::Level::INFO,
             code_rules_dir,
@@ -23,6 +34,7 @@ impl Config {
             report_file_name: String::new(),
             user_name,
             repo_name,
+            file_list_type: FileListType::FullTree,
         }
     }
 }
