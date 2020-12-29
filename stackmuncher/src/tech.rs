@@ -155,4 +155,11 @@ impl Tech {
 
         Some(kw_sum)
     }
+
+    /// Sets `file_name` member to None
+    pub(crate) fn remove_file_name(mut self) -> Self {
+        self.file_name = None;
+
+        self
+    }
 }

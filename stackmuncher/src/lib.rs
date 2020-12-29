@@ -1,6 +1,6 @@
 use report::Report;
-use std::{collections::HashSet, path::Path};
-use tracing::{info, trace};
+use std::path::Path;
+use tracing::{debug, info};
 
 pub mod code_rules;
 pub mod config;
@@ -23,7 +23,7 @@ pub async fn process_project(
     old_report: Option<report::Report>,
 ) -> Result<report::Report, ()> {
     // all files to be processed
-    let files = get_last_commit_files(Path::new(project_dir)).await?;
+    let files = get_all_tree_files(Path::new(project_dir)).await?;
 
     let files = match old_report.as_ref() {
         Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
@@ -36,7 +36,16 @@ pub async fn process_project(
     }
 
     // generate the report
-    let report = process_project_files(code_rules, project_dir, user_name, repo_name, old_report, &files).await?;
+    let report = process_project_files(
+        code_rules,
+        project_dir,
+        user_name,
+        repo_name,
+        old_report,
+        &files,
+        &files,
+    )
+    .await?;
 
     // update the report with additional info
     let report = report.extract_commit_info(project_dir).await;
@@ -52,48 +61,36 @@ pub async fn process_project_files(
     user_name: &String,
     repo_name: &String,
     old_report: Option<report::Report>,
-    files: &Vec<String>,
+    files_to_process: &Vec<String>,
+    all_tree_files: &Vec<String>,
 ) -> Result<report::Report, ()> {
     info!("Analyzing code from {}", project_dir);
 
     // result collectors
     let mut report = report::Report::new(user_name.clone(), repo_name.clone());
     let mut per_file_tech: Vec<String> = Vec::new();
-    let mut updated_tech: HashSet<u64> = HashSet::new();
 
     // loop through all the files supplied by the caller and process them one by one
-    for file_path in files {
+    for file_path in files_to_process {
         // fetch the right muncher
         if let Some(muncher) = code_rules.get_muncher(file_path) {
             // process the file with the rules from the muncher
             if let Ok(tech) = processors::process_file(&file_path, muncher) {
                 report.per_file_tech.insert(tech.clone());
                 per_file_tech.push(file_path.clone());
-                updated_tech.insert(tech.muncher_hash);
                 report.merge_tech_record(tech);
             }
         }
     }
 
-    // copy some parts from the old report to the new where no changes were made
+    // copy all per-file tech sections that are still present in the tree, but were not re-processed
     if let Some(old_report) = old_report {
-        // copy unaffected tech records
-        for tech in old_report.tech {
-            if tech.muncher_hash > 0 && !updated_tech.contains(&tech.muncher_hash) {
-                info!(
-                    "Copied {}/{}/{} tech section from the old report",
-                    tech.language, tech.muncher_name, tech.muncher_hash
-                );
-                report.merge_tech_record(tech);
-            }
-        }
-
-        // copy per-file tech sections that are still present in the tree, but were not re-processed
         for tech in old_report.per_file_tech {
             if let Some(file_name) = &tech.file_name {
-                if !per_file_tech.contains(file_name) && files.contains(file_name) {
+                if !per_file_tech.contains(file_name) && all_tree_files.contains(file_name) {
                     info!("Copied {} file-tech section from the old report", file_name);
-                    report.per_file_tech.insert(tech);
+                    report.per_file_tech.insert(tech.clone());
+                    report.merge_tech_record(tech);
                 }
             };
         }
@@ -130,12 +127,12 @@ pub fn filter_out_files_with_unchanged_munchers(
         if let Some(muncher) = code_rules.get_muncher(&file_path) {
             // check if the file in the old report was processed by the same muncher and can be skipped
             if old_munchers.contains(&muncher.muncher_hash) {
-                trace!("Unchanged muncher for {}", file_path);
+                debug!("Unchanged muncher for {}", file_path);
                 continue;
             }
 
             // the muncher was changed
-            trace!("Retaining {}", file_path);
+            debug!("Retaining {}", file_path);
             files_with_changed_munchers.push(file_path);
         }
     }

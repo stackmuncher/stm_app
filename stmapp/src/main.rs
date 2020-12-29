@@ -32,7 +32,7 @@ async fn main() -> Result<(), ()> {
     let all_tree_files = get_all_tree_files(Path::new(&config.project_dir_path)).await?;
 
     // get the list of files to process (all files in the tree)
-    let files = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
+    let files_to_process = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
         // this clone is unnecessary and can probably be avoided, but I couldn't see a quick way
         all_tree_files.clone()
     } else {
@@ -46,7 +46,8 @@ async fn main() -> Result<(), ()> {
         &config.user_name,
         &config.repo_name,
         existing_report,
-        &files,
+        &files_to_process,
+        &all_tree_files,
     )
     .await?;
 

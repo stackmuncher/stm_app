@@ -136,10 +136,16 @@ impl Report {
     /// Add a new Tech record merging with the existing records. It removes per-file and some other
     /// potentially sensitive info used for local caching.
     pub(crate) fn merge_tech_record(&mut self, tech: Tech) {
-        trace!("lang: {}, files: {}", tech.language, tech.files);
+        debug!("Merging Tech, lang: {}, files: {}", tech.language, tech.files);
+        // Tech is hashed with the file name for per-file Tech records, but here
+        // they are summaries, so it has to be removed to match
+        let tech = tech.remove_file_name();
         // add totals to the existing record, if any
         if let Some(mut master) = self.tech.take(&tech) {
-            trace!("match in master, lang: {}, files: {}", master.language, master.files);
+            debug!(
+                "Tech match in master, lang: {}, files: {}",
+                master.language, master.files
+            );
             // add up numeric values
             master.docs_comments += tech.docs_comments;
             master.files += tech.files;
@@ -195,6 +201,7 @@ impl Report {
         } else {
             // there no matching tech record - add it to the hashmap for the 1st time
             // but reset file-specific data first
+            debug!("No matching Tech exists - inserting as-is");
             let mut tech = tech;
             tech.file_name = None;
             self.tech.insert(tech);
@@ -301,7 +308,7 @@ impl Report {
                 };
                 self.unknown_file_types.increment_counters(ext);
             } else {
-                trace!("No extension on {}", file_name);
+                debug!("No extension on {}", file_name);
             }
         }
     }
@@ -341,7 +348,7 @@ impl Report {
 
         // check the status of the cloning
         let status = git_output.status.to_string();
-        trace!("Status: {}, stdout len: {}", status, git_output.stdout.len());
+        debug!("Status: {}, stdout len: {}", status, git_output.stdout.len());
 
         // the exit code must be 0 or there was a problem
         if git_output.status.code().is_none() || git_output.status.code() != Some(0) {
@@ -402,7 +409,7 @@ impl Report {
                     if author.ends_with(">") {
                         if let Some(idx) = author.rfind(" <") {
                             let (author_n, author_e) = author.split_at(idx);
-                            trace!("Split: {}|{}", author_n, author_e);
+                            debug!("Split: {}|{}", author_n, author_e);
                             let author_e = author_e.trim_end_matches(">").trim_start_matches(" <");
                             report
                                 .collaborators
@@ -413,7 +420,7 @@ impl Report {
                         };
                     }
                     // split failed - add the entire line
-                    trace!("Split failed");
+                    error!("Split failed on {}", line);
                     report
                         .collaborators
                         .as_mut()
@@ -425,12 +432,12 @@ impl Report {
         }
 
         // loop through the top few lines to find the date of the last commit
-        trace!("Looking for HEAD commit date");
+        debug!("Looking for HEAD commit date");
         for line in git_output.lines() {
-            trace!("{}", line);
+            debug!("{}", line);
             if line.starts_with("Date:   ") {
                 let (_, date) = line.split_at(7);
-                trace!("Extracted: {}", date);
+                debug!("Extracted: {}", date);
                 // go to the next line if there is no date (impossible?)
                 let date = date.trim();
                 if date.is_empty() {
@@ -441,7 +448,7 @@ impl Report {
                 // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
                 // Example: Mon Aug 10 22:47:56 2020 +0200
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
-                    trace!("Parsed as: {}", d.to_rfc3339());
+                    debug!("Parsed as: {}", d.to_rfc3339());
                     report.date_head = Some(d.to_rfc3339());
                     break;
                 } else {
@@ -451,12 +458,12 @@ impl Report {
         }
 
         // loop through the bottom few lines to find the date of the first commit
-        trace!("Looking for INIT commit date");
+        debug!("Looking for INIT commit date");
         for line in git_output.lines().rev() {
-            trace!("{}", line);
+            debug!("{}", line);
             if line.starts_with("Date:   ") {
                 let (_, date) = line.split_at(7);
-                trace!("Extracted: {}", date);
+                debug!("Extracted: {}", date);
                 // go to the next line if there is no date (impossible?)
                 let date = date.trim();
                 if date.is_empty() {
@@ -466,7 +473,7 @@ impl Report {
 
                 // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
                 if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
-                    trace!("Parsed as: {}", d.to_rfc3339());
+                    debug!("Parsed as: {}", d.to_rfc3339());
                     report.date_init = Some(d.to_rfc3339());
                     break;
                 } else {
