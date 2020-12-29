@@ -1,7 +1,7 @@
 use stackmuncher::{
     code_rules::CodeRules,
     config::{Config, FileListType},
-    get_last_commit_files, process_project_files,
+    get_all_tree_files, get_last_commit_files, process_project_files,
     report::Report,
 };
 use std::path::Path;
@@ -29,7 +29,7 @@ async fn main() -> Result<(), ()> {
     let existing_report = Report::from_disk(&config.report_file_name);
 
     // we have to get the list of all tree files every time because the latest commit does not contain deleted files
-    let all_tree_files = get_last_commit_files(Path::new(&config.project_dir_path)).await?;
+    let all_tree_files = get_all_tree_files(Path::new(&config.project_dir_path)).await?;
 
     // get the list of files to process (all files in the tree)
     let files = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
