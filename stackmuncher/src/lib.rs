@@ -1,10 +1,10 @@
-use report::Report;
 use std::path::Path;
 use tracing::{debug, info};
 
 pub mod code_rules;
 pub mod config;
 pub mod file_type;
+pub mod git;
 pub mod kwc;
 pub mod muncher;
 pub mod processors;
@@ -23,7 +23,7 @@ pub async fn process_project(
     old_report: Option<report::Report>,
 ) -> Result<report::Report, ()> {
     // all files to be processed
-    let files = get_all_tree_files(Path::new(project_dir)).await?;
+    let files = git::get_all_tree_files(Path::new(project_dir)).await?;
 
     let files = match old_report.as_ref() {
         Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
@@ -139,50 +139,4 @@ pub fn filter_out_files_with_unchanged_munchers(
 
     info!("Returning {} file names", files_with_changed_munchers.len());
     files_with_changed_munchers
-}
-
-/// Get the list of files from the current GIT tree (HEAD) relative to the current directory
-pub async fn get_all_tree_files(dir: &Path) -> Result<Vec<String>, ()> {
-    let all_objects = Report::execute_git_command(
-        vec![
-            "ls-tree".into(),
-            "-r".into(),
-            "--full-tree".into(),
-            "--name-only".into(),
-            "HEAD".into(),
-        ],
-        &dir.to_string_lossy().to_string(),
-    )
-    .await?;
-    let all_objects = String::from_utf8_lossy(&all_objects);
-
-    let files = all_objects.lines().map(|v| v.to_owned()).collect::<Vec<String>>();
-    info!("Objects in the GIT tree: {}", files.len());
-
-    Ok(files)
-}
-
-/// Get the list of files from the current GIT tree (HEAD) relative to the current directory
-pub async fn get_last_commit_files(dir: &Path) -> Result<Vec<String>, ()> {
-    let all_objects = Report::execute_git_command(
-        vec![
-            "log".into(),
-            "--name-only".into(),
-            "--oneline".into(),
-            "--no-decorate".into(),
-            "-1".into(),
-        ],
-        &dir.to_string_lossy().to_string(),
-    )
-    .await?;
-    let all_objects = String::from_utf8_lossy(&all_objects);
-
-    let files = all_objects
-        .lines()
-        .skip(1)
-        .map(|v| v.to_owned())
-        .collect::<Vec<String>>();
-    info!("Objects in the last commit: {}", files.len());
-
-    Ok(files)
 }

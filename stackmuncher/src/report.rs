@@ -7,7 +7,6 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -330,43 +329,12 @@ impl Report {
         write!(file, "{}", self).expect("Failed to save in the specified location. ");
     }
 
-    /// Executes a git command in the specified dir. Returns stdout or Err.
-    pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result<Vec<u8>, ()> {
-        // build `git ...` command
-        let mut cmd = Command::new("git");
-        cmd.args(args);
-        cmd.current_dir(&repo_dir);
-
-        // run git reset
-        let git_output = match cmd.output().await {
-            Err(_e) => {
-                error!("Git command failed");
-                return Err(());
-            }
-            Ok(v) => v,
-        };
-
-        // check the status of the cloning
-        let status = git_output.status.to_string();
-        debug!("Status: {}, stdout len: {}", status, git_output.stdout.len());
-
-        // the exit code must be 0 or there was a problem
-        if git_output.status.code().is_none() || git_output.status.code() != Some(0) {
-            let std_err = String::from_utf8(git_output.stderr).unwrap_or("Faulty stderr".into());
-            error!("Git command failed. Status: {}. Stderr: {}", status, std_err);
-            return Err(());
-        }
-
-        // stdout is Vec<u8>
-        Ok(git_output.stdout)
-    }
-
     /// Adds details about the commit history to the report.
     /// Does not panic (exits early) if `git rev-list` command fails.
     pub async fn extract_commit_info(self, repo_dir: &String) -> Self {
         let mut report = self;
         debug!("Extracting git rev-list");
-        let git_output = match Report::execute_git_command(
+        let git_output = match super::git::execute_git_command(
             vec!["log".into(), "--no-decorate".into(), "--encoding=utf-8".into()],
             repo_dir,
         )

@@ -1,7 +1,8 @@
 use stackmuncher::{
     code_rules::CodeRules,
     config::{Config, FileListType},
-    get_all_tree_files, get_last_commit_files, process_project_files,
+    git::{get_all_tree_files, get_last_commit_files},
+    process_project_files,
     report::Report,
 };
 use std::path::Path;
