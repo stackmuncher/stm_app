@@ -1,3 +1,4 @@
+use super::git::ListOfBlobs;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
 use chrono;
@@ -377,8 +378,9 @@ impl Report {
                     if author.ends_with(">") {
                         if let Some(idx) = author.rfind(" <") {
                             let (author_n, author_e) = author.split_at(idx);
+                            let author_n = author_n.trim();
+                            let author_e = author_e.trim().trim_end_matches(">").trim_start_matches("<");
                             debug!("Split: {}|{}", author_n, author_e);
-                            let author_e = author_e.trim_end_matches(">").trim_start_matches(" <");
                             report
                                 .collaborators
                                 .as_mut()
@@ -467,7 +469,7 @@ impl Report {
 
     /// Adds the entire list of tree files to the report, extracts names of unprocessed files
     /// and counts their extensions.
-    pub fn update_list_of_tree_files(self, all_tree_files: Vec<String>) -> Self {
+    pub fn update_list_of_tree_files(self, all_tree_files: ListOfBlobs) -> Self {
         // result collector
         let mut report = self;
 
@@ -477,7 +479,10 @@ impl Report {
             .iter()
             .map(|tech| tech.file_name.as_ref().unwrap_or(&String::new()).clone())
             .collect::<HashSet<String>>();
-        let all_files = all_tree_files.iter().map(|f| f.clone()).collect::<HashSet<String>>();
+        let all_files = all_tree_files
+            .iter()
+            .map(|(name, _)| name.clone())
+            .collect::<HashSet<String>>();
         let unprocessed_files = all_files
             .difference(&processed_files)
             .map(|f| f)
@@ -489,8 +494,13 @@ impl Report {
             report.add_unprocessed_file(f);
         }
 
-        // add the entire list of files from the tree to the report
-        report.tree_files = Some(all_tree_files);
+        // convert HashMap to Vec to add the entire list of files from the tree to the report
+        report.tree_files = Some(
+            all_tree_files
+                .iter()
+                .map(|(name, _)| name.clone())
+                .collect::<Vec<String>>(),
+        );
 
         report
     }

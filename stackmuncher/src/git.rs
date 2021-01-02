@@ -1,6 +1,13 @@
-use std::path::Path;
+use std::collections::{HashMap, HashSet};
 use tokio::process::Command;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
+
+pub type FilePath = String;
+pub type BlobSHA1 = String;
+/// #### An alias for HashMap<FilePath, BlobSHA1>.
+/// git ls-tree and some other commands provide blob hash and the file name.
+/// E.g. `037498fba1ca5b3662963c848158b7b678adbbf3    .gitignore`.
+pub type ListOfBlobs = HashMap<FilePath, BlobSHA1>;
 
 /// Executes a git command in the specified dir. Returns stdout or Err.
 pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result<Vec<u8>, ()> {
@@ -25,7 +32,10 @@ pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result
     // the exit code must be 0 or there was a problem
     if git_output.status.code().is_none() || git_output.status.code() != Some(0) {
         let std_err = String::from_utf8(git_output.stderr).unwrap_or("Faulty stderr".into());
-        error!("Git command failed. Status: {}. Stderr: {}", status, std_err);
+        error!(
+            "Git command failed. Status: {}. Stderr: {}. Command: {:?}",
+            status, std_err, cmd
+        );
         return Err(());
     }
 
@@ -34,28 +44,32 @@ pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result
 }
 
 /// Get the list of files from the current GIT tree (HEAD) relative to the current directory
-pub async fn get_all_tree_files(dir: &Path) -> Result<Vec<String>, ()> {
+pub async fn get_all_tree_files(dir: &String) -> Result<ListOfBlobs, ()> {
     let all_objects = execute_git_command(
-        vec![
-            "ls-tree".into(),
-            "-r".into(),
-            "--full-tree".into(),
-            "--name-only".into(),
-            "HEAD".into(),
-        ],
-        &dir.to_string_lossy().to_string(),
+        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), "HEAD".into()],
+        dir,
     )
     .await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
 
-    let files = all_objects.lines().map(|v| v.to_owned()).collect::<Vec<String>>();
+    let files = all_objects
+        .lines()
+        .filter_map(|v| {
+            trace! {"get_all_tree_files: {}", v};
+            if &v[7..11] == "blob" {
+                Some((v[53..].to_owned(), v[12..52].to_owned()))
+            } else {
+                None
+            }
+        })
+        .collect::<ListOfBlobs>();
     info!("Objects in the GIT tree: {}", files.len());
 
     Ok(files)
 }
 
 /// Get the list of files from the current GIT tree (HEAD) relative to the current directory
-pub async fn get_last_commit_files(dir: &Path) -> Result<Vec<String>, ()> {
+pub async fn get_last_commit_files(dir: &String, all_files: &ListOfBlobs) -> Result<ListOfBlobs, ()> {
     let all_objects = execute_git_command(
         vec![
             "log".into(),
@@ -64,17 +78,36 @@ pub async fn get_last_commit_files(dir: &Path) -> Result<Vec<String>, ()> {
             "--no-decorate".into(),
             "-1".into(),
         ],
-        &dir.to_string_lossy().to_string(),
+        dir,
     )
     .await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
 
-    let files = all_objects
+    let commit_files = all_objects
         .lines()
         .skip(1)
         .map(|v| v.to_owned())
-        .collect::<Vec<String>>();
-    info!("Objects in the last commit: {}", files.len());
+        .collect::<HashSet<String>>();
+    info!("Objects in the last commit: {}", commit_files.len());
 
-    Ok(files)
+    // convert vector
+    let commit_blobs = all_files
+        .iter()
+        .filter_map(|(name, sha1)| {
+            if commit_files.contains(name) {
+                Some((name.clone(), sha1.clone()))
+            } else {
+                None
+            }
+        })
+        .collect::<ListOfBlobs>();
+
+    Ok(commit_blobs)
+}
+
+/// Get the contents of the Git blob as text.
+pub async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Result<Vec<u8>, ()> {
+    let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir).await?;
+
+    Ok(blob_contents)
 }

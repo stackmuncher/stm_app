@@ -1,4 +1,4 @@
-use std::path::Path;
+use git::ListOfBlobs;
 use tracing::{debug, info};
 
 pub mod code_rules;
@@ -23,7 +23,7 @@ pub async fn process_project(
     old_report: Option<report::Report>,
 ) -> Result<report::Report, ()> {
     // all files to be processed
-    let files = git::get_all_tree_files(Path::new(project_dir)).await?;
+    let files = git::get_all_tree_files(project_dir).await?;
 
     let files = match old_report.as_ref() {
         Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
@@ -61,8 +61,8 @@ pub async fn process_project_files(
     user_name: &String,
     repo_name: &String,
     old_report: Option<report::Report>,
-    files_to_process: &Vec<String>,
-    all_tree_files: &Vec<String>,
+    files_to_process: &ListOfBlobs,
+    all_tree_files: &ListOfBlobs,
 ) -> Result<report::Report, ()> {
     info!("Analyzing code from {}", project_dir);
 
@@ -71,13 +71,14 @@ pub async fn process_project_files(
     let mut per_file_tech: Vec<String> = Vec::new();
 
     // loop through all the files supplied by the caller and process them one by one
-    for file_path in files_to_process {
+    for blob in files_to_process {
+        debug!("Blob {}/{}", blob.0, blob.1);
         // fetch the right muncher
-        if let Some(muncher) = code_rules.get_muncher(file_path) {
+        if let Some(muncher) = code_rules.get_muncher(blob.0) {
             // process the file with the rules from the muncher
-            if let Ok(tech) = processors::process_file(&file_path, muncher) {
+            if let Ok(tech) = processors::process_file(blob.0, blob.1, muncher, project_dir).await {
                 report.per_file_tech.insert(tech.clone());
-                per_file_tech.push(file_path.clone());
+                per_file_tech.push(blob.0.clone());
                 report.merge_tech_record(tech);
             }
         }
@@ -87,7 +88,7 @@ pub async fn process_project_files(
     if let Some(old_report) = old_report {
         for tech in old_report.per_file_tech {
             if let Some(file_name) = &tech.file_name {
-                if !per_file_tech.contains(file_name) && all_tree_files.contains(file_name) {
+                if !per_file_tech.contains(file_name) && all_tree_files.contains_key(file_name) {
                     info!("Copied {} file-tech section from the old report", file_name);
                     report.per_file_tech.insert(tech.clone());
                     report.merge_tech_record(tech);
@@ -100,12 +101,12 @@ pub async fn process_project_files(
     Ok(report)
 }
 
-/// Returns the list of files containing only files with changed munchers.
+/// Returns the list of files (blobs) containing only files with changed munchers.
 pub fn filter_out_files_with_unchanged_munchers(
     code_rules: &mut code_rules::CodeRules,
     old_report: &report::Report,
-    files: Vec<String>,
-) -> Vec<String> {
+    files: ListOfBlobs,
+) -> ListOfBlobs {
     info!("Filtering out files with unchanged munchers");
 
     // collects hashes of munchers that should be ignored for this project because they have
@@ -119,21 +120,21 @@ pub fn filter_out_files_with_unchanged_munchers(
     info!("Found {} muncher hashes in the report", old_munchers.len());
 
     // result collector
-    let mut files_with_changed_munchers: Vec<String> = Vec::new();
+    let mut files_with_changed_munchers: ListOfBlobs = ListOfBlobs::new();
 
     // loop through all the files supplied by the caller and process them one by one
-    for file_path in files {
+    for blob in files {
         // fetch the right muncher
-        if let Some(muncher) = code_rules.get_muncher(&file_path) {
+        if let Some(muncher) = code_rules.get_muncher(&blob.0) {
             // check if the file in the old report was processed by the same muncher and can be skipped
             if old_munchers.contains(&muncher.muncher_hash) {
-                debug!("Unchanged muncher for {}", file_path);
+                debug!("Unchanged muncher for {}", blob.0);
                 continue;
             }
 
             // the muncher was changed
-            debug!("Retaining {}", file_path);
-            files_with_changed_munchers.push(file_path);
+            debug!("Retaining {}", blob.0);
+            files_with_changed_munchers.insert(blob.0, blob.1);
         }
     }
 
