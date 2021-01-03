@@ -53,7 +53,9 @@ async fn main() -> Result<(), ()> {
     .await?;
 
     // update the report with additional info
-    let report = report.extract_commit_info(&config.project_dir_path).await;
+    let report = report
+        .extract_commit_info(&config.project_dir_path, &config.git_remote_url_regex)
+        .await;
     let report = report.update_list_of_tree_files(all_tree_files);
 
     report.save_as_local_file(&config.report_file_name);
@@ -75,20 +77,20 @@ fn new_config() -> Config {
     println!("{}", CMD_ARGS);
 
     // init the structure with the default values
-    let mut config = Config {
-        code_rules_dir: std::env::var(ENV_RULES_PATH).unwrap_or_default(),
-        log_level: tracing::Level::INFO,
-        // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
-        project_dir_path: std::env::current_dir()
-            .expect("Cannot access the current directory.")
-            .to_str()
-            .unwrap_or_default()
-            .to_owned(),
-        report_file_name: "stm-report.json".to_owned(),
-        user_name: String::new(),
-        repo_name: String::new(),
-        file_list_type: FileListType::FullTree,
-    };
+
+    let mut config = Config::new(
+        std::env::var(ENV_RULES_PATH).unwrap_or_default(),
+        String::new(),
+        String::new(),
+    );
+
+    // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
+    config.project_dir_path = std::env::current_dir()
+        .expect("Cannot access the current directory.")
+        .to_str()
+        .unwrap_or_default()
+        .to_owned();
+    config.report_file_name = "stm-report.json".to_owned();
 
     // check if there were any arguments passed to override the ENV vars
     let mut args = std::env::args().peekable();

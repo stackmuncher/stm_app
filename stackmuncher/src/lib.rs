@@ -1,4 +1,5 @@
 use git::ListOfBlobs;
+use regex::Regex;
 use tracing::{debug, info};
 
 pub mod code_rules;
@@ -21,6 +22,7 @@ pub async fn process_project(
     user_name: &String,
     repo_name: &String,
     old_report: Option<report::Report>,
+    git_remote_url_regex: &Regex,
 ) -> Result<report::Report, ()> {
     // all files to be processed
     let files = git::get_all_tree_files(project_dir).await?;
@@ -48,7 +50,7 @@ pub async fn process_project(
     .await?;
 
     // update the report with additional info
-    let report = report.extract_commit_info(project_dir).await;
+    let report = report.extract_commit_info(project_dir, git_remote_url_regex).await;
     let report = report.update_list_of_tree_files(files);
 
     Ok(report)

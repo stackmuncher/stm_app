@@ -1,7 +1,8 @@
-use super::git::ListOfBlobs;
+use super::git::{execute_git_command, get_hashed_remote_urls, ListOfBlobs};
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
 use chrono;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashSet;
@@ -24,8 +25,14 @@ pub struct Report {
     pub unprocessed_file_names: HashSet<String>,
     pub unknown_file_types: HashSet<KeywordCounter>,
     pub user_name: String,
+    /// A public name of the project, if known. GitHub project names do not include the user name.
+    /// E.g. `https://github.com/awslabs/aws-lambda-rust-runtime.git` would be `aws-lambda-rust-runtime`.
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub repo_name: String,
+    /// A list of hashed remote URLs from the repo. They are used in place of the private project name
+    /// and can be used to match a local project to publicly available projects. If that happens the project name
+    /// is populated automatically by STM on the server side
+    pub remote_url_hashes: Option<HashSet<u64>>,
     /// A UUID of the report
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_id: String,
@@ -227,6 +234,7 @@ impl Report {
             unknown_file_types: HashSet::new(),
             user_name: user_name.clone(),
             repo_name: repo_name.clone(),
+            remote_url_hashes: None,
             report_name,
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included,
@@ -332,10 +340,10 @@ impl Report {
 
     /// Adds details about the commit history to the report.
     /// Does not panic (exits early) if `git rev-list` command fails.
-    pub async fn extract_commit_info(self, repo_dir: &String) -> Self {
+    pub async fn extract_commit_info(self, repo_dir: &String, git_remote_url_regex: &Regex) -> Self {
         let mut report = self;
         debug!("Extracting git rev-list");
-        let git_output = match super::git::execute_git_command(
+        let git_output = match execute_git_command(
             vec!["log".into(), "--no-decorate".into(), "--encoding=utf-8".into()],
             repo_dir,
         )
@@ -451,6 +459,18 @@ impl Report {
                 };
             }
         }
+
+        // get the list of remote hashes for matching projects without exposing their names
+        report.remote_url_hashes = match get_hashed_remote_urls(repo_dir, git_remote_url_regex).await {
+            Err(_) => {
+                error!("Failed to hash remote URLs");
+                None
+            }
+            Ok(v) => {
+                debug!("Hashed {} remote URLs", v.len());
+                Some(v)
+            }
+        };
 
         report
     }

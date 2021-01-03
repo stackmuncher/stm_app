@@ -1,3 +1,5 @@
+use regex::Regex;
+
 /// Specifies which GIT objects (files) should be processed.
 #[derive(Debug, PartialEq)]
 pub enum FileListType {
@@ -22,6 +24,8 @@ pub struct Config {
     pub repo_name: String,
     /// Specifies which GIT objects (files) should be processed.
     pub file_list_type: FileListType,
+    /// A compiled regex for extracting remote URLs from `git remote -v` command
+    pub git_remote_url_regex: Regex,
 }
 
 impl Config {
@@ -35,6 +39,7 @@ impl Config {
             user_name,
             repo_name,
             file_list_type: FileListType::FullTree,
+            git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),
         }
     }
 }

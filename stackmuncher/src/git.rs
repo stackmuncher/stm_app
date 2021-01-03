@@ -1,6 +1,9 @@
+use regex::Regex;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use tokio::process::Command;
-use tracing::{debug, error, info, trace};
+use tracing::{debug, error, info, trace, warn};
 
 pub type FilePath = String;
 pub type BlobSHA1 = String;
@@ -106,8 +109,47 @@ pub async fn get_last_commit_files(dir: &String, all_files: &ListOfBlobs) -> Res
 }
 
 /// Get the contents of the Git blob as text.
-pub async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Result<Vec<u8>, ()> {
+pub(crate) async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Result<Vec<u8>, ()> {
     let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir).await?;
 
     Ok(blob_contents)
+}
+
+/// Returns a list of hashes for all remote URLs for inclusion in the report instead of the URLs themselves for privacy.
+/// E.g., `base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)` will get only `https://github.com/awslabs/aws-lambda-rust-runtime.git`
+/// hashed as `&str`. The type must match exactly for the hash to be the same. See https://github.com/rust-lang/rust/issues/27108.
+pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &Regex) -> Result<HashSet<u64>, ()> {
+    // get the list of remotes, which may look like this
+    /*
+        base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)
+        base    https://github.com/awslabs/aws-lambda-rust-runtime.git (push)
+        origin  https://github.com/rimutaka/aws-lambda-rust-runtime.git (fetch)
+        origin  https://github.com/rimutaka/aws-lambda-rust-runtime.git (push)
+        test    http://local host (fetch)
+        test    http://local host (push)
+    */
+    let all_remotes = execute_git_command(vec!["remote".into(), "-v".into()], dir).await?;
+    let all_remotes = String::from_utf8_lossy(&all_remotes);
+
+    debug!("Found {} remotes", all_remotes.lines().count());
+
+    Ok(all_remotes
+        .lines()
+        .filter_map(|line| {
+            trace!("Remote: {}", line);
+            if let Some(captures) = git_remote_url_regex.captures(&line) {
+                trace!("Captures: {}", captures.len());
+                if captures.len() == 2 {
+                    let mut state = DefaultHasher::new();
+                    captures[1].trim_end_matches("(").trim().hash(&mut state);
+                    Some(state.finish())
+                } else {
+                    None
+                }
+            } else {
+                warn!("No remotes found");
+                None
+            }
+        })
+        .collect::<HashSet<u64>>())
 }
