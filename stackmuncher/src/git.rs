@@ -1,7 +1,6 @@
 use regex::Regex;
-use std::collections::hash_map::DefaultHasher;
+use sha1::{Digest, Sha1};
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
 
@@ -155,7 +154,7 @@ pub(crate) async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Resul
 /// Returns a list of hashes for all remote URLs for inclusion in the report instead of the URLs themselves for privacy.
 /// E.g., `base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)` will get only `https://github.com/awslabs/aws-lambda-rust-runtime.git`
 /// hashed as `&str`. The type must match exactly for the hash to be the same. See https://github.com/rust-lang/rust/issues/27108.
-pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &Regex) -> Result<HashSet<u64>, ()> {
+pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &Regex) -> Result<HashSet<String>, ()> {
     // get the list of remotes, which may look like this
     /*
         base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)
@@ -177,9 +176,9 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
             if let Some(captures) = git_remote_url_regex.captures(&line) {
                 trace!("Captures: {}", captures.len());
                 if captures.len() == 2 {
-                    let mut state = DefaultHasher::new();
-                    captures[1].trim_end_matches("(").trim().hash(&mut state);
-                    Some(state.finish())
+                    let mut hasher = Sha1::new();
+                    hasher.update(captures[1].trim_end_matches("(").trim());
+                    Some(format!("{:x}", hasher.finalize()))
                 } else {
                     None
                 }
@@ -188,7 +187,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
                 None
             }
         })
-        .collect::<HashSet<u64>>())
+        .collect::<HashSet<String>>())
 }
 
 /// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.

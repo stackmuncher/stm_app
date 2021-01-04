@@ -33,7 +33,7 @@ pub struct Report {
     /// A list of hashed remote URLs from the repo. They are used in place of the private project name
     /// and can be used to match a local project to publicly available projects. If that happens the project name
     /// is populated automatically by STM on the server side
-    pub remote_url_hashes: Option<HashSet<u64>>,
+    pub remote_url_hashes: Option<HashSet<String>>,
     /// A UUID of the report
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_id: String,
