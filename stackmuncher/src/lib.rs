@@ -11,6 +11,7 @@ pub mod muncher;
 pub mod processors;
 pub mod report;
 pub mod tech;
+pub mod contributor;
 
 /// Processes the entire repo with or without a previous report. If the report is present and the munchers
 /// have not changed the relevant sections are copied from the old report. Use this function when:
@@ -50,7 +51,7 @@ pub async fn process_project(
     .await?;
 
     // update the report with additional info
-    let report = report.extract_commit_info(project_dir, git_remote_url_regex).await;
+    let report = report.extract_commit_history(project_dir, git_remote_url_regex).await;
     let report = report.update_list_of_tree_files(files);
 
     Ok(report)

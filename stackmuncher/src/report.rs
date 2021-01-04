@@ -1,6 +1,7 @@
-use super::git::{execute_git_command, get_hashed_remote_urls, ListOfBlobs};
+use super::git::{get_hashed_remote_urls, ListOfBlobs};
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
+use crate::contributor::Contributor;
 use chrono;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -9,7 +10,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, warn};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "tech")]
@@ -41,8 +42,10 @@ pub struct Report {
     pub report_name: String,
     /// S3 keys of the reports merged into this one
     pub reports_included: HashSet<String>,
-    /// List of names and emails of other committers
-    pub collaborators: Option<HashSet<(String, String)>>,
+    /// List of names and emails of other committers. Only applies to per-project reports.
+    pub contributors: Option<Vec<Contributor>>,
+    /// List of names or emails of other committers.
+    pub collaborators: Option<HashSet<String>>,
     /// The date of the first commit
     pub date_init: Option<String>,
     /// The date of the current HEAD
@@ -120,17 +123,33 @@ impl Report {
                 }
             }
 
-            // merge collaborators
-            if other_report.collaborators.is_some() {
-                // this should not happen, but check just in case if there is a hashset
+            // merge contributors into collaborators
+            if other_report.contributors.is_some() {
+                // this should not happen often, but check just in case if there is a hashset
                 if merge_into_inner.collaborators.is_none() {
                     warn!("Missing collaborators in the master report");
                     merge_into_inner.collaborators = Some(HashSet::new());
                 }
 
-                let colabs = merge_into_inner.collaborators.as_mut().unwrap();
-                for x in other_report.collaborators.unwrap() {
-                    colabs.insert(x);
+                let collaborators = merge_into_inner.collaborators.as_mut().unwrap();
+                for contributor in other_report.contributors.unwrap() {
+                    collaborators.insert(contributor.git_identity);
+                }
+            } else {
+                warn!("Missing contributors in the other report");
+            }
+
+            // repeat the same by merging collaborators
+            if other_report.collaborators.is_some() {
+                // this should not happen often, but check just in case if there is a hashset
+                if merge_into_inner.collaborators.is_none() {
+                    warn!("Missing collaborators in the master report");
+                    merge_into_inner.collaborators = Some(HashSet::new());
+                }
+
+                let collaborators = merge_into_inner.collaborators.as_mut().unwrap();
+                for identity in other_report.collaborators.unwrap() {
+                    collaborators.insert(identity);
                 }
             } else {
                 warn!("Missing collaborators in the other report");
@@ -239,6 +258,7 @@ impl Report {
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included,
             collaborators: None,
+            contributors: None,
             date_head: None,
             date_init: None,
             tree_files: None,
@@ -340,125 +360,43 @@ impl Report {
 
     /// Adds details about the commit history to the report.
     /// Does not panic (exits early) if `git rev-list` command fails.
-    pub async fn extract_commit_info(self, repo_dir: &String, git_remote_url_regex: &Regex) -> Self {
+    pub async fn extract_commit_history(self, repo_dir: &String, git_remote_url_regex: &Regex) -> Self {
         let mut report = self;
-        debug!("Extracting git rev-list");
-        let git_output = match execute_git_command(
-            vec!["log".into(), "--no-decorate".into(), "--encoding=utf-8".into()],
-            repo_dir,
-        )
-        .await
-        {
+        debug!("Extracting commit history");
+
+        let git_log = match super::git::get_log(repo_dir).await {
             Err(_) => {
                 return report;
             }
             Ok(v) => v,
         };
 
-        // try to convert the commits into a list of lines
-        let git_output = String::from_utf8_lossy(&git_output);
-        if git_output.len() == 0 {
-            warn!("Zero-length rev-list");
-            return report;
-        }
-
-        // loop through all the lines to get Authors
-        for line in git_output.lines() {
-            if line.starts_with("Author: ") {
-                trace!("{}", line);
-                // the author line looks something like this
-                //Lorenzo Baboollie <lorenzo@xamsie.be>
-                let (_, author) = line.split_at(7);
-                {
-                    trace!("Extracted: {}", author);
-                    // go to the next line if there is no author
-                    let author = author.trim();
-                    if author.is_empty() {
-                        continue;
-                    }
-
-                    // there is some colab data - prepare the container
-                    if report.collaborators.is_none() {
-                        report.collaborators = Some(HashSet::new());
-                    }
-
-                    // try to split the author details into name and email
-                    if author.ends_with(">") {
-                        if let Some(idx) = author.rfind(" <") {
-                            let (author_n, author_e) = author.split_at(idx);
-                            let author_n = author_n.trim();
-                            let author_e = author_e.trim().trim_end_matches(">").trim_start_matches("<");
-                            debug!("Split: {}|{}", author_n, author_e);
-                            report
-                                .collaborators
-                                .as_mut()
-                                .unwrap()
-                                .insert((author_n.to_owned(), author_e.to_owned()));
-                            continue;
-                        };
-                    }
-                    // split failed - add the entire line
-                    error!("Split failed on {}", line);
-                    report
-                        .collaborators
-                        .as_mut()
-                        .unwrap()
-                        .insert((author.to_owned(), "".to_owned()));
-                }
-            }
-            // there is also the commit message, but that is unimplemented
-        }
-
-        // loop through the top few lines to find the date of the last commit
-        debug!("Looking for HEAD commit date");
-        for line in git_output.lines() {
-            debug!("{}", line);
-            if line.starts_with("Date:   ") {
-                let (_, date) = line.split_at(7);
-                debug!("Extracted: {}", date);
-                // go to the next line if there is no date (impossible?)
-                let date = date.trim();
-                if date.is_empty() {
-                    error!("Encountered a commit with no date: {}", line);
-                    break;
-                }
-
-                // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
-                // Example: Mon Aug 10 22:47:56 2020 +0200
-                if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
-                    debug!("Parsed as: {}", d.to_rfc3339());
-                    report.date_head = Some(d.to_rfc3339());
-                    break;
-                } else {
-                    error! {"Invalid commit date format: {}", date};
-                };
+        // get the date of the last commit
+        if let Some(commit) = git_log.iter().next() {
+            if commit.date_epoch > 0 {
+                report.date_head = Some(commit.date.clone());
             }
         }
 
-        // loop through the bottom few lines to find the date of the first commit
-        debug!("Looking for INIT commit date");
-        for line in git_output.lines().rev() {
-            debug!("{}", line);
-            if line.starts_with("Date:   ") {
-                let (_, date) = line.split_at(7);
-                debug!("Extracted: {}", date);
-                // go to the next line if there is no date (impossible?)
-                let date = date.trim();
-                if date.is_empty() {
-                    error!("Encountered a commit with no date: {}", line);
-                    break;
-                }
-
-                // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
-                if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
-                    debug!("Parsed as: {}", d.to_rfc3339());
-                    report.date_init = Some(d.to_rfc3339());
-                    break;
-                } else {
-                    error! {"Invalid commit date format: {}", date};
-                };
+        // get the date of the first commit
+        if let Some(commit) = git_log.iter().last() {
+            if commit.date_epoch > 0 {
+                report.date_init = Some(commit.date.clone());
             }
         }
+
+        // this part consumes git_log because there is a lot of data in it
+        // so should appear at the end
+        report.contributors = Some(Contributor::from_commit_history(git_log));
+        report.collaborators = Some(
+            report
+                .contributors
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|contributor| contributor.git_identity.clone())
+                .collect::<HashSet<String>>(),
+        );
 
         // get the list of remote hashes for matching projects without exposing their names
         report.remote_url_hashes = match get_hashed_remote_urls(repo_dir, git_remote_url_regex).await {
@@ -479,9 +417,10 @@ impl Report {
     pub async fn copy_commit_info(self, old_report: &Self) -> Self {
         let mut report = self;
 
-        report.collaborators = old_report.collaborators.clone();
+        report.contributors = old_report.contributors.clone();
         report.date_head = old_report.date_head.clone();
         report.date_init = old_report.date_init.clone();
+        report.remote_url_hashes = old_report.remote_url_hashes.clone();
         info!("Copied commit info from the old report");
 
         report

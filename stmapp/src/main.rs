@@ -54,7 +54,7 @@ async fn main() -> Result<(), ()> {
 
     // update the report with additional info
     let report = report
-        .extract_commit_info(&config.project_dir_path, &config.git_remote_url_regex)
+        .extract_commit_history(&config.project_dir_path, &config.git_remote_url_regex)
         .await;
     let report = report.update_list_of_tree_files(all_tree_files);
 

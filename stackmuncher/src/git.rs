@@ -12,6 +12,43 @@ pub type BlobSHA1 = String;
 /// E.g. `037498fba1ca5b3662963c848158b7b678adbbf3    .gitignore`.
 pub type ListOfBlobs = HashMap<FilePath, BlobSHA1>;
 
+/// A a structured representation of `git log` output. E.g.
+/// ```
+/// commit f527864cc944d52887d7cc26e79781ac1b01abc2
+/// Author: rimutaka <max@onebro.me>
+/// Date:   Sat Jan 2 22:33:34 2021 +0000
+///
+///     Switched from analyzing local files to GIT blobs
+///
+/// stackmuncher/src/git.rs
+/// stackmuncher/src/lib.rs
+/// stackmuncher/src/processors/mod.rs
+/// stackmuncher/src/report.rs
+/// stmapp/src/main.rs
+/// ```
+pub struct GitLogEntry {
+    pub sha1: String,
+    pub date_epoch: i64,
+    pub date: String,
+    pub msg: String,
+    pub author_name_email: (String, String),
+    pub files: HashSet<String>,
+}
+
+impl GitLogEntry {
+    /// Returns a blank self
+    pub fn new() -> Self {
+        Self {
+            sha1: String::new(),
+            date_epoch: 0,
+            date: String::new(),
+            msg: String::new(),
+            author_name_email: (String::new(), String::new()),
+            files: HashSet::new(),
+        }
+    }
+}
+
 /// Executes a git command in the specified dir. Returns stdout or Err.
 pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result<Vec<u8>, ()> {
     // build `git ...` command
@@ -152,4 +189,120 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
             }
         })
         .collect::<HashSet<u64>>())
+}
+
+/// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.
+/// Merge commits are excluded.
+pub(crate) async fn get_log(repo_dir: &String) -> Result<Vec<GitLogEntry>, ()> {
+    debug!("Extracting git log");
+
+    // the output collector
+    let mut log_entries: Vec<GitLogEntry> = Vec::new();
+
+    // get the raw stdout output from GIT
+    let git_output = execute_git_command(
+        vec![
+            "log".into(),
+            "--no-decorate".into(),
+            "--name-only".into(),
+            "--no-merges".into(),
+            "--encoding=utf-8".into(),
+        ],
+        repo_dir,
+    )
+    .await?;
+
+    // try to convert the commits into a list of lines
+    let git_output = String::from_utf8_lossy(&git_output);
+    if git_output.len() == 0 {
+        warn!("Zero-length git log");
+        return Ok(log_entries);
+    }
+
+    let mut current_log_entry = GitLogEntry::new();
+
+    for line in git_output.lines() {
+        trace!("{}", line);
+        if line.is_empty() {
+            // one empty line is after DATE and one is before COMMIT
+            continue;
+        } else if line.starts_with("commit ") {
+            // commit d5e742de653954bfae88f0e5f6c8f0a7a5f6c437
+            // save the previous commit details and start a new one
+            // the very first entry will be always blank, it is remove outside the loop
+            log_entries.push(current_log_entry);
+            current_log_entry = GitLogEntry::new();
+            if line.len() > 8 {
+                current_log_entry.sha1 = line[8..].to_owned();
+            }
+        } else if line.starts_with("Author: ") {
+            // the author line looks something like this
+            //Lorenzo Baboollie <lorenzo@xamsie.be>
+            if line.len() < 9 {
+                warn!("Corrupt Author line: {}", line);
+                continue;
+            }
+            let author = line[8..].trim();
+            if author.is_empty() {
+                continue;
+            }
+            trace!("Author: {}", author);
+            // try to split the author details into name and email
+            if author.ends_with(">") {
+                if let Some(idx) = author.rfind(" <") {
+                    let (author_n, author_e) = author.split_at(idx);
+                    let author_n = author_n.trim();
+                    let author_e = author_e.trim().trim_end_matches(">").trim_start_matches("<");
+                    debug!("Author split: {}|{}", author_n, author_e);
+                    current_log_entry.author_name_email = (author_n.to_owned(), author_e.to_owned());
+                    continue;
+                };
+            }
+            // name/email split failed - add the entire line
+            current_log_entry.author_name_email = (author.to_owned(), String::new());
+            error!("Split failed on {}", line);
+        } else if line.starts_with("Date: ") {
+            // Date:   Tue Dec 22 17:43:07 2020 +0000
+            if line.len() < 9 {
+                warn!("Corrupt Date line: {}", line);
+                continue;
+            }
+            let date = line[6..].trim();
+            trace!("Date: {}", date);
+            // go to the next line if there is no date (impossible?)
+            if date.is_empty() {
+                error!("Encountered a commit with no date: {}", line);
+                continue;
+            }
+
+            // Formatter: https://docs.rs/chrono/0.4.15/chrono/format/strftime/index.html
+            // Example: Mon Aug 10 22:47:56 2020 +0200
+            if let Ok(d) = chrono::DateTime::parse_from_str(date, "%a %b %d %H:%M:%S %Y %z") {
+                trace!("Parsed as: {}", d.to_rfc3339());
+                current_log_entry.date = d.to_rfc3339();
+                current_log_entry.date_epoch = d.timestamp();
+                continue;
+            } else {
+                error! {"Invalid commit date format: {}", date};
+            };
+        } else if line.starts_with("    ") {
+            // log messages are indented with 4 spaces, including blank lines
+            if line.len() < 5 {
+                warn!("Corrupt comment line: {}", line);
+                continue;
+            }
+            current_log_entry.msg = [current_log_entry.msg, line[4..].to_owned()].join("\n");
+        } else {
+            // the only remaining type of data should be the list of files
+            // they are not tagged or indented - the entire line is the file name with the relative path
+            // file names are displayed only with --name-only option
+            trace!("Added as a file");
+            current_log_entry.files.insert(line.into());
+        }
+    }
+
+    log_entries.remove(0);
+
+    debug!("Found {} commits", log_entries.len());
+    Ok(log_entries)
 }
