@@ -3,6 +3,7 @@ use stackmuncher::{
     config::{Config, FileListType},
     git::{get_all_tree_files, get_last_commit_files},
     report::Report,
+    utils::hash_str_sha1,
 };
 use std::path::Path;
 use tracing::{error, info};
@@ -32,7 +33,7 @@ async fn main() -> Result<(), ()> {
         .join(Config::GIT_FOLDER_NAME)
         .join(Config::REPORT_FOLDER_NAME);
 
-        // create the reports folder if it doesn't exist
+    // create the reports folder if it doesn't exist
     if !report_dir.exists() {
         if let Err(e) = std::fs::create_dir(report_dir.clone()) {
             error!(
@@ -85,6 +86,51 @@ async fn main() -> Result<(), ()> {
     report.save_as_local_file(&project_report_filename);
 
     info!("Project report done in {}ms", instant.elapsed().as_millis());
+
+    // check if there are multiple contributors and generate individual reports
+    if let Some(contributors) = &report.contributors {
+        let instant = std::time::Instant::now();
+        // skip this step if there is only one contributor
+        if contributors.len() < 2 {
+            return Ok(());
+        }
+
+        for contributor in contributors {
+            // load the previous contributor report, if any
+            let contributor_hash = hash_str_sha1(contributor.git_identity.as_str());
+            let contributor_report_filename = report_dir
+                .join(
+                    [
+                        Config::CONTRIBUTOR_REPORT_FILE_NAME,
+                        contributor_hash.as_str(),
+                        Config::REPORT_FILE_EXTENSION,
+                    ]
+                    .concat(),
+                )
+                .as_os_str()
+                .to_string_lossy()
+                .to_string();
+            let old_report = Report::from_disk(&contributor_report_filename);
+
+            let contributor_report = report
+                .process_contributor(
+                    &mut code_rules,
+                    &config.project_dir_path,
+                    &contributor.git_identity,
+                    old_report,
+                    contributor,
+                )
+                .await?;
+
+            contributor_report.save_as_local_file(&contributor_report_filename);
+
+            info!(
+                "Contributor report for {} done in {}ms",
+                contributor.git_identity,
+                instant.elapsed().as_millis()
+            );
+        }
+    }
 
     Ok(())
 }

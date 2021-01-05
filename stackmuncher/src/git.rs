@@ -1,5 +1,5 @@
+use crate::utils;
 use regex::Regex;
-use sha1::{Digest, Sha1};
 use std::collections::{HashMap, HashSet};
 use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
@@ -179,9 +179,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
             if let Some(captures) = git_remote_url_regex.captures(&line) {
                 trace!("Captures: {}", captures.len());
                 if captures.len() == 2 {
-                    let mut hasher = Sha1::new();
-                    hasher.update(captures[1].trim_end_matches("(").trim());
-                    Some(format!("{:x}", hasher.finalize()))
+                    Some(utils::hash_str_sha1(captures[1].trim_end_matches("(").trim()))
                 } else {
                     None
                 }
@@ -235,7 +233,7 @@ pub(crate) async fn get_log(repo_dir: &String) -> Result<Vec<GitLogEntry>, ()> {
             log_entries.push(current_log_entry);
             current_log_entry = GitLogEntry::new();
             if line.len() > 8 {
-                current_log_entry.sha1 = line[8..].to_owned();
+                current_log_entry.sha1 = line[7..].to_owned();
             }
         } else if line.starts_with("Author: ") {
             // the author line looks something like this

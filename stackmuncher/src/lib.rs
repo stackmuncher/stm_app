@@ -1,3 +1,4 @@
+use contributor::Contributor;
 use git::ListOfBlobs;
 use regex::Regex;
 use report::Report;
@@ -13,6 +14,7 @@ pub mod muncher;
 pub mod processors;
 pub mod report;
 pub mod tech;
+pub mod utils;
 
 impl Report {
     /// Processes the entire repo with or without a previous report. If the report is present and the munchers
@@ -103,6 +105,47 @@ impl Report {
         };
 
         info!("Analysis finished");
+        Ok(report)
+    }
+
+    /// Process only files touched by the contributor at the point of the contribution.
+    pub async fn process_contributor(
+        &self,
+        code_rules: &mut code_rules::CodeRules,
+        project_dir: &String,
+        user_name: &String,
+        old_report: Option<report::Report>,
+        contributor: &Contributor,
+    ) -> Result<report::Report, ()> {
+        debug!("Processing contributor: {}", user_name);
+        // all files to be processed at the point of the last commit
+        let files = git::get_all_tree_files(project_dir, Some(contributor.last_commit_sha1.clone())).await?;
+
+        let files = match old_report.as_ref() {
+            Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
+            None => files,
+        };
+
+        // just return the old report if there were no changes and the old report can be re-used
+        if old_report.is_some() && files.is_empty() {
+            return Ok(old_report.unwrap());
+        }
+
+        // generate the report
+        let report = Report::process_project_files(
+            code_rules,
+            project_dir,
+            user_name,
+            &self.repo_name,
+            old_report,
+            &files,
+            &files,
+        )
+        .await?;
+
+        // update the report with additional info
+        let report = report.update_list_of_tree_files(files);
+
         Ok(report)
     }
 }
