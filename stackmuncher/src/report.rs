@@ -40,6 +40,8 @@ pub struct Report {
     /// A unique name containing user name and project name
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_name: String,
+    /// The commit used to generate the report
+    pub report_commit_sha1: Option<String>,
     /// S3 keys of the reports merged into this one
     pub reports_included: HashSet<String>,
     /// List of names and emails of other committers. Only applies to per-project reports.
@@ -262,6 +264,7 @@ impl Report {
             date_head: None,
             date_init: None,
             tree_files: None,
+            report_commit_sha1: None,
         }
     }
 
@@ -375,6 +378,7 @@ impl Report {
         if let Some(commit) = git_log.iter().next() {
             if commit.date_epoch > 0 {
                 report.date_head = Some(commit.date.clone());
+                report.report_commit_sha1 = Some(commit.sha1.clone());
             }
         }
 

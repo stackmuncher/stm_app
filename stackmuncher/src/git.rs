@@ -83,9 +83,12 @@ pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result
 }
 
 /// Get the list of files from the current GIT tree (HEAD) relative to the current directory
-pub async fn get_all_tree_files(dir: &String) -> Result<ListOfBlobs, ()> {
+pub async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Result<ListOfBlobs, ()> {
+    // use HEAD if no commit was specified
+    let commit_sha1 = commit_sha1.unwrap_or("HEAD".into());
+
     let all_objects = execute_git_command(
-        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), "HEAD".into()],
+        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1],
         dir,
     )
     .await?;

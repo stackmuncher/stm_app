@@ -2,11 +2,10 @@ use stackmuncher::{
     code_rules::CodeRules,
     config::{Config, FileListType},
     git::{get_all_tree_files, get_last_commit_files},
-    process_project_files,
     report::Report,
 };
 use std::path::Path;
-use tracing::info;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -26,11 +25,36 @@ async fn main() -> Result<(), ()> {
     // load code rules
     let mut code_rules = CodeRules::new(&config.code_rules_dir);
 
-    // load the existing report
-    let existing_report = Report::from_disk(&config.report_file_name);
+    // Reports are saved into .git/stm_reports folder. It should be a safe per-project location.
+    // GIT ignores extra folders and they don't get checked into the repo. If the project is cloned to a different
+    // location the report would have to be regenerated.
+    let report_dir = Path::new(&config.project_dir_path)
+        .join(Config::GIT_FOLDER_NAME)
+        .join(Config::REPORT_FOLDER_NAME);
+
+        // create the reports folder if it doesn't exist
+    if !report_dir.exists() {
+        if let Err(e) = std::fs::create_dir(report_dir.clone()) {
+            error!(
+                "Cannot create reports folder at {} due to {}",
+                report_dir.to_string_lossy(),
+                e
+            );
+            panic!();
+        };
+        info!("Created reports folder at {}", report_dir.to_string_lossy());
+    }
+
+    // load a previously generated report if it exists
+    let project_report_filename = report_dir
+        .join([Config::PROJECT_REPORT_FILE_NAME, Config::REPORT_FILE_EXTENSION].concat())
+        .as_os_str()
+        .to_string_lossy()
+        .to_string();
+    let existing_report = Report::from_disk(&project_report_filename);
 
     // we have to get the list of all tree files every time because the latest commit does not contain deleted files
-    let all_tree_files = get_all_tree_files(&config.project_dir_path).await?;
+    let all_tree_files = get_all_tree_files(&config.project_dir_path, None).await?;
 
     // get the list of files to process (all files in the tree)
     let files_to_process = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
@@ -41,7 +65,7 @@ async fn main() -> Result<(), ()> {
     };
 
     // generate the report
-    let report = process_project_files(
+    let report = Report::process_project_files(
         &mut code_rules,
         &config.project_dir_path,
         &config.user_name,
@@ -58,9 +82,9 @@ async fn main() -> Result<(), ()> {
         .await;
     let report = report.update_list_of_tree_files(all_tree_files);
 
-    report.save_as_local_file(&config.report_file_name);
+    report.save_as_local_file(&project_report_filename);
 
-    info!("Done in {}ms", instant.elapsed().as_millis());
+    info!("Project report done in {}ms", instant.elapsed().as_millis());
 
     Ok(())
 }
@@ -70,7 +94,7 @@ fn new_config() -> Config {
     pub const ENV_RULES_PATH: &'static str = "STACK_MUNCHER_CODERULES_DIR";
     const CMD_ARGS: &'static str =
         "Available CLI params: [--rules code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, \
-    [--project project_path] defaults to the current dir, [--report report_path] defaults to report.json, \
+    [--project project_path] defaults to the current dir, \
     [--files all|recent] defaults for all, [--log log_level] defaults to info.";
 
     // Output it every time for now. Review and remove later when it's better documented.
@@ -90,7 +114,6 @@ fn new_config() -> Config {
         .to_str()
         .unwrap_or_default()
         .to_owned();
-    config.report_file_name = "stm-report.json".to_owned();
 
     // check if there were any arguments passed to override the ENV vars
     let mut args = std::env::args().peekable();
@@ -111,12 +134,6 @@ fn new_config() -> Config {
                         .into()
                 }
 
-                "--report" => {
-                    config.report_file_name = args
-                        .peek()
-                        .expect("--report requires a report file name with or without a path")
-                        .into()
-                }
                 "--files" => {
                     config.file_list_type = string_to_file_list_type(
                         args.peek()
