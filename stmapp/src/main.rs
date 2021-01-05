@@ -85,17 +85,17 @@ async fn main() -> Result<(), ()> {
 
     report.save_as_local_file(&project_report_filename);
 
-    info!("Project report done in {}ms", instant.elapsed().as_millis());
-
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &report.contributors {
-        let instant = std::time::Instant::now();
+        info!("Project report done in {}ms", instant.elapsed().as_millis());
+
         // skip this step if there is only one contributor
         if contributors.len() < 2 {
             return Ok(());
         }
 
         for contributor in contributors {
+            let contributor_instant = std::time::Instant::now();
             // load the previous contributor report, if any
             let contributor_hash = hash_str_sha1(contributor.git_identity.as_str());
             let contributor_report_filename = report_dir
@@ -127,11 +127,11 @@ async fn main() -> Result<(), ()> {
             info!(
                 "Contributor report for {} done in {}ms",
                 contributor.git_identity,
-                instant.elapsed().as_millis()
+                contributor_instant.elapsed().as_millis()
             );
         }
     }
-
+    info!("Project processed in {}ms", instant.elapsed().as_millis());
     Ok(())
 }
 

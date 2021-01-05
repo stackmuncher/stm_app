@@ -45,14 +45,17 @@ pub struct Report {
     /// S3 keys of the reports merged into this one
     pub reports_included: HashSet<String>,
     /// List of names and emails of other committers. Only applies to per-project reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub contributors: Option<Vec<Contributor>>,
     /// List of names or emails of other committers.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub collaborators: Option<HashSet<String>>,
     /// The date of the first commit
     pub date_init: Option<String>,
     /// The date of the current HEAD
     pub date_head: Option<String>,
     /// The current list of files in the GIT tree
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tree_files: Option<Vec<String>>,
 }
 
@@ -430,7 +433,7 @@ impl Report {
         report
     }
 
-    /// Adds the entire list of tree files to the report, extracts names of unprocessed files
+    /// Adds the entire list of tree files or just the touched files to the report, extracts names of unprocessed files
     /// and counts their extensions.
     pub fn update_list_of_tree_files(self, all_tree_files: ListOfBlobs) -> Self {
         // result collector
@@ -458,12 +461,7 @@ impl Report {
         }
 
         // convert HashMap to Vec to add the entire list of files from the tree to the report
-        report.tree_files = Some(
-            all_tree_files
-                .iter()
-                .map(|(name, _)| name.clone())
-                .collect::<Vec<String>>(),
-        );
+        report.tree_files = Some(all_files.into_iter().collect::<Vec<String>>());
 
         report
     }

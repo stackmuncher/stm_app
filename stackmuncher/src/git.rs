@@ -287,11 +287,11 @@ pub(crate) async fn get_log(repo_dir: &String) -> Result<Vec<GitLogEntry>, ()> {
             };
         } else if line.starts_with("    ") {
             // log messages are indented with 4 spaces, including blank lines
-            if line.len() < 5 {
+            if line.len() < 4 {
                 warn!("Corrupt comment line: {}", line);
                 continue;
             }
-            current_log_entry.msg = [current_log_entry.msg, line[4..].to_owned()].join("\n");
+            current_log_entry.msg = [current_log_entry.msg, line[3..].to_owned()].join("\n");
         } else {
             // the only remaining type of data should be the list of files
             // they are not tagged or indented - the entire line is the file name with the relative path

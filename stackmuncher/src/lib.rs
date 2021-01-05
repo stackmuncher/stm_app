@@ -30,15 +30,15 @@ impl Report {
         git_remote_url_regex: &Regex,
     ) -> Result<report::Report, ()> {
         // all files to be processed
-        let files = git::get_all_tree_files(project_dir, None).await?;
+        let all_files = git::get_all_tree_files(project_dir, None).await?;
 
-        let files = match old_report.as_ref() {
-            Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
-            None => files,
+        let files_with_changed_munchers = match old_report.as_ref() {
+            Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, all_files.clone()),
+            None => all_files.clone(),
         };
 
         // just return the old report if there were no changes and the old report can be re-used
-        if old_report.is_some() && files.is_empty() {
+        if old_report.is_some() && files_with_changed_munchers.is_empty() {
             return Ok(old_report.unwrap());
         }
 
@@ -49,14 +49,14 @@ impl Report {
             user_name,
             repo_name,
             old_report,
-            &files,
-            &files,
+            &files_with_changed_munchers,
+            &all_files,
         )
         .await?;
 
         // update the report with additional info
         let report = report.extract_commit_history(project_dir, git_remote_url_regex).await;
-        let report = report.update_list_of_tree_files(files);
+        let report = report.update_list_of_tree_files(all_files);
 
         Ok(report)
     }
@@ -118,16 +118,30 @@ impl Report {
         contributor: &Contributor,
     ) -> Result<report::Report, ()> {
         debug!("Processing contributor: {}", user_name);
-        // all files to be processed at the point of the last commit
-        let files = git::get_all_tree_files(project_dir, Some(contributor.last_commit_sha1.clone())).await?;
+        // all files present at the point of the last contributor commit
+        let all_tree_files = git::get_all_tree_files(project_dir, Some(contributor.last_commit_sha1.clone())).await?;
 
-        let files = match old_report.as_ref() {
-            Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, files),
-            None => files,
+        // filter out files not present in the contributor file list
+        let touched_files = all_tree_files
+            .into_iter()
+            .filter_map(|(file, sha1)| {
+                if contributor.touched_files.contains(&file) {
+                    Some((file, sha1))
+                } else {
+                    None
+                }
+            })
+            .collect::<ListOfBlobs>();
+
+        // only files touched by the contributor where munchers changed need to be processed
+        let files_to_process = match old_report.as_ref() {
+            Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, touched_files.clone()),
+            None => touched_files.clone(),
         };
 
         // just return the old report if there were no changes and the old report can be re-used
-        if old_report.is_some() && files.is_empty() {
+        if old_report.is_some() && files_to_process.is_empty() {
+            debug!("No changes. Reusing old report.");
             return Ok(old_report.unwrap());
         }
 
@@ -138,13 +152,13 @@ impl Report {
             user_name,
             &self.repo_name,
             old_report,
-            &files,
-            &files,
+            &files_to_process,
+            &touched_files,
         )
         .await?;
 
         // update the report with additional info
-        let report = report.update_list_of_tree_files(files);
+        let report = report.update_list_of_tree_files(touched_files);
 
         Ok(report)
     }
