@@ -370,7 +370,7 @@ impl Report {
         let mut report = self;
         debug!("Extracting commit history");
 
-        let git_log = match super::git::get_log(repo_dir).await {
+        let git_log = match super::git::get_log(repo_dir, None).await {
             Err(_) => {
                 return report;
             }

@@ -87,12 +87,16 @@ async fn main() -> Result<(), ()> {
 
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &report.contributors {
-        info!("Project report done in {}ms", instant.elapsed().as_millis());
-
         // skip this step if there is only one contributor
         if contributors.len() < 2 {
+            info!(
+                "Single-contributor project report done in {}ms",
+                instant.elapsed().as_millis()
+            );
             return Ok(());
         }
+
+        info!("Project report done in {}ms", instant.elapsed().as_millis());
 
         for contributor in contributors {
             let contributor_instant = std::time::Instant::now();

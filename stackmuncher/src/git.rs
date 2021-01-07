@@ -82,7 +82,12 @@ pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result
     Ok(git_output.stdout)
 }
 
-/// Get the list of files from the current GIT tree (HEAD) relative to the current directory
+/// Get the list of files from the current GIT tree (HEAD) relative to the current directory. The raw git output looks like this:
+/// ```
+/// 100644 blob a28b99eae8417ac31293a332ef1a125b8772032d    Cargo.toml
+/// 100644 blob f288702d2fa16d3cdf0035b15a9fcbc552cd88e7    LICENSE
+/// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
+/// ```
 pub async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Result<ListOfBlobs, ()> {
     // use HEAD if no commit was specified
     let commit_sha1 = commit_sha1.unwrap_or("HEAD".into());
@@ -193,26 +198,31 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
 
 /// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.
 /// Merge commits are excluded.
-pub(crate) async fn get_log(repo_dir: &String) -> Result<Vec<GitLogEntry>, ()> {
+pub(crate) async fn get_log(
+    repo_dir: &String,
+    contributor_git_identity: Option<&String>,
+) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
 
-    // the output collector
-    let mut log_entries: Vec<GitLogEntry> = Vec::new();
+    // prepare the command that may optionally include the author name to limit commits just to that contributor
+    let mut git_args = vec![
+        "log".into(),
+        "--no-decorate".into(),
+        "--name-only".into(),
+        "--no-merges".into(),
+        "--encoding=utf-8".into(),
+    ];
+    if let Some(author) = contributor_git_identity {
+        git_args.push(["--author=", author].concat());
+    };
+
+    trace!("GIT LOG: {:?}", git_args);
 
     // get the raw stdout output from GIT
-    let git_output = execute_git_command(
-        vec![
-            "log".into(),
-            "--no-decorate".into(),
-            "--name-only".into(),
-            "--no-merges".into(),
-            "--encoding=utf-8".into(),
-        ],
-        repo_dir,
-    )
-    .await?;
+    let git_output = execute_git_command(git_args, repo_dir).await?;
 
     // try to convert the commits into a list of lines
+    let mut log_entries: Vec<GitLogEntry> = Vec::new();
     let git_output = String::from_utf8_lossy(&git_output);
     if git_output.len() == 0 {
         warn!("Zero-length git log");
@@ -301,6 +311,9 @@ pub(crate) async fn get_log(repo_dir: &String) -> Result<Vec<GitLogEntry>, ()> {
         }
     }
 
+    // the very last commit has to be pushed outside the loop
+    log_entries.push(current_log_entry);
+    // the very first commit is always a blank record
     log_entries.remove(0);
 
     debug!("Found {} commits", log_entries.len());

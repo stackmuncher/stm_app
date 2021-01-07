@@ -2,6 +2,7 @@ use contributor::Contributor;
 use git::ListOfBlobs;
 use regex::Regex;
 use report::Report;
+use std::collections::HashMap;
 use tracing::{debug, info};
 
 pub mod code_rules;
@@ -118,26 +119,52 @@ impl Report {
         contributor: &Contributor,
     ) -> Result<report::Report, ()> {
         debug!("Processing contributor: {}", user_name);
-        // all files present at the point of the last contributor commit
-        let all_tree_files = git::get_all_tree_files(project_dir, Some(contributor.last_commit_sha1.clone())).await?;
+        // files touched by the contributor with corresponding commit SHA1
+        let mut touched_files: ListOfBlobs = ListOfBlobs::new();
 
-        // filter out files not present in the contributor file list
-        let touched_files = all_tree_files
-            .into_iter()
-            .filter_map(|(file, sha1)| {
-                if contributor.touched_files.contains(&file) {
-                    Some((file, sha1))
+        // arrange the files by commit
+        let mut files_by_commit: HashMap<String, Vec<String>> = HashMap::new();
+        for file in &contributor.touched_files {
+            if let Some(file_list) = files_by_commit.get_mut(&file.commit) {
+                file_list.push(file.name.clone());
+            } else {
+                files_by_commit.insert(file.commit.clone(), vec![file.name.clone()]);
+            }
+        }
+        debug!(
+            "Found {} contributor commits for looking up blobs",
+            files_by_commit.len()
+        );
+
+        // request blobs from particular commits
+        for (commit_sha1, commit_files) in files_by_commit {
+            let commit_tree = git::get_all_tree_files(project_dir, Some(commit_sha1.clone())).await?;
+            debug!("Commit {} has {} touched files", commit_sha1, commit_files.len());
+            for commit_file in commit_files {
+                if let Some(blob_sha1) = commit_tree.get(&commit_file) {
+                    touched_files.insert(commit_file, blob_sha1.clone());
                 } else {
-                    None
+                    // this normally happens when a file was deleted from the tree
+                    // we may see it from the diff, but there is no point trying to look it up - if it's missing, it's missing
+                    // it would be good to exclude them from the list of contributor files in the first place, but it would require an additional
+                    // look up, which is expensive
+                    // deleting a file is a contribution
+                    debug!("Cannot find blob SHA1 for {} in commit {}", commit_file, commit_sha1);
                 }
-            })
-            .collect::<ListOfBlobs>();
+            }
+        }
 
         // only files touched by the contributor where munchers changed need to be processed
         let files_to_process = match old_report.as_ref() {
             Some(v) => filter_out_files_with_unchanged_munchers(code_rules, v, touched_files.clone()),
             None => touched_files.clone(),
         };
+        debug!(
+            "Contributor files: {}, blobs found: {}, to process {}",
+            contributor.touched_files.len(),
+            touched_files.len(),
+            files_to_process.len(),
+        );
 
         // just return the old report if there were no changes and the old report can be re-used
         if old_report.is_some() && files_to_process.is_empty() {
