@@ -30,6 +30,10 @@ pub struct ContributorFile {
     pub name: String,
     /// SHA1 of the very last commit that affected this file
     pub commit: String,
+    /// Date and time of the commit as EPOCH
+    pub date_epoch: i64,
+    /// Date and time of the commit as a human readable ISO date
+    pub date_iso: String,
 }
 
 impl Contributor {
@@ -41,8 +45,8 @@ impl Contributor {
     /// can be pointing at completely different people.
     pub fn from_commit_history(commits: Vec<GitLogEntry>) -> Vec<Contributor> {
         // the output collector: a map of Contributors with the contributor git identity as the key
-        // each contributor has a hashmap with file/commit pairs that gets converted into an Vec for toched_files property
-        let mut contributors: HashMap<String, (Contributor, HashMap<String, String>)> = HashMap::new();
+        // each contributor has a hashmap with file as the key and commit/date/timestamp tuple that gets converted into an Vec for touched_files property
+        let mut contributors: HashMap<String, (Contributor, HashMap<String, (String, String, i64)>)> = HashMap::new();
 
         for commit in commits {
             // skip commits with no author details
@@ -67,7 +71,7 @@ impl Contributor {
                 // only the latest version of the file is of interest
                 for file in commit.files {
                     if !touched_files.contains_key(&file) {
-                        touched_files.insert(file, commit.sha1.clone());
+                        touched_files.insert(file, (commit.sha1.clone(), commit.date.clone(), commit.date_epoch));
                     }
                 }
             } else {
@@ -78,10 +82,10 @@ impl Contributor {
                 name_email_pairs.insert((commit.author_name_email.0, commit.author_name_email.1));
 
                 // collect the list of touched files with the commit SHA1
-                let mut touched_files: HashMap<String, String> = HashMap::new();
+                let mut touched_files: HashMap<String, (String, String, i64)> = HashMap::new();
                 for file in commit.files {
                     if !touched_files.contains_key(&file) {
-                        touched_files.insert(file, commit.sha1.clone());
+                        touched_files.insert(file, (commit.sha1.clone(), commit.date.clone(), commit.date_epoch));
                     }
                 }
 
@@ -106,7 +110,12 @@ impl Contributor {
             // flatten the file list and assign to the contributor
             contributor.touched_files = touched_files_map
                 .into_iter()
-                .map(|(name, sha1)| ContributorFile { name, commit: sha1 })
+                .map(|(name, (sha1, date_iso, date_epoch))| ContributorFile {
+                    name,
+                    commit: sha1,
+                    date_epoch,
+                    date_iso,
+                })
                 .collect::<Vec<ContributorFile>>();
             output_collector.push(contributor);
         }

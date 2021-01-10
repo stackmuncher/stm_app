@@ -1,7 +1,7 @@
 use super::git::{get_hashed_remote_urls, ListOfBlobs};
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
-use crate::contributor::Contributor;
+use crate::{contributor::Contributor, git::GitLogEntry};
 use chrono;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,9 @@ pub struct Report {
     /// because file names are sensitive info that can be exploited.
     pub per_file_tech: HashSet<Tech>,
     pub timestamp: String,
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub unprocessed_file_names: HashSet<String>,
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub unknown_file_types: HashSet<KeywordCounter>,
     pub user_name: String,
     /// A public name of the project, if known. GitHub project names do not include the user name.
@@ -51,8 +53,10 @@ pub struct Report {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collaborators: Option<HashSet<String>>,
     /// The date of the first commit
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
     /// The date of the current HEAD
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
     /// The current list of files in the GIT tree
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -233,9 +237,7 @@ impl Report {
             // there no matching tech record - add it to the hashmap for the 1st time
             // but reset file-specific data first
             debug!("No matching Tech exists - inserting as-is");
-            let mut tech = tech;
-            tech.file_name = None;
-            self.tech.insert(tech);
+            self.tech.insert(tech.reset_file_and_commit_info());
         }
     }
 
@@ -366,16 +368,14 @@ impl Report {
 
     /// Adds details about the commit history to the report.
     /// Does not panic (exits early) if `git rev-list` command fails.
-    pub async fn extract_commit_history(self, repo_dir: &String, git_remote_url_regex: &Regex) -> Self {
+    pub async fn extract_commit_history(
+        self,
+        repo_dir: &String,
+        git_remote_url_regex: &Regex,
+        git_log: Vec<GitLogEntry>,
+    ) -> Self {
         let mut report = self;
         debug!("Extracting commit history");
-
-        let git_log = match super::git::get_log(repo_dir, None).await {
-            Err(_) => {
-                return report;
-            }
-            Ok(v) => v,
-        };
 
         // get the date of the last commit
         if let Some(commit) = git_log.iter().next() {
@@ -461,6 +461,7 @@ impl Report {
         }
 
         // convert HashMap to Vec to add the entire list of files from the tree to the report
+        // we need a Vec because HashMap doesn't look nice in JSON
         report.tree_files = Some(all_files.into_iter().collect::<Vec<String>>());
 
         report

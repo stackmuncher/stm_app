@@ -1,15 +1,32 @@
 use crate::utils;
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    unimplemented,
+};
 use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
 
 pub type FilePath = String;
+
+/// Contains details about a file extracted from GIT
+#[derive(Clone)]
+pub struct GitBlob {
+    /// SHA1 of the blob itself
+    pub sha1: String,
+    /// SHA1 of the commit the blob belongs to
+    pub commit_sha1: String,
+    /// Date of the commit the blob belongs to
+    pub commit_date_epoch: i64,
+    /// Date of the commit the blob belongs to
+    pub commit_date_iso: String,
+}
+
 pub type BlobSHA1 = String;
-/// #### An alias for HashMap<FilePath, BlobSHA1>.
+/// #### An alias for HashMap<FilePath, (BlobSHA1, CommitSHA1, CommitDateEpoch, CommitDateIso)>.
 /// git ls-tree and some other commands provide blob hash and the file name.
 /// E.g. `037498fba1ca5b3662963c848158b7b678adbbf3    .gitignore`.
-pub type ListOfBlobs = HashMap<FilePath, BlobSHA1>;
+pub type ListOfBlobs = HashMap<FilePath, GitBlob>;
 
 /// A a structured representation of `git log` output. E.g.
 /// ```
@@ -82,18 +99,20 @@ pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result
     Ok(git_output.stdout)
 }
 
-/// Get the list of files from the current GIT tree (HEAD) relative to the current directory. The raw git output looks like this:
+/// Get the list of files from the current GIT tree (HEAD) relative to the current directory.
+/// #### `blobs` parameter
+/// Must be a ListOfBlobs with commit details populated per file. This function only adds the blob SHA1.
+/// The commit details can be taken from `git log` or contributor section of the report.
+///
+/// The raw git output looks like this:
 /// ```
 /// 100644 blob a28b99eae8417ac31293a332ef1a125b8772032d    Cargo.toml
 /// 100644 blob f288702d2fa16d3cdf0035b15a9fcbc552cd88e7    LICENSE
 /// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
 /// ```
-pub async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Result<ListOfBlobs, ()> {
-    // use HEAD if no commit was specified
-    let commit_sha1 = commit_sha1.unwrap_or("HEAD".into());
-
+pub async fn get_all_tree_files_head(dir: &String, blobs: ListOfBlobs) -> Result<ListOfBlobs, ()> {
     let all_objects = execute_git_command(
-        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1],
+        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), "HEAD".into()],
         dir,
     )
     .await?;
@@ -104,7 +123,66 @@ pub async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Re
         .filter_map(|v| {
             trace! {"get_all_tree_files: {}", v};
             if &v[7..11] == "blob" {
-                Some((v[53..].to_owned(), v[12..52].to_owned()))
+                let file_name = v[53..].to_owned();
+
+                if let Some(blob) = blobs.get(&file_name) {
+                    Some((
+                        file_name,
+                        GitBlob {
+                            sha1: v[12..52].to_owned(),
+                            commit_sha1: blob.commit_sha1.clone(),
+                            commit_date_epoch: blob.commit_date_epoch.clone(),
+                            commit_date_iso: blob.commit_date_iso.clone(),
+                        },
+                    ))
+                } else {
+                    warn!("Missing blob SHA1 for {}", file_name);
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect::<ListOfBlobs>();
+    info!("Objects in the GIT tree: {}", files.len());
+
+    Ok(files)
+}
+
+/// Get the list of files from the current GIT tree for a given commit relative to the current directory.
+/// The raw git output looks like this:
+/// ```
+/// 100644 blob a28b99eae8417ac31293a332ef1a125b8772032d    Cargo.toml
+/// 100644 blob f288702d2fa16d3cdf0035b15a9fcbc552cd88e7    LICENSE
+/// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
+/// ```
+pub async fn get_all_tree_files_commit(
+    dir: &String,
+    commit_sha1: &String,
+    commit_date_epoch: i64,
+    commit_date_iso: &String,
+) -> Result<ListOfBlobs, ()> {
+    let all_objects = execute_git_command(
+        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1.into()],
+        dir,
+    )
+    .await?;
+    let all_objects = String::from_utf8_lossy(&all_objects);
+
+    let files = all_objects
+        .lines()
+        .filter_map(|v| {
+            trace! {"get_all_tree_files: {}", v};
+            if &v[7..11] == "blob" {
+                Some((
+                    v[53..].to_owned(),
+                    GitBlob {
+                        sha1: v[12..52].to_owned(),
+                        commit_sha1: commit_sha1.clone(),
+                        commit_date_epoch,
+                        commit_date_iso: commit_date_iso.clone(),
+                    },
+                ))
             } else {
                 None
             }
@@ -117,39 +195,47 @@ pub async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Re
 
 /// Get the list of files from the current GIT tree (HEAD) relative to the current directory
 pub async fn get_last_commit_files(dir: &String, all_files: &ListOfBlobs) -> Result<ListOfBlobs, ()> {
-    let all_objects = execute_git_command(
-        vec![
-            "log".into(),
-            "--name-only".into(),
-            "--oneline".into(),
-            "--no-decorate".into(),
-            "-1".into(),
-        ],
-        dir,
-    )
-    .await?;
-    let all_objects = String::from_utf8_lossy(&all_objects);
+    unimplemented!();
+    //     let last_commit = get_log(dir, None, true).await?;
 
-    let commit_files = all_objects
-        .lines()
-        .skip(1)
-        .map(|v| v.to_owned())
-        .collect::<HashSet<String>>();
-    info!("Objects in the last commit: {}", commit_files.len());
+    //     // this is unlikely to happen - GIT should return exactly one commit
+    //     if last_commit.len()!=1 {
+    //         warn!("Recieved {} git entries with last commit request",last_commit.len());
+    //     }
 
-    // convert vector
-    let commit_blobs = all_files
-        .iter()
-        .filter_map(|(name, sha1)| {
-            if commit_files.contains(name) {
-                Some((name.clone(), sha1.clone()))
-            } else {
-                None
-            }
-        })
-        .collect::<ListOfBlobs>();
+    //     if let Some(git_entry) = last_commit.iter().next() {
+    // git_entry.files
 
-    Ok(commit_blobs)
+    //     }
+
+    //     let commit_files = all_objects
+    //         .lines()
+    //         .skip(1)
+    //         .map(|v| v.to_owned())
+    //         .collect::<HashSet<String>>();
+    //     info!("Objects in the last commit: {}", commit_files.len());
+
+    //     // convert vector
+    //     let commit_blobs = all_files
+    //         .iter()
+    //         .filter_map(|(name, blob)| {
+    //             if commit_files.contains(name) {
+    //                 Some((
+    //                     name.clone(),
+    //                     GitBlob {
+    //                         sha1: blob.sha1.clone(),
+    //                         commit_sha1: String::new(),
+    //                         commit_date_epoch: 0,
+    //                         commit_date_iso: String::new(),
+    //                     },
+    //                 ))
+    //             } else {
+    //                 None
+    //             }
+    //         })
+    //         .collect::<ListOfBlobs>();
+
+    //     Ok(commit_blobs)
 }
 
 /// Get the contents of the Git blob as text.
@@ -201,6 +287,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
 pub(crate) async fn get_log(
     repo_dir: &String,
     contributor_git_identity: Option<&String>,
+    last_commit_only: bool,
 ) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
 
@@ -213,7 +300,11 @@ pub(crate) async fn get_log(
         "--encoding=utf-8".into(),
     ];
     if let Some(author) = contributor_git_identity {
-        git_args.push(["--author=", author].concat());
+        git_args.push([r#"--author=""#, author, r#"""#].concat());
+    };
+
+    if last_commit_only {
+        git_args.push("-1".into());
     };
 
     trace!("GIT LOG: {:?}", git_args);
@@ -318,4 +409,45 @@ pub(crate) async fn get_log(
 
     debug!("Found {} commits", log_entries.len());
     Ok(log_entries)
+}
+
+/// Extracts the list of unique file names from the log with the latest commit/date per file. Ideally, this function should return the blob SHA1 as well,
+// but that info is not available from the log. It loops through all the files listed in `git log` and picks the latest revision per file.
+pub(crate) fn list_of_files_with_commits_from_git_log(git_log: &Vec<GitLogEntry>) -> ListOfBlobs {
+    // output container
+    let mut blobs: ListOfBlobs = ListOfBlobs::new();
+
+    // go through all log entries, most recent first
+    for log_entry in git_log {
+        // grab the list of files per commit
+        for file in &log_entry.files {
+            if let Some(blob) = blobs.get_mut(file) {
+                // update the file commit info if encountered a newer file in the source
+                if blob.commit_date_epoch < log_entry.date_epoch {
+                    warn!(
+                        "Wrong commit order for {}. Existing commit: {}, newer: {}",
+                        file, blob.commit_sha1, log_entry.sha1
+                    );
+                    blob.commit_sha1 = log_entry.sha1.clone();
+                    blob.commit_date_epoch = log_entry.date_epoch;
+                    blob.commit_date_iso = log_entry.date.clone();
+                }
+            } else {
+                // in theory, the commits should be sorted in the chronological order, latest first
+                // so we should be OK just adding the file to the collection on first encounter - it should be the latest revision
+                let blob = GitBlob {
+                    sha1: String::new(),
+                    commit_sha1: log_entry.sha1.clone(),
+                    commit_date_epoch: log_entry.date_epoch,
+                    commit_date_iso: log_entry.date.clone(),
+                };
+                blobs.insert(file.clone(), blob);
+            }
+        }
+    }
+    debug!(
+        "list_of_files_with_commits_from_git_log collected {} files from git log",
+        blobs.len()
+    );
+    blobs
 }

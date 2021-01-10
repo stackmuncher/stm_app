@@ -15,6 +15,9 @@ pub(crate) async fn process_file(
     blob_sha1: &String,
     rules: &Muncher,
     project_dir: &String,
+    commit_sha1: &String,
+    commit_date_epoch: i64,
+    commit_date_iso: &String,
 ) -> Result<Tech, String> {
     debug!("Muncher: {}", rules.muncher_name);
 
@@ -23,6 +26,9 @@ pub(crate) async fn process_file(
         language: rules.language.clone(),
         muncher_name: rules.muncher_name.clone(),
         file_name: Some(file_name.clone()),
+        commit_sha1: Some(commit_sha1.clone()),
+        commit_date_epoch: Some(commit_date_epoch),
+        commit_date_iso: Some(commit_date_iso.clone()),
         files: 1,
         total_lines: 0,
         code_lines: 0,

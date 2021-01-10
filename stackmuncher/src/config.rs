@@ -1,14 +1,5 @@
 use regex::Regex;
 
-/// Specifies which GIT objects (files) should be processed.
-#[derive(Debug, PartialEq)]
-pub enum FileListType {
-    /// Process the entire tree (all files) stored in GIT.
-    FullTree,
-    /// Only process the files affected by the last commit.
-    LastCommit,
-}
-
 #[derive(Debug)]
 pub struct Config {
     /// Full path to the dir with code rules. Absolute or relative to the working dir.
@@ -20,8 +11,6 @@ pub struct Config {
     pub user_name: String,
     /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
     pub repo_name: String,
-    /// Specifies which GIT objects (files) should be processed.
-    pub file_list_type: FileListType,
     /// A compiled regex for extracting remote URLs from `git remote -v` command
     pub git_remote_url_regex: Regex,
 }
@@ -41,7 +30,6 @@ impl Config {
             project_dir_path: String::new(),
             user_name,
             repo_name,
-            file_list_type: FileListType::FullTree,
             git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),
         }
     }

@@ -3,7 +3,7 @@ use super::muncher::Muncher;
 use regex::Regex;
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
-use tracing::{info, trace};
+use tracing::{info, trace, debug};
 
 #[derive(Debug, Clone)]
 pub struct CodeRules {
@@ -118,6 +118,8 @@ impl CodeRules {
                 }
             }
         }
+
+        debug!("No muncher found");
 
         None
     }

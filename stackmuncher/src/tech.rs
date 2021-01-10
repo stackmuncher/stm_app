@@ -15,6 +15,18 @@ pub struct Tech {
     /// The name of the file for individual file reports. Not present in combined tech reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_name: Option<String>,
+    /// SHA1 of the commit this file was taken from. E.g. 105eaf871c7248c93ae2f13337e9881caf89d489
+    /// It is used for hashing. Not present in combined tech reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_sha1: Option<String>,
+    /// The date of the commit this file was taken from in EPOCH format. E.g. 1544532686
+    /// Not present in combined tech reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_date_epoch: Option<i64>,
+    /// The date of the commit this file was taken from in ISO format. E.g. 2018-12-09T22:29:40+01:00
+    /// Not present in combined tech reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_date_iso: Option<String>,
     pub files: usize,
     pub total_lines: usize,
     pub blank_lines: usize,
@@ -25,9 +37,11 @@ pub struct Tech {
     pub block_comments: usize,
     pub docs_comments: usize,
     /// Language-specific keywords, e.g. static, class, try-catch
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub keywords: HashSet<KeywordCounter>, // has to be Option<>
     /// References to other libs, packages and namespaces
     /// E.g. `use` keyword
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub refs: HashSet<KeywordCounter>, // has to be Option<>
     /// Unique words from refs. Only populated during the final merge of
     /// all user reports.
@@ -35,6 +49,7 @@ pub struct Tech {
     pub refs_kw: Option<HashSet<KeywordCounter>>,
     /// References to other libs and packages in pkg managers
     /// E.g. refs from NuGet or Cargo.toml
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub pkgs: HashSet<KeywordCounter>, // has to be Option<>
     /// Unique words from pkgs. Only populated during the final merge of
     /// all user reports.
@@ -52,6 +67,9 @@ impl std::hash::Hash for Tech {
         if let Some(file_name) = &self.file_name {
             state.write(file_name.as_bytes());
         };
+        if let Some(commit_sha1) = &self.commit_sha1 {
+            state.write(commit_sha1.as_bytes());
+        };
         state.finish();
     }
 }
@@ -63,6 +81,20 @@ impl PartialEq for Tech {
 }
 
 impl Tech {
+    /// Sets `file_name` and commit info to None to match tech records on `muncher_name` and `language` only.
+    /// `per_file_tech` records are matched with all that info present because it is specific to the file.
+    /// `tech` records in the report are aggregates across multiple files and should have that info removed. 
+    pub(crate) fn reset_file_and_commit_info(self) -> Self {
+        let mut tech = self;
+
+        tech.file_name = None;
+        tech.commit_sha1 = None;
+        tech.commit_date_epoch = None;
+        tech.commit_date_iso = None;
+
+        tech
+    }
+
     /// Extract and count matches for `self.refs`
     #[inline]
     pub(crate) fn count_refs(&mut self, regex: &Option<Vec<Regex>>, line: &String) {

@@ -1,11 +1,11 @@
 use stackmuncher::{
     code_rules::CodeRules,
-    config::{Config, FileListType},
-    git::{get_all_tree_files, get_last_commit_files},
+    config::Config,
+    git::{get_all_tree_files_head, get_last_commit_files},
     report::Report,
     utils::hash_str_sha1,
 };
-use std::path::Path;
+use std::{path::Path, unimplemented};
 use tracing::{error, info};
 
 #[tokio::main]
@@ -54,34 +54,20 @@ async fn main() -> Result<(), ()> {
         .to_string();
     let existing_report = Report::from_disk(&project_report_filename);
 
-    // we have to get the list of all tree files every time because the latest commit does not contain deleted files
-    let all_tree_files = get_all_tree_files(&config.project_dir_path, None).await?;
-
-    // get the list of files to process (all files in the tree)
-    let files_to_process = if config.file_list_type == FileListType::FullTree || existing_report.is_none() {
-        // this clone is unnecessary and can probably be avoided, but I couldn't see a quick way
-        all_tree_files.clone()
+    let report = if existing_report.is_none() {
+        Report::process_project(
+            &mut code_rules,
+            &config.project_dir_path,
+            &config.user_name,
+            &config.repo_name,
+            existing_report,
+            &config.git_remote_url_regex,
+        )
+        .await?
     } else {
-        get_last_commit_files(&config.project_dir_path, &all_tree_files).await?
+        unimplemented!();
+        //get_last_commit_files(&config.project_dir_path, &all_tree_files).await?
     };
-
-    // generate the report
-    let report = Report::process_project_files(
-        &mut code_rules,
-        &config.project_dir_path,
-        &config.user_name,
-        &config.repo_name,
-        existing_report,
-        &files_to_process,
-        &all_tree_files,
-    )
-    .await?;
-
-    // update the report with additional info
-    let report = report
-        .extract_commit_history(&config.project_dir_path, &config.git_remote_url_regex)
-        .await;
-    let report = report.update_list_of_tree_files(all_tree_files);
 
     report.save_as_local_file(&project_report_filename);
 
@@ -120,7 +106,7 @@ async fn main() -> Result<(), ()> {
                 .process_contributor(
                     &mut code_rules,
                     &config.project_dir_path,
-                    &contributor.git_identity,
+                    &config.repo_name,
                     old_report,
                     contributor,
                 )
@@ -183,14 +169,6 @@ fn new_config() -> Config {
                         .expect("--project requires a path to the root of the project to be analyzed")
                         .into()
                 }
-
-                "--files" => {
-                    config.file_list_type = string_to_file_list_type(
-                        args.peek()
-                            .expect("--files requires `all` for full tree or `recent` for the last commit")
-                            .into(),
-                    )
-                }
                 "--log" => {
                     config.log_level =
                         string_to_log_level(args.peek().expect("--log requires a valid logging level").into())
@@ -224,17 +202,6 @@ fn string_to_log_level(s: String) -> tracing::Level {
         "warn" => tracing::Level::WARN,
         _ => {
             panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
-        }
-    }
-}
-
-/// Converts case insensitive name of the file list to an enum
-fn string_to_file_list_type(s: String) -> FileListType {
-    match s.to_lowercase().as_str() {
-        "all" => FileListType::FullTree,
-        "recent" => FileListType::LastCommit,
-        _ => {
-            panic!("Invalid FileListType value. Use `full` or `recent`. Default: `full`.");
         }
     }
 }
