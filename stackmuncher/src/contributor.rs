@@ -21,10 +21,10 @@ pub struct Contributor {
     /// The timestamp of the last commit by this contributor formatted as RFC-3339.
     pub last_commit_date: String,
     /// The list of files touched by this contributor as FileName/CommitSHA1 tuple
-    pub touched_files: Vec<ContributorFile>,
+    pub touched_files: HashSet<ContributorFile>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq)]
 pub struct ContributorFile {
     /// The file name extracted from GIT, including the relative path, e.g. `myproject/src/main.rs`
     pub name: String,
@@ -34,6 +34,22 @@ pub struct ContributorFile {
     pub date_epoch: i64,
     /// Date and time of the commit as a human readable ISO date
     pub date_iso: String,
+}
+
+impl std::hash::Hash for ContributorFile {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: std::hash::Hasher,
+    {
+        state.write(self.name.as_bytes());
+        state.finish();
+    }
+}
+
+impl PartialEq for ContributorFile {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
 }
 
 impl Contributor {
@@ -96,7 +112,7 @@ impl Contributor {
                     last_commit_sha1: commit.sha1,
                     last_commit_epoch: commit.date_epoch,
                     last_commit_date: commit.date,
-                    touched_files: Vec::new(),
+                    touched_files: HashSet::new(),
                 };
 
                 contributors.insert(git_identity, (contributor, touched_files));
@@ -116,7 +132,7 @@ impl Contributor {
                     date_epoch,
                     date_iso,
                 })
-                .collect::<Vec<ContributorFile>>();
+                .collect::<HashSet<ContributorFile>>();
             output_collector.push(contributor);
         }
 

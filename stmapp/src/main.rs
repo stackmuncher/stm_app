@@ -1,11 +1,5 @@
-use stackmuncher::{
-    code_rules::CodeRules,
-    config::Config,
-    git::{get_all_tree_files_head, get_last_commit_files},
-    report::Report,
-    utils::hash_str_sha1,
-};
-use std::{path::Path, unimplemented};
+use stackmuncher::{code_rules::CodeRules, config::Config, report::Report, utils::hash_str_sha1};
+use std::path::Path;
 use tracing::{error, info};
 
 #[tokio::main]
@@ -52,38 +46,27 @@ async fn main() -> Result<(), ()> {
         .as_os_str()
         .to_string_lossy()
         .to_string();
-    let existing_report = Report::from_disk(&project_report_filename);
+    let cached_project_report = Report::from_disk(&project_report_filename);
 
-    let report = if existing_report.is_none() {
-        Report::process_project(
-            &mut code_rules,
-            &config.project_dir_path,
-            &config.user_name,
-            &config.repo_name,
-            existing_report,
-            &config.git_remote_url_regex,
-        )
-        .await?
-    } else {
-        unimplemented!();
-        //get_last_commit_files(&config.project_dir_path, &all_tree_files).await?
-    };
+    // DO THIS
+    // let git_log = git::get_log(project_dir, None, false).await?;
 
-    report.save_as_local_file(&project_report_filename);
+    let project_report = Report::process_project(
+        &mut code_rules,
+        &config.project_dir_path,
+        &config.user_name,
+        &config.repo_name,
+        cached_project_report,
+        &config.git_remote_url_regex,
+        None,
+    )
+    .await?;
+
+    project_report.save_as_local_file(&project_report_filename);
+    info!("Project report done in {}ms", instant.elapsed().as_millis());
 
     // check if there are multiple contributors and generate individual reports
-    if let Some(contributors) = &report.contributors {
-        // skip this step if there is only one contributor
-        if contributors.len() < 2 {
-            info!(
-                "Single-contributor project report done in {}ms",
-                instant.elapsed().as_millis()
-            );
-            return Ok(());
-        }
-
-        info!("Project report done in {}ms", instant.elapsed().as_millis());
-
+    if let Some(contributors) = &project_report.contributors {
         for contributor in contributors {
             let contributor_instant = std::time::Instant::now();
             // load the previous contributor report, if any
@@ -100,14 +83,13 @@ async fn main() -> Result<(), ()> {
                 .as_os_str()
                 .to_string_lossy()
                 .to_string();
-            let old_report = Report::from_disk(&contributor_report_filename);
 
-            let contributor_report = report
+            let contributor_report = project_report
                 .process_contributor(
                     &mut code_rules,
                     &config.project_dir_path,
                     &config.repo_name,
-                    old_report,
+                    Report::from_disk(&contributor_report_filename),
                     contributor,
                 )
                 .await?;
@@ -121,7 +103,7 @@ async fn main() -> Result<(), ()> {
             );
         }
     }
-    info!("Project processed in {}ms", instant.elapsed().as_millis());
+    info!("repo processed in {}ms", instant.elapsed().as_millis());
     Ok(())
 }
 
