@@ -401,7 +401,7 @@ impl Report {
             }
         }
 
-        info!("No changes in content or munchers. Will re-use the old report.");
+        info!("No changes in content or munchers. Will re-use the cached report as-is.");
         false
     }
 
