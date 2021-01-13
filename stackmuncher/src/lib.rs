@@ -281,7 +281,7 @@ impl Report {
             reused_per_file_tech_project.len()
         );
 
-        // remove blobs that have no munchers - there is no point even retrieving the contents
+        // remove blobs that have no munchers - there is no point in getting the contents
         let blobs_to_munch = blobs_to_munch
             .into_iter()
             .filter_map(|(file_name, blob)| {
@@ -316,15 +316,17 @@ impl Report {
             "Found {} contributor commits for looking up blob SHA1s",
             blobs_by_commit.len()
         );
-        debug!("{:?}", blobs_by_commit);
 
         // loop through the commits and update blob SHA1s for commit-associated files
         let mut blobs_to_munch = ListOfBlobs::new();
         for (commit_sha1, commit_blobs) in blobs_by_commit {
             // populate blob sha1 from head commit for blobs that need to be munched
             let commit_blobs = git::populate_blob_sha1(project_dir, commit_blobs, Some(commit_sha1.clone())).await?;
-            debug!("Commit {} has {} touched files", commit_sha1, commit_blobs.len());
-            blobs_to_munch.clone_from(&commit_blobs);
+            for (file_name, blob) in commit_blobs {
+                if !blob.sha1.is_empty() {
+                    blobs_to_munch.insert(file_name, blob);
+                }
+            }
         }
 
         debug!(
