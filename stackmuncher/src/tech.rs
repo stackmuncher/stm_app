@@ -83,7 +83,7 @@ impl PartialEq for Tech {
 impl Tech {
     /// Sets `file_name` and commit info to None to match tech records on `muncher_name` and `language` only.
     /// `per_file_tech` records are matched with all that info present because it is specific to the file.
-    /// `tech` records in the report are aggregates across multiple files and should have that info removed. 
+    /// `tech` records in the report are aggregates across multiple files and should have that info removed.
     pub(crate) fn reset_file_and_commit_info(self) -> Self {
         let mut tech = self;
 
@@ -186,12 +186,5 @@ impl Tech {
         }
 
         Some(kw_sum)
-    }
-
-    /// Sets `file_name` member to None
-    pub(crate) fn remove_file_name(mut self) -> Self {
-        self.file_name = None;
-
-        self
     }
 }

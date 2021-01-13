@@ -186,7 +186,7 @@ impl Report {
         debug!("Merging Tech, lang: {}, files: {}", tech.language, tech.files);
         // Tech is hashed with the file name for per-file Tech records, but here
         // they are summaries, so it has to be removed to match
-        let tech = tech.remove_file_name();
+        let tech = tech.reset_file_and_commit_info();
         // add totals to the existing record, if any
         if let Some(mut master) = self.tech.take(&tech) {
             debug!(
