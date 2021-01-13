@@ -23,6 +23,10 @@ impl Report {
     /// * it's a new repo
     /// * the munchers changed and the entire repo needs to be reprocessed
     /// * `git_log` must contain the entire log for the project or the function will get the log as needed if None
+    /// ## Return values
+    /// * `Err` - something went wrong, error details logged
+    /// * `None` - no changes, use the cached report
+    /// * `Some` - an updated report
     pub async fn process_project(
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
@@ -31,7 +35,7 @@ impl Report {
         old_report: Option<report::Report>,
         git_remote_url_regex: &Regex,
         git_log: Option<Vec<GitLogEntry>>,
-    ) -> Result<report::Report, ()> {
+    ) -> Result<Option<report::Report>, ()> {
         let report = report::Report::new(user_name.clone(), repo_name.clone());
 
         let git_log = git_log.unwrap_or(git::get_log(project_dir, None, false).await?);
@@ -41,7 +45,7 @@ impl Report {
         // get the list of all files that ever existed in the repo, including renamed and deleted
         let all_project_blobs = log_entries_to_list_of_blobs(&git_log);
         debug!(
-            "Found {} file in log and {} in the current tree",
+            "Found {} files in log and {} in the current tree",
             all_project_blobs.len(),
             all_head_files.len()
         );
@@ -65,7 +69,7 @@ impl Report {
         // check if there were any contents or muncher changes since the last commit
         // this is the cheapest check we can do to determine if there were an changes that need to be reprocessed
         if !report.has_content_or_muncher_changes(code_rules, &old_report, &all_project_blobs) {
-            return Ok(old_report.unwrap());
+            return Ok(None);
         }
 
         // copy unchanged tech records from the old report, if any and get the list of files that dont need to be munched
@@ -111,7 +115,7 @@ impl Report {
         // update lists of files (unprocessed and project tree)
         let report = report.update_project_file_lists(all_head_files);
 
-        Ok(report)
+        Ok(Some(report))
     }
 
     /// Processes specified files from the repo and returns a report with Tech and Tech per file sections.
@@ -414,7 +418,11 @@ impl Report {
 
         // pre-requisites
         if old_report.is_none() || git_log.len() < 2 {
-            debug!("set_single_commit_flag -> false, commits: {}", git_log.len());
+            debug!(
+                "set_single_commit_flag -> false, commits: {}, cached report: {}",
+                git_log.len(),
+                old_report.is_some()
+            );
             return report;
         }
 

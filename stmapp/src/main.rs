@@ -51,7 +51,7 @@ async fn main() -> Result<(), ()> {
     // DO THIS
     // let git_log = git::get_log(project_dir, None, false).await?;
 
-    let project_report = Report::process_project(
+    let project_report = match Report::process_project(
         &mut code_rules,
         &config.project_dir_path,
         &config.user_name,
@@ -60,7 +60,15 @@ async fn main() -> Result<(), ()> {
         &config.git_remote_url_regex,
         None,
     )
-    .await?;
+    .await?
+    {
+        None => {
+            // there were no changes since the previous report - it can be reused as-is
+            info!("Done in {}ms", instant.elapsed().as_millis());
+            return Ok(());
+        }
+        Some(v) => v,
+    };
 
     project_report.save_as_local_file(&project_report_filename);
     info!("Project report done in {}ms", instant.elapsed().as_millis());
