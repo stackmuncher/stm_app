@@ -1,6 +1,6 @@
 use stackmuncher::{code_rules::CodeRules, config::Config, report::Report, utils::hash_str_sha1};
 use std::path::Path;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -48,9 +48,6 @@ async fn main() -> Result<(), ()> {
         .to_string();
     let cached_project_report = Report::from_disk(&project_report_filename);
 
-    // DO THIS
-    // let git_log = git::get_log(project_dir, None, false).await?;
-
     let project_report = match Report::process_project(
         &mut code_rules,
         &config.project_dir_path,
@@ -75,7 +72,15 @@ async fn main() -> Result<(), ()> {
 
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
+        let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
+
         for contributor in contributors {
+            // only process a single contributor of the latest commit if it's a single commit report update
+            if project_report.is_single_commit && contributor.git_identity != last_commit_author {
+                debug!("Contributor {} skipped", contributor.git_identity);
+                continue;
+            }
+
             let contributor_instant = std::time::Instant::now();
             // load the previous contributor report, if any
             let contributor_hash = hash_str_sha1(contributor.git_identity.as_str());

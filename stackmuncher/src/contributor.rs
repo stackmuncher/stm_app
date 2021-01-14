@@ -59,7 +59,7 @@ impl Contributor {
     /// the name or email. E.g. rimutaka/max@onebro.me or maxv/max@onebro.me. They can be merged and de-duped
     /// to some extent, but the process is prone to errors. E.g. common user names such as `admin` or `ubuntu`
     /// can be pointing at completely different people.
-    pub fn from_commit_history(commits: Vec<GitLogEntry>) -> Vec<Contributor> {
+    pub(crate) fn from_commit_history(commits: Vec<GitLogEntry>) -> Vec<Contributor> {
         // the output collector: a map of Contributors with the contributor git identity as the key
         // each contributor has a hashmap with file as the key and commit/date/timestamp tuple that gets converted into an Vec for touched_files property
         let mut contributors: HashMap<String, (Contributor, HashMap<String, (String, String, i64)>)> = HashMap::new();
@@ -71,11 +71,7 @@ impl Contributor {
             }
 
             // choose the preferred identity for this contributor
-            let git_identity = if commit.author_name_email.1.is_empty() {
-                commit.author_name_email.0.clone()
-            } else {
-                commit.author_name_email.1.clone()
-            };
+            let git_identity = Self::git_identity_from_name_email_pair(&commit.author_name_email);
 
             // check if the contributor is already in the output collector
             if let Some((contributor, touched_files)) = contributors.get_mut(&git_identity) {
@@ -137,5 +133,14 @@ impl Contributor {
         }
 
         output_collector
+    }
+
+    /// Converts name email pairs, e.g. rimutaka|max@onebro.me into a git identity in a consistent way across the project
+    pub(crate) fn git_identity_from_name_email_pair(author_name_email: &(String, String)) -> String {
+        if !author_name_email.1.is_empty() {
+            author_name_email.1.clone()
+        } else {
+            author_name_email.0.clone()
+        }
     }
 }

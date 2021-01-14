@@ -249,7 +249,6 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
 pub(crate) async fn get_log(
     repo_dir: &String,
     contributor_git_identity: Option<&String>,
-    last_2_commits_only: bool,
 ) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
 
@@ -265,10 +264,7 @@ pub(crate) async fn get_log(
         git_args.push([r#"--author=""#, author, r#"""#].concat());
     };
 
-    if last_2_commits_only {
-        git_args.push("-2".into());
-    };
-
+    // this trace may be needed for unusual `author` values
     trace!("GIT LOG: {:?}", git_args);
 
     // get the raw stdout output from GIT

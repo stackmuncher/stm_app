@@ -38,7 +38,7 @@ impl Report {
     ) -> Result<Option<report::Report>, ()> {
         let report = report::Report::new(user_name.clone(), repo_name.clone());
 
-        let git_log = git_log.unwrap_or(git::get_log(project_dir, None, false).await?);
+        let git_log = git_log.unwrap_or(git::get_log(project_dir, None).await?);
 
         // get the list of files in the tree at HEAD
         let all_head_files = git::get_all_tree_files(project_dir, None).await?;
