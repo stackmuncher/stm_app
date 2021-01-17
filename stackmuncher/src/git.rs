@@ -257,7 +257,6 @@ pub(crate) async fn get_log(
         "log".into(),
         "--no-decorate".into(),
         "--name-only".into(),
-        "--no-merges".into(),
         "--encoding=utf-8".into(),
     ];
     if let Some(author) = contributor_git_identity {
@@ -284,6 +283,10 @@ pub(crate) async fn get_log(
         trace!("{}", line);
         if line.is_empty() {
             // one empty line is after DATE and one is before COMMIT
+            continue;
+        } else if line.starts_with("Merge:") {
+            // We don't use merge info for any particular purpose at the moment
+            // potentially, the committer of the merge should get at least some credit for it
             continue;
         } else if line.starts_with("commit ") {
             // commit d5e742de653954bfae88f0e5f6c8f0a7a5f6c437
