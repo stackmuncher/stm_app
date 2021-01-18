@@ -63,29 +63,52 @@ impl GitLogEntry {
     }
 }
 
-/// Executes a git command in the specified dir. Returns stdout or Err.
-pub async fn execute_git_command(args: Vec<String>, repo_dir: &String) -> Result<Vec<u8>, ()> {
+/// Executes a git command in the specified dir with a possible Error as a normal outcome.
+/// E.g. some `git config` commands may return an error because there is no such setting, but we don't want to
+/// log it as an error because it is an expected outcome. This function returns an error only if no errors are expected or there is an error message attached.
+/// Set `expect_blank_err_msg` to `false` if any kind of error should be logged and returned as such.
+pub async fn execute_git_command(
+    args: Vec<String>,
+    repo_dir: &String,
+    expect_blank_err_msg: bool,
+) -> Result<Vec<u8>, ()> {
     // build `git ...` command
     let mut cmd = Command::new("git");
     cmd.args(args);
     cmd.current_dir(&repo_dir);
 
-    // run git reset
+    // try to run the command - it should never fail at this point unless there is a process failure
     let git_output = match cmd.output().await {
-        Err(_e) => {
-            error!("Git command failed");
+        Err(e) => {
+            error!("Git command failed with {}", e);
             return Err(());
         }
         Ok(v) => v,
     };
 
-    // check the status of the cloning
+    // status check
     let status = git_output.status.to_string();
     debug!("Status: {}, stdout len: {}", status, git_output.stdout.len());
 
     // the exit code must be 0 or there was a problem
     if git_output.status.code().is_none() || git_output.status.code() != Some(0) {
-        let std_err = String::from_utf8(git_output.stderr).unwrap_or("Faulty stderr".into());
+        // there may be some useful info in stderr
+        let std_err = match String::from_utf8(git_output.stderr) {
+            Err(e) => {
+                error!("Git command failed. Could not unwrap stderr with {}.", e);
+                return Err(());
+            }
+            Ok(v) => v,
+        };
+        // ignore errors if they are expected
+        if expect_blank_err_msg && std_err.is_empty() {
+            debug!(
+                "Git command returned blank stderr. Status: {}. Command: {:?}",
+                status, cmd
+            );
+            return Ok(vec![]);
+        }
+        // the command failed and it was not expected
         error!(
             "Git command failed. Status: {}. Stderr: {}. Command: {:?}",
             status, std_err, cmd
@@ -123,6 +146,7 @@ pub(crate) async fn populate_blob_sha1(
     let all_objects = execute_git_command(
         vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1.clone()],
         dir,
+        false,
     )
     .await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
@@ -180,6 +204,7 @@ pub(crate) async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>
     let all_objects = execute_git_command(
         vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1],
         dir,
+        false,
     )
     .await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
@@ -202,7 +227,7 @@ pub(crate) async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>
 
 /// Get the contents of the Git blob as text.
 pub(crate) async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Result<Vec<u8>, ()> {
-    let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir).await?;
+    let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir, false).await?;
 
     Ok(blob_contents)
 }
@@ -220,7 +245,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
         test    http://local host (fetch)
         test    http://local host (push)
     */
-    let all_remotes = execute_git_command(vec!["remote".into(), "-v".into()], dir).await?;
+    let all_remotes = execute_git_command(vec!["remote".into(), "-v".into()], dir, false).await?;
     let all_remotes = String::from_utf8_lossy(&all_remotes);
 
     debug!("Found {} remotes", all_remotes.lines().count());
@@ -267,7 +292,7 @@ pub(crate) async fn get_log(
     trace!("GIT LOG: {:?}", git_args);
 
     // get the raw stdout output from GIT
-    let git_output = execute_git_command(git_args, repo_dir).await?;
+    let git_output = execute_git_command(git_args, repo_dir, false).await?;
 
     // try to convert the commits into a list of lines
     let mut log_entries: Vec<GitLogEntry> = Vec::new();
@@ -370,6 +395,43 @@ pub(crate) async fn get_log(
 
     debug!("Found {} commits", log_entries.len());
     Ok(log_entries)
+}
+
+/// Returns a list of possible git identities from user, author and committer settings.
+/// The email part of the identity is preferred. The name part is only used if the email is blank.
+/// The values are converted to lower case.
+pub async fn get_local_git_identities(repo_dir: &String) -> Result<HashSet<String>, ()> {
+    debug!("Extracting git identities");
+
+    let mut git_identities: HashSet<String> = HashSet::new();
+
+    // git supports 3 types of identities
+    // the main one is user, the other 2 will be unused for majoring of cases
+    for var_name in ["user", "author", "committer"].iter() {
+        // we need to check yhr email first and if that is blank check the name
+        let git_args = vec!["config".into(), [var_name.to_string(), ".email".to_string()].concat()];
+        // git returns an empty error stream if the requested setting does not exist
+        // It's possible there was some other problem. The only way to find out is to check the log.
+        let git_output = execute_git_command(git_args, repo_dir, true).await?;
+        let git_output = String::from_utf8_lossy(&git_output);
+        if !git_output.is_empty() {
+            trace!("email: {}", git_output);
+            git_identities.insert(git_output.trim().to_lowercase());
+        } else {
+            // no email part found - check the name
+            let git_args = vec!["config".into(), [var_name.to_string(), ".name".to_string()].concat()];
+            let git_output = execute_git_command(git_args, repo_dir, true).await?;
+            let git_output = String::from_utf8_lossy(&git_output).to_string();
+            if !git_output.is_empty() {
+                trace!("name: {}", git_output);
+                git_identities.insert(git_output.trim().to_lowercase());
+            }
+        }
+    }
+
+    debug!("Found {} identities", git_identities.len());
+    debug!("{:?}", git_identities);
+    Ok(git_identities)
 }
 
 /// Extracts the list of unique file names from the log with the latest commit/date per file. Ideally, this function should return the blob SHA1 as well,

@@ -1,6 +1,8 @@
-use stackmuncher::{code_rules::CodeRules, config::Config, report::Report, utils::hash_str_sha1};
+use stackmuncher::{
+    code_rules::CodeRules, config::Config, git::get_local_git_identities, report::Report, utils::hash_str_sha1,
+};
 use std::path::Path;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -70,6 +72,16 @@ async fn main() -> Result<(), ()> {
     project_report.save_as_local_file(&project_report_filename);
     info!("Project report done in {}ms", instant.elapsed().as_millis());
 
+    // get the list of user identities for processing their contributions individually
+    let git_identities = get_local_git_identities(&config.project_dir_path).await?;
+    if git_identities.is_empty() {
+        warn!("No git identity found. Individual contributions will not be processed. Use `git config set --global user.email=<your email>` before the next run.");
+        eprintln!(
+            "Git user details are not set. Use `git config set --global user.email=<your email>` before the next run."
+        );
+        return Err(());
+    }
+
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
@@ -77,7 +89,14 @@ async fn main() -> Result<(), ()> {
         for contributor in contributors {
             // only process a single contributor of the latest commit if it's a single commit report update
             if project_report.is_single_commit && contributor.git_identity != last_commit_author {
-                debug!("Contributor {} skipped", contributor.git_identity);
+                debug!("Contributor {} skipped / single commit", contributor.git_identity);
+                continue;
+            } else if !git_identities.contains(&contributor.git_identity.trim().to_lowercase()) {
+                // only process known local identities if it's not a single commit
+                debug!(
+                    "Contributor {} skipped / not a local identity",
+                    contributor.git_identity
+                );
                 continue;
             }
 
