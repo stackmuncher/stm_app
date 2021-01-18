@@ -1,5 +1,5 @@
 use stackmuncher::{
-    code_rules::CodeRules, config::Config, git::get_local_git_identities, report::Report, utils::hash_str_sha1,
+    code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
 use std::path::Path;
 use tracing::{debug, error, info, warn};
@@ -72,19 +72,19 @@ async fn main() -> Result<(), ()> {
     project_report.save_as_local_file(&project_report_filename);
     info!("Project report done in {}ms", instant.elapsed().as_millis());
 
-    // get the list of user identities for processing their contributions individually
-    let git_identities = get_local_git_identities(&config.project_dir_path).await?;
-    if git_identities.is_empty() {
-        warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
-        eprintln!(
-            "Git user details are not set. Use `git config --global user.email you@example.com` before the next run."
-        );
-        return Err(());
-    }
-
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
+
+        // get the list of user identities for processing their contributions individually
+        let git_identities = get_local_identities(&config.project_dir_path).await?;
+        if git_identities.is_empty() {
+            warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
+            eprintln!(
+            "Git user details (name/email) are not set in gitconfig. Use `git config --global user.email you@example.com` before the next run."
+        );
+            return Err(());
+        }
 
         for contributor in contributors {
             // only process a single contributor of the latest commit if it's a single commit report update
@@ -93,10 +93,7 @@ async fn main() -> Result<(), ()> {
                 continue;
             } else if !git_identities.contains(&contributor.git_identity.trim().to_lowercase()) {
                 // only process known local identities if it's not a single commit
-                debug!(
-                    "Contributor {} skipped / not a local identity",
-                    contributor.git_identity
-                );
+                debug!("Contributor {} skipped / unknown identity", contributor.git_identity);
                 continue;
             }
 
