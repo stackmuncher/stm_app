@@ -75,9 +75,9 @@ async fn main() -> Result<(), ()> {
     // get the list of user identities for processing their contributions individually
     let git_identities = get_local_git_identities(&config.project_dir_path).await?;
     if git_identities.is_empty() {
-        warn!("No git identity found. Individual contributions will not be processed. Use `git config set --global user.email=<your email>` before the next run.");
+        warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
         eprintln!(
-            "Git user details are not set. Use `git config set --global user.email=<your email>` before the next run."
+            "Git user details are not set. Use `git config --global user.email you@example.com` before the next run."
         );
         return Err(());
     }
@@ -135,7 +135,7 @@ async fn main() -> Result<(), ()> {
             );
         }
     }
-    info!("repo processed in {}ms", instant.elapsed().as_millis());
+    info!("Repo processed in {}ms", instant.elapsed().as_millis());
     Ok(())
 }
 
