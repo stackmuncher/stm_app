@@ -18,6 +18,7 @@ pub struct Config {
 impl Config {
     pub const PROJECT_REPORT_FILE_NAME: &'static str = "project_report";
     pub const CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report_";
+    pub const COMBINED_CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report";
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const REPORT_FOLDER_NAME: &'static str = "stm_reports";
     pub const GIT_FOLDER_NAME: &'static str = ".git";

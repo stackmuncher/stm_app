@@ -402,12 +402,13 @@ pub(crate) async fn get_log(
     Ok(log_entries)
 }
 
-/// Returns a list of possible git identities from user, author and committer settings. It also maintains a list
-/// of any past identities in case they change. E.g. if the user changed `user.email` setting after making a few commits. The previous email
+/// Returns a list of possible git identities from user, author and committer settings and a separate value for the current `user.email` setting.
+/// This function also maintains a list of any past identities in case they change. 
+/// E.g. if the user changed `user.email` setting after making a few commits. The previous email
 /// will be already stored in the additional identities section
 /// The email part of the identity is preferred. The name part is only used if the email is blank.
 /// The values are converted to lower case.
-pub async fn get_local_identities(repo_dir: &String) -> Result<HashSet<String>, ()> {
+pub async fn get_local_identities(repo_dir: &String) -> Result<(HashSet<String>, String), ()> {
     debug!("Extracting git identities");
 
     let mut git_identities: HashSet<String> = HashSet::new();
@@ -427,18 +428,26 @@ pub async fn get_local_identities(repo_dir: &String) -> Result<HashSet<String>, 
         }
     }
 
+    // contains the current configured user.email, if any
+    let mut user_email = String::new();
+
     // git supports 3 types of identities
     // the main one is user, the other 2 will be unused for majoring of cases
-    for var_name in ["user", "author", "committer"].iter() {
+    for var_name in ["author", "committer", "user"].iter() {
         for key in [".email", ".name"].iter() {
+            let key = [var_name.to_string(), key.to_string()].concat();
             // we need to check the email first and if that is blank check the name
-            let git_args = vec!["config".into(), [var_name.to_string(), key.to_string()].concat()];
+            let git_args = vec!["config".into(), key.clone()];
             // git returns an empty error stream if the requested setting does not exist
             // It's possible there was some other problem. The only way to find out is to check the log.
             let git_output = execute_git_command(git_args, repo_dir, true).await?;
             let git_output = String::from_utf8_lossy(&git_output);
             if !git_output.is_empty() {
-                trace!("email: {}", git_output);
+                trace!("{}: {}", key, git_output);
+                // store user.email in a separate variable to clearly identify the current git setting
+                if key == "user.email".to_owned() {
+                    user_email = git_output.trim().to_lowercase();
+                }
                 // normally this identity should already be known from the additional list because it was stored there
                 // during the previous commit and they don't change that often
                 if git_identities.insert(git_output.trim().to_lowercase()) {
@@ -465,7 +474,7 @@ pub async fn get_local_identities(repo_dir: &String) -> Result<HashSet<String>, 
 
     debug!("Found {} identities", git_identities.len());
     debug!("{:?}", git_identities);
-    Ok(git_identities)
+    Ok((git_identities, user_email))
 }
 
 /// Extracts the list of unique file names from the log with the latest commit/date per file. Ideally, this function should return the blob SHA1 as well,

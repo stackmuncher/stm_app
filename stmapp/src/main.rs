@@ -77,7 +77,7 @@ async fn main() -> Result<(), ()> {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
         // get the list of user identities for processing their contributions individually
-        let git_identities = get_local_identities(&config.project_dir_path).await?;
+        let (git_identities, user_email) = get_local_identities(&config.project_dir_path).await?;
         if git_identities.is_empty() {
             warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
             eprintln!(
@@ -85,6 +85,10 @@ async fn main() -> Result<(), ()> {
         );
             return Err(());
         }
+
+        // a container for the combined contributor report if there are multiple identities
+        // we save all identities (for a single contributor) separate and then combine them into a single report
+        let mut contributor_reports: Vec<Report> = Vec::new();
 
         for contributor in contributors {
             // only process a single contributor of the latest commit if it's a single commit report update
@@ -129,6 +133,38 @@ async fn main() -> Result<(), ()> {
                 "Contributor report for {} done in {}ms",
                 contributor.git_identity,
                 contributor_instant.elapsed().as_millis()
+            );
+
+            // push the contributor report into a container to combine later
+            contributor_reports.push(contributor_report);
+        }
+
+        // combine multiple contributor reports from different identities
+        debug!("Combining {} contributor reports", contributor_reports.len());
+        if !contributor_reports.is_empty() {
+            let mut combined_report = contributor_reports.pop().unwrap();
+            combined_report.reset_combined_contributor_report(user_email);
+            for contributor_report in contributor_reports.into_iter() {
+                // this only adds per-file-tech and does not affect any other part of the report
+                combined_report.merge_contributor_reports(contributor_report)
+            }
+
+            // combine all added per-file-tech into appropriate tech records
+            combined_report.recompute_tech_section();
+
+            // save the combined report
+            combined_report.save_as_local_file(
+                &report_dir
+                    .join(
+                        [
+                            Config::COMBINED_CONTRIBUTOR_REPORT_FILE_NAME,
+                            Config::REPORT_FILE_EXTENSION,
+                        ]
+                        .concat(),
+                    )
+                    .as_os_str()
+                    .to_string_lossy()
+                    .to_string(),
             );
         }
     }

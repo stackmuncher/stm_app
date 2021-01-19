@@ -256,6 +256,51 @@ impl Report {
         }
     }
 
+    /// Combines per_file_tech records choosing the most recent record by comparing the commit dates if there is a conflict.
+    /// It does not affect `tech` records. They need to be updated using a separate function.
+    /// Adds the name of the other report to `reports_included`.
+    pub fn merge_contributor_reports(&mut self, other_report: Self) {
+        'outer: for tech in other_report.per_file_tech {
+            // check if tech should be added to the report at all or is it older than what we already have
+            for existing_tech in &self.per_file_tech {
+                if *existing_tech == tech && existing_tech.commit_date_epoch > tech.commit_date_epoch {
+                    continue 'outer;
+                }
+            }
+
+            // remove a matching record if it's older
+            // this double handling is done because I could not find a way to remove the record inside a for-loop
+            self.per_file_tech
+                .retain(|t| *t != tech || t.commit_date_epoch > tech.commit_date_epoch);
+
+            // insert the new one
+            self.per_file_tech.insert(tech);
+        }
+
+        self.reports_included.insert(other_report.user_name);
+    }
+
+    /// Deletes existing `tech` records and re-creates them from scratch using `per_file_tech` records.
+    pub fn recompute_tech_section(&mut self) {
+        debug!("Merging per_file_tech");
+        self.tech.clear();
+
+        for tech in self.per_file_tech.clone() {
+            self.merge_tech_record(tech);
+        }
+    }
+
+    /// Resets report timestamp, contributor and report IDs
+    pub fn reset_combined_contributor_report(&mut self, contributor_email: String) {
+        debug!("Resetting combined contributor report to {}", contributor_email);
+        self.report_id = uuid::Uuid::new_v4().to_string();
+        self.timestamp = chrono::Utc::now().to_rfc3339();
+        self.user_name = contributor_email.clone();
+        self.report_name = String::new();
+        self.reports_included.clear();
+        self.reports_included.insert(contributor_email);
+    }
+
     /// Generates a new report name in a consistent way.
     pub fn generate_report_name(user_name: &String, repo_name: &String) -> String {
         if user_name.is_empty() {
