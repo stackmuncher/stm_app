@@ -91,12 +91,8 @@ async fn main() -> Result<(), ()> {
         let mut contributor_reports: Vec<Report> = Vec::new();
 
         for contributor in contributors {
-            // only process a single contributor of the latest commit if it's a single commit report update
-            if project_report.is_single_commit && contributor.git_identity != last_commit_author {
-                debug!("Contributor {} skipped / single commit", contributor.git_identity);
-                continue;
-            } else if !git_identities.contains(&contributor.git_identity.trim().to_lowercase()) {
-                // only process known local identities if it's not a single commit
+            // only process known local identities
+            if !git_identities.contains(&contributor.git_identity.trim().to_lowercase()) {
                 debug!("Contributor {} skipped / unknown identity", contributor.git_identity);
                 continue;
             }
@@ -117,12 +113,30 @@ async fn main() -> Result<(), ()> {
                 .to_string_lossy()
                 .to_string();
 
+            let cached_contributor_report = Report::from_disk(&contributor_report_filename);
+
+            // only process a single contributor of the latest commit if it's a single commit report update
+            if project_report.is_single_commit && contributor.git_identity != last_commit_author {
+                if let Some(cached_contributor_report) = cached_contributor_report {
+                    debug!(
+                        "Used cached report for contributor {} / single commit",
+                        contributor.git_identity
+                    );
+                    contributor_reports.push(cached_contributor_report);
+                    continue;
+                }
+                debug!(
+                    "Missing cached report for contributor {} / single commit",
+                    contributor.git_identity
+                );
+            }
+
             let contributor_report = project_report
                 .process_contributor(
                     &mut code_rules,
                     &config.project_dir_path,
                     &config.repo_name,
-                    Report::from_disk(&contributor_report_filename),
+                    cached_contributor_report,
                     contributor,
                 )
                 .await?;
