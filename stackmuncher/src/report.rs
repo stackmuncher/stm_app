@@ -260,6 +260,7 @@ impl Report {
     /// It does not affect `tech` records. They need to be updated using a separate function.
     /// Adds the name of the other report to `reports_included`.
     pub fn merge_contributor_reports(&mut self, other_report: Self) {
+        debug!("Merging contributor report for {}", other_report.user_name);
         'outer: for tech in other_report.per_file_tech {
             // check if tech should be added to the report at all or is it older than what we already have
             for existing_tech in &self.per_file_tech {
@@ -282,7 +283,7 @@ impl Report {
 
     /// Deletes existing `tech` records and re-creates them from scratch using `per_file_tech` records.
     pub fn recompute_tech_section(&mut self) {
-        debug!("Merging per_file_tech");
+        debug!("Recomputing tech section");
         self.tech.clear();
 
         for tech in self.per_file_tech.clone() {

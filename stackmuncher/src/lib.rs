@@ -340,9 +340,14 @@ impl Report {
         );
 
         // generate the report
-        let report = report
+        let mut report = report
             .process_project_files(code_rules, project_dir, &blobs_to_munch)
             .await?;
+
+        // copy some meta from the project report
+        report.remote_url_hashes = project_report.remote_url_hashes.clone();
+        report.report_commit_sha1 = project_report.report_commit_sha1.clone();
+        report.log_hash = project_report.log_hash.clone();
 
         Ok(report)
     }
