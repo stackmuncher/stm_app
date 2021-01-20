@@ -30,13 +30,11 @@ impl Report {
     pub async fn process_project(
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
-        user_name: &String,
-        repo_name: &String,
         old_report: Option<report::Report>,
         git_remote_url_regex: &Regex,
         git_log: Option<Vec<GitLogEntry>>,
     ) -> Result<Option<report::Report>, ()> {
-        let report = report::Report::new(user_name.clone(), repo_name.clone());
+        let report = report::Report::new();
 
         let git_log = git_log.unwrap_or(git::get_log(project_dir, None).await?);
 
@@ -227,11 +225,10 @@ impl Report {
         &self,
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
-        repo_name: &String,
         old_contributor_report: Option<report::Report>,
         contributor: &Contributor,
     ) -> Result<report::Report, ()> {
-        debug!("Processing contributor: {}", contributor.git_identity);
+        debug!("Processing contributor: {}", contributor.git_id);
 
         let project_report = self;
 
@@ -252,7 +249,7 @@ impl Report {
             })
             .collect::<ListOfBlobs>();
 
-        let report = report::Report::new(contributor.git_identity.clone(), repo_name.clone());
+        let report = report::Report::new();
         // copy cached data processed earlier
         // first from the old contributor report
         let (report, reused_per_file_tech_contributor) = report.copy_cached_data_from_another_report(
@@ -348,6 +345,9 @@ impl Report {
         report.remote_url_hashes = project_report.remote_url_hashes.clone();
         report.report_commit_sha1 = project_report.report_commit_sha1.clone();
         report.log_hash = project_report.log_hash.clone();
+        report.is_single_commit = project_report.is_single_commit;
+        report.last_commit_author = project_report.last_commit_author.clone();
+        report.git_ids_included.insert(contributor.git_id.clone());
 
         Ok(report)
     }

@@ -7,14 +7,16 @@ use tracing::trace;
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
-    pub language: String,
-    pub muncher_name: String,
-    /// A short hash of the muncher rules to detect a change for reprocessing
-    #[serde(default)]
-    pub muncher_hash: u64,
     /// The name of the file for individual file reports. Not present in combined tech reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_name: Option<String>,
+    /// The computer language as identified by the muncher
+    pub language: String,
+    /// The name of the muncher used to process the file
+    pub muncher_name: String,
+    /// A short hash of the muncher rules to detect a muncher change for reprocessing
+    #[serde(default)]
+    pub muncher_hash: u64,
     /// SHA1 of the commit this file was taken from. E.g. 105eaf871c7248c93ae2f13337e9881caf89d489
     /// It is used for hashing. Not present in combined tech reports.
     #[serde(skip_serializing_if = "Option::is_none")]

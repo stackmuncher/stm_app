@@ -10,7 +10,7 @@ pub struct Contributor {
     ///
     /// A contributor with name, but no email should only match if the other record has no email either. It's easier to merge fragmented reports
     /// than separating wrong attribution.
-    pub git_identity: String,
+    pub git_id: String,
     /// A list of possible identities as name/email pairs for extracting contact details and de-duplication.
     /// E.g. `Author: rimutaka <max@onebro.me> would be `rimutaka`/`max@onebro.me`.
     pub name_email_pairs: HashSet<(String, String)>,
@@ -103,7 +103,7 @@ impl Contributor {
 
                 // init the contributor
                 let contributor = Contributor {
-                    git_identity: git_identity.clone(),
+                    git_id: git_identity.clone(),
                     name_email_pairs,
                     last_commit_sha1: commit.sha1,
                     last_commit_epoch: commit.date_epoch,

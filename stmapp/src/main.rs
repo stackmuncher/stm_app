@@ -53,8 +53,6 @@ async fn main() -> Result<(), ()> {
     let project_report = match Report::process_project(
         &mut code_rules,
         &config.project_dir_path,
-        &config.user_name,
-        &config.repo_name,
         cached_project_report,
         &config.git_remote_url_regex,
         None,
@@ -77,7 +75,7 @@ async fn main() -> Result<(), ()> {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
         // get the list of user identities for processing their contributions individually
-        let (git_identities, user_email) = get_local_identities(&config.project_dir_path).await?;
+        let git_identities = get_local_identities(&config.project_dir_path).await?;
         if git_identities.is_empty() {
             warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
             eprintln!(
@@ -88,18 +86,18 @@ async fn main() -> Result<(), ()> {
 
         // a container for the combined contributor report if there are multiple identities
         // we save all identities (for a single contributor) separate and then combine them into a single report
-        let mut contributor_reports: Vec<Report> = Vec::new();
+        let mut contributor_reports: Vec<(Report, String)> = Vec::new();
 
         for contributor in contributors {
             // only process known local identities
-            if !git_identities.contains(&contributor.git_identity.trim().to_lowercase()) {
-                debug!("Contributor {} skipped / unknown identity", contributor.git_identity);
+            if !git_identities.contains(&contributor.git_id.trim().to_lowercase()) {
+                debug!("Contributor {} skipped / unknown identity", contributor.git_id);
                 continue;
             }
 
             let contributor_instant = std::time::Instant::now();
             // load the previous contributor report, if any
-            let contributor_hash = hash_str_sha1(contributor.git_identity.as_str());
+            let contributor_hash = hash_str_sha1(contributor.git_id.as_str());
             let contributor_report_filename = report_dir
                 .join(
                     [
@@ -116,18 +114,18 @@ async fn main() -> Result<(), ()> {
             let cached_contributor_report = Report::from_disk(&contributor_report_filename);
 
             // only process a single contributor of the latest commit if it's a single commit report update
-            if project_report.is_single_commit && contributor.git_identity != last_commit_author {
+            if project_report.is_single_commit && contributor.git_id != last_commit_author {
                 if let Some(cached_contributor_report) = cached_contributor_report {
                     debug!(
                         "Used cached report for contributor {} / single commit",
-                        contributor.git_identity
+                        contributor.git_id
                     );
-                    contributor_reports.push(cached_contributor_report);
+                    contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
                 }
                 debug!(
                     "Missing cached report for contributor {} / single commit",
-                    contributor.git_identity
+                    contributor.git_id
                 );
             }
 
@@ -135,7 +133,6 @@ async fn main() -> Result<(), ()> {
                 .process_contributor(
                     &mut code_rules,
                     &config.project_dir_path,
-                    &config.repo_name,
                     cached_contributor_report,
                     contributor,
                 )
@@ -145,22 +142,22 @@ async fn main() -> Result<(), ()> {
 
             info!(
                 "Contributor report for {} done in {}ms",
-                contributor.git_identity,
+                contributor.git_id,
                 contributor_instant.elapsed().as_millis()
             );
 
             // push the contributor report into a container to combine later
-            contributor_reports.push(contributor_report);
+            contributor_reports.push((contributor_report, contributor.git_id.clone()));
         }
 
         // combine multiple contributor reports from different identities
         debug!("Combining {} contributor reports", contributor_reports.len());
         if !contributor_reports.is_empty() {
-            let mut combined_report = contributor_reports.pop().unwrap();
-            combined_report.reset_combined_contributor_report(user_email);
-            for contributor_report in contributor_reports.into_iter() {
+            let (mut combined_report, contributor_git_id) = contributor_reports.pop().unwrap();
+            combined_report.reset_combined_contributor_report(contributor_git_id);
+            for (contributor_report, contributor_git_id) in contributor_reports.into_iter() {
                 // this only adds per-file-tech and does not affect any other part of the report
-                combined_report.merge_contributor_reports(contributor_report)
+                combined_report.merge_contributor_reports(contributor_report, contributor_git_id)
             }
 
             // combine all added per-file-tech into appropriate tech records
