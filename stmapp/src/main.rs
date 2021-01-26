@@ -15,7 +15,7 @@ async fn main() -> Result<(), ()> {
         //.without_time()
         .init();
 
-    info!("Stack munching started ...");
+    info!("Stack munching started in {}", config.project_dir_path);
 
     let instant = std::time::Instant::now();
 

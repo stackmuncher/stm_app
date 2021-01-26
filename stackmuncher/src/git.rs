@@ -466,7 +466,7 @@ pub async fn get_local_identities(repo_dir: &String) -> Result<HashSet<String>, 
     }
 
     debug!("Found {} identities", git_identities.len());
-    debug!("{:?}", git_identities);
+    trace!("{:?}", git_identities);
     Ok(git_identities)
 }
 
