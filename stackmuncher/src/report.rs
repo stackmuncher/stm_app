@@ -12,7 +12,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use tracing::{debug, error, info, warn};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename = "tech")]
 pub struct Report {
     /// Combined summary per technology, e.g. Rust, C# or CSS
@@ -343,7 +343,7 @@ impl Report {
     }
 
     /// Add github details to the report and generate an S3 file name. Missing details are ignored. It will try to add whatever it can.
-    pub fn with_github(self, github_user_name: String, github_repo_name: String) -> Self {
+    pub fn with_github(self, github_user_name: &String, github_repo_name: &String) -> Self {
         // make self mutable
         let mut report = self;
 
@@ -361,8 +361,8 @@ impl Report {
             }
         }
 
-        report.github_user_name = github_user_name;
-        report.github_repo_name = github_repo_name;
+        report.github_user_name = github_user_name.clone();
+        report.github_repo_name = github_repo_name.clone();
 
         report
     }

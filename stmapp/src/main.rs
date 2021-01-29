@@ -185,7 +185,6 @@ async fn main() -> Result<(), ()> {
 
 /// Inits values from ENV vars and the command line arguments
 fn new_config() -> Config {
-    pub const ENV_RULES_PATH: &'static str = "STACK_MUNCHER_CODERULES_DIR";
     const CMD_ARGS: &'static str =
         "Available CLI params: [--rules code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, \
     [--project project_path] defaults to the current dir, \
@@ -197,7 +196,7 @@ fn new_config() -> Config {
     // init the structure with the default values
 
     let mut config = Config::new(
-        std::env::var(ENV_RULES_PATH).unwrap_or_default(),
+        std::env::var(Config::ENV_RULES_PATH).unwrap_or_default(),
         String::new(),
         String::new(),
     );

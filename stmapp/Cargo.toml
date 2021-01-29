@@ -5,7 +5,7 @@ authors = ["rimutaka <max@onebro.me>"]
 edition = "2018"
 
 [dependencies]
-stackmuncher = { version = "0.1", path = "../stackmuncher" }
+stackmuncher = { version = "0.2", path = "../stackmuncher" }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = "0.2"
 log = "0.4"
