@@ -411,7 +411,7 @@ impl Report {
                 return Some(rpt);
             }
         };
-        error!("Failed to get a cached report from S3");
+        info!("Failed to get a cached report from S3");
         None
     }
 
