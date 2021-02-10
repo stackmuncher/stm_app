@@ -21,6 +21,7 @@ pub struct Report {
     /// Per-file technology summary, e.g. Rust/main.rs.
     /// This member should not be shared publicly, unless it's a public project
     /// because file names are sensitive info that can be exploited.
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub per_file_tech: HashSet<Tech>,
     pub timestamp: String,
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
@@ -37,6 +38,7 @@ pub struct Report {
     /// A list of hashed remote URLs from the repo. They are used in place of the private project name
     /// and can be used to match a local project to publicly available projects. If that happens the project name
     /// is populated automatically by STM on the server side
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remote_url_hashes: Option<HashSet<String>>,
     /// A UUID of the report
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
@@ -45,8 +47,10 @@ pub struct Report {
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_s3_name: String,
     /// The commit used to generate the report
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub report_commit_sha1: Option<String>,
     /// A SHA1 hash of all commit SHA1s to determine changes by looking at the log
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub log_hash: Option<String>,
     /// S3 keys of the reports from `report_s3_name` merged into a combined user or org report
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
@@ -154,37 +158,23 @@ impl Report {
                 }
             }
 
-            // merge contributors into collaborators
-            if other_report.contributors.is_some() {
+            // only contributor IDs are getting merged
+            if let Some(contributor_git_ids) = other_report.contributor_git_ids {
                 // this should not happen often, but check just in case if there is a hashset
                 if merge_into_inner.contributor_git_ids.is_none() {
-                    warn!("Missing collaborators in the master report");
+                    warn!("Missing contributor ids in the master report");
                     merge_into_inner.contributor_git_ids = Some(HashSet::new());
                 }
-
-                let collaborators = merge_into_inner.contributor_git_ids.as_mut().unwrap();
-                for contributor in other_report.contributors.unwrap() {
-                    collaborators.insert(contributor.git_id);
+                for contributor_git_id in contributor_git_ids {
+                    merge_into_inner
+                        .contributor_git_ids
+                        .as_mut()
+                        .unwrap()
+                        .insert(contributor_git_id);
                 }
             } else {
                 warn!("Missing contributors in the other report");
-            }
-
-            // repeat the same by merging collaborators
-            if other_report.contributor_git_ids.is_some() {
-                // this should not happen often, but check just in case if there is a hashset
-                if merge_into_inner.contributor_git_ids.is_none() {
-                    warn!("Missing collaborators in the master report");
-                    merge_into_inner.contributor_git_ids = Some(HashSet::new());
-                }
-
-                let collaborators = merge_into_inner.contributor_git_ids.as_mut().unwrap();
-                for identity in other_report.contributor_git_ids.unwrap() {
-                    collaborators.insert(identity);
-                }
-            } else {
-                warn!("Missing collaborators in the other report");
-            }
+            };
         }
 
         merge_into
@@ -298,7 +288,7 @@ impl Report {
         }
     }
 
-    /// Resets report timestamp, contributor and report IDs
+    /// Resets report timestamp, contributor and report IDs.
     pub fn reset_combined_contributor_report(&mut self, contributor_git_id: String) {
         debug!("Resetting combined contributor report for {}", contributor_git_id);
         self.report_id = uuid::Uuid::new_v4().to_string();
@@ -307,12 +297,49 @@ impl Report {
         self.git_ids_included.insert(contributor_git_id);
     }
 
+    /// Removes some sections that make no sense in the combined report.
+    pub fn reset_combined_dev_report(&mut self) {
+        self.contributors = None;
+        self.tree_files = None;
+        self.remote_url_hashes = None;
+        self.report_commit_sha1 = None;
+        self.last_commit_author = None;
+        self.log_hash = None;
+        self.unprocessed_file_names.clear();
+        self.per_file_tech.clear();
+
+        self.github_repo_name = String::new();
+        self.github_user_name = String::new();
+        self.report_id = String::new();
+        self.report_s3_name = String::new();
+        self.timestamp = chrono::Utc::now().to_rfc3339();
+    }
+
     /// Generates a new report name in a consistent way if both github user and repo names are known.
-    pub fn generate_report_s3_name(github_user_name: &String, github_repo_name: &String) -> String {
+    /// The contributor hash is optional and is only used for contributor reports, which are stored in a folder with the repo name.
+    pub fn generate_report_s3_name(
+        github_user_name: &String,
+        github_repo_name: &String,
+        contributor_sha1_hash: Option<String>,
+    ) -> String {
         if github_user_name.is_empty() || github_repo_name.is_empty() {
             return String::new();
         }
-        [github_user_name, "/", github_repo_name, Report::REPORT_FILE_NAME_SUFFIX].concat()
+
+        // contributor part is optional
+        let contributor_part = match contributor_sha1_hash {
+            None => String::new(),
+            Some(v) => ["/".to_owned(), v].concat(),
+        };
+
+        [
+            github_user_name,
+            "/",
+            github_repo_name,
+            &contributor_part,
+            Report::REPORT_FILE_NAME_SUFFIX,
+        ]
+        .concat()
     }
 
     /// Create a blank report with the current timestamp and a unique ID.
@@ -343,7 +370,12 @@ impl Report {
     }
 
     /// Add github details to the report and generate an S3 file name. Missing details are ignored. It will try to add whatever it can.
-    pub fn with_github(self, github_user_name: &String, github_repo_name: &String) -> Self {
+    pub fn with_github(
+        self,
+        github_user_name: &String,
+        github_repo_name: &String,
+        contributor_sha1_hash: Option<String>,
+    ) -> Self {
         // make self mutable
         let mut report = self;
 
@@ -355,7 +387,8 @@ impl Report {
             );
         } else {
             // generate the S3 file name
-            report.report_s3_name = Report::generate_report_s3_name(&github_user_name, &github_repo_name);
+            report.report_s3_name =
+                Report::generate_report_s3_name(&github_user_name, &github_repo_name, contributor_sha1_hash);
             if !report.report_s3_name.is_empty() {
                 report.reports_included.insert(report.report_s3_name.clone());
             }
@@ -378,7 +411,7 @@ impl Report {
                 return Some(rpt);
             }
         };
-        error!("Failed to get the prev report from S3");
+        error!("Failed to get a cached report from S3");
         None
     }
 
