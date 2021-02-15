@@ -91,6 +91,11 @@ impl Report {
     /// .report
     pub const REPORT_FILE_NAME_SUFFIX: &'static str = ".report";
 
+    /// Repos with this more files than this are ignored
+    /// This is a temporary measure. The file count should be taken after some files were ignored,
+    /// but since ignoring files like nodejs modules is not implemented we'll just ignore such repos.
+    pub const MAX_FILES_PER_REPO: usize = 5000;
+
     /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
     pub fn merge(merge_into: Option<Self>, other_report: Self) -> Option<Self> {
         let mut merge_into = merge_into;
