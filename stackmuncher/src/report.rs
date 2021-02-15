@@ -320,6 +320,21 @@ impl Report {
         self.timestamp = chrono::Utc::now().to_rfc3339();
     }
 
+    /// Returns an abridge copy with some bulky sections removed for indexing in a DB
+    pub fn abridge(&self) -> Self {
+        let mut report = self.clone();
+
+        // this can be huge and is not really needed for search
+        report.per_file_tech.clear();
+
+        // the list of contributors is useful, but indexing every file in the db isn't needed
+        for contributor in report.contributors.as_mut().unwrap() {
+            contributor.touched_files.clear();
+        }
+
+        report
+    }
+
     /// Generates a new report name in a consistent way if both github user and repo names are known.
     /// The contributor hash is optional and is only used for contributor reports, which are stored in a folder with the repo name.
     pub fn generate_report_s3_name(
