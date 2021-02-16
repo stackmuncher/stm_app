@@ -3,7 +3,7 @@ use git::{log_entries_to_list_of_blobs, GitBlob, GitLogEntry, ListOfBlobs};
 use regex::Regex;
 use report::Report;
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, error, info, trace};
+use tracing::{debug, info, trace, warn};
 
 pub mod code_rules;
 pub mod config;
@@ -41,7 +41,7 @@ impl Report {
         // get the list of files in the tree at HEAD
         let all_head_files = git::get_all_tree_files(project_dir, None).await?;
         if all_head_files.len() > Report::MAX_FILES_PER_REPO {
-            error!("Repo ignored. Too many files: {}", all_head_files.len());
+            warn!("Repo ignored. Too many files: {}", all_head_files.len());
             return Err(());
         }
 

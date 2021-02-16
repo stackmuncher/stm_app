@@ -321,8 +321,8 @@ impl Report {
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB
-    pub fn abridge(&self) -> Self {
-        let mut report = self.clone();
+    pub fn abridge(self) -> Self {
+        let mut report = self;
 
         // this can be huge and is not really needed for search
         report.per_file_tech.clear();
