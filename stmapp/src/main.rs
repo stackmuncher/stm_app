@@ -135,6 +135,7 @@ async fn main() -> Result<(), ()> {
                     &config.project_dir_path,
                     cached_contributor_report,
                     contributor,
+                    project_report.tree_files.as_ref(),
                 )
                 .await?;
 
@@ -196,7 +197,7 @@ fn new_config() -> Config {
     // init the structure with the default values
 
     let mut config = Config::new(
-        std::env::var(Config::ENV_RULES_PATH).unwrap_or_default(),
+        std::env::var(Config::ENV_RULES_PATH).unwrap_or_else(|_| "assets".to_owned()),
         String::new(),
         String::new(),
     );
@@ -239,8 +240,17 @@ fn new_config() -> Config {
     }
 
     // check if the params are correct
+    if config.code_rules_dir.is_empty() {
+        panic!(
+            "Path to files with code parsing rules was not specified. Use env var {} or --rules CLI arg with the path.",
+            Config::ENV_RULES_PATH
+        );
+    }
     if !Path::new(&config.code_rules_dir).is_dir() {
-        panic!("Invalid config files folder: {}", config.code_rules_dir);
+        panic!(
+            "Invalid path to folder with code parsing rules: {}",
+            config.code_rules_dir
+        );
     }
 
     if !Path::new(&config.project_dir_path).is_dir() {

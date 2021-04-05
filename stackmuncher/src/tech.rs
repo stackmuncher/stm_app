@@ -2,7 +2,7 @@ use super::kwc::{KeywordCounter, KeywordCounterSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tracing::trace;
+use tracing::{debug, trace, warn};
 
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
@@ -154,6 +154,9 @@ impl Tech {
                         continue;
                     }
 
+                    // Python imports may start with . which needs to be removed
+                    let cap = cap.trim_matches('.').to_owned();
+
                     // add the counts depending with different factory functions for different Tech fields
                     kw_counter.increment_counters(kw_counter_factory(cap, 1));
                 }
@@ -188,5 +191,98 @@ impl Tech {
         }
 
         Some(kw_sum)
+    }
+
+    /// Removes report refs (imports) that match local file names because they are likely to be local imports
+    /// and should not be included in the report. The tree must correspond to the commit. If the tree was taken from
+    /// HEAD then some files may be missing making local import names appear as if they are 3rd party.
+    /// #### Optimized for Python.
+    pub(crate) fn remove_local_imports(self, all_tree_files: Option<&HashSet<String>>) -> Self {
+        // exit if no file names or references are missing
+        if all_tree_files.is_none() {
+            warn!("No tree files supplied for local import removal.");
+            return self;
+        }
+        if self.refs.is_empty() {
+            return self;
+        }
+
+        // we need a mut self to remove local imports later
+        // it is hard to make it mut later in the code because of a borrow we have to make
+        let mut tech = self;
+
+        // normalize the file names for easy string comparison, e.g. zerver/worker/queue_processors.py -> zerver.worker.queue_processors
+        let files_normalized = all_tree_files
+            .unwrap()
+            .iter()
+            .map(|v| {
+                (
+                    v,
+                    v[0..v.rfind(".").unwrap_or_else(|| v.len())]
+                        .to_string()
+                        .replace("/", ".")
+                        .replace("\\", ".")
+                        .to_lowercase(),
+                )
+            })
+            .collect::<Vec<(&String, String)>>();
+
+        // normalize the keywords the same way as the file names, e.g. zerver::worker::queue_processors -> zerver.worker.queue_processors
+        let all_imports_normalized = tech
+            .refs
+            .iter()
+            .map(|kwc| (kwc, kwc.k.replace("::", ".").replace(":", ".").to_lowercase()))
+            .collect::<Vec<(&KeywordCounter, String)>>();
+
+        // a collector of pointers at kwc.k for local imports
+        let mut local_imports: Vec<KeywordCounter> = Vec::new();
+
+        // check every import name against the file names for possible matches
+        for (kwc, normalized_import) in all_imports_normalized {
+            let is_compound_name = normalized_import.contains(".");
+            for (full_file_name, file_normalized) in &files_normalized {
+                if is_compound_name {
+                    // imports with a . in it can be safely matched mid-string
+                    // e.g. zerver.worker matches zerver.worker.queue_processors
+                    if let Some(start_idx) = file_normalized.find(&normalized_import) {
+                        if (start_idx > 0 && file_normalized.as_bytes()[start_idx - 1] != 46u8)
+                            || (start_idx + normalized_import.len() < file_normalized.len()
+                                && file_normalized.as_bytes()[start_idx + normalized_import.len()] != 46u8)
+                        {
+                            // either start or end of the match falls mid-word of the file name
+                            // e.g. `os.file` and `dos.file`
+                            continue;
+                        }
+                    } else {
+                        // there was no match on the substring at all
+                        continue;
+                    };
+                } else if file_normalized.ends_with(&normalized_import) {
+                    // check if it's the full keyword match at the end of the file name
+                    // e.g. `os` should not be matched with `dos`, but `d.os` should be OK
+                    if file_normalized.len() > normalized_import.len() {
+                        if !&file_normalized[0..file_normalized.len() - normalized_import.len()].ends_with(".") {
+                            continue;
+                        }
+                    }
+                } else {
+                    // it's not a local import
+                    continue;
+                }
+                // it's a local import - remove
+                // .clone() is necessary to remove the local kwc from the list later
+                // there should only be a small number of imports per project
+                local_imports.push(kwc.clone());
+                debug!("Removing local import: {} / {}", kwc.k, full_file_name);
+                break;
+            }
+        }
+
+        // remove the local imports from the list
+        for local_import in local_imports {
+            tech.refs.remove(&local_import);
+        }
+
+        tech
     }
 }

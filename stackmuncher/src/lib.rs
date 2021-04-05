@@ -112,7 +112,7 @@ impl Report {
 
         // generate the report
         let report = report
-            .process_project_files(code_rules, project_dir, &blobs_to_munch)
+            .process_project_files(code_rules, project_dir, &blobs_to_munch, Some(&all_head_files))
             .await?;
 
         // update lists of files (unprocessed and project tree)
@@ -129,6 +129,7 @@ impl Report {
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
         blobs_to_process: &ListOfBlobs,
+        all_tree_files: Option<&HashSet<String>>,
     ) -> Result<report::Report, ()> {
         info!("Processing individual project files from {}", project_dir);
 
@@ -149,6 +150,7 @@ impl Report {
                     &blob.commit_sha1,
                     blob.commit_date_epoch,
                     &blob.commit_date_iso,
+                    all_tree_files,
                 )
                 .await
                 {
@@ -232,6 +234,7 @@ impl Report {
         project_dir: &String,
         old_contributor_report: Option<report::Report>,
         contributor: &Contributor,
+        all_tree_files: Option<&HashSet<String>>,
     ) -> Result<report::Report, ()> {
         debug!("Processing contributor: {}", contributor.git_id);
 
@@ -343,7 +346,7 @@ impl Report {
 
         // generate the report
         let mut report = report
-            .process_project_files(code_rules, project_dir, &blobs_to_munch)
+            .process_project_files(code_rules, project_dir, &blobs_to_munch, all_tree_files)
             .await?;
 
         // copy some meta from the project report

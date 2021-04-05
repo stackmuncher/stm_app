@@ -9,7 +9,8 @@ use std::collections::HashSet;
 use std::io::Read;
 use tracing::{debug, trace, warn};
 
-/// Extract the file as git blob contents from the repository and perform the analysis
+/// Extract the file as git blob contents from the repository and perform the analysis.
+/// * **all_tree_files***: needed to remove local imports that match the local file name, e.g. as in Python or Rust
 pub(crate) async fn process_file(
     file_name: &String,
     blob_sha1: &String,
@@ -18,6 +19,7 @@ pub(crate) async fn process_file(
     commit_sha1: &String,
     commit_date_epoch: i64,
     commit_date_iso: &String,
+    all_tree_files: Option<&HashSet<String>>,
 ) -> Result<Tech, String> {
     debug!("Muncher: {}", rules.muncher_name);
 
@@ -145,6 +147,9 @@ pub(crate) async fn process_file(
         tech.count_pkgs(&rules.packages_regex, &line);
         tech.count_keywords(&rules.keywords_regex, &line);
     }
+
+    // remove refs names that match local file names
+    tech = tech.remove_local_imports(all_tree_files);
 
     Ok(tech)
 }
