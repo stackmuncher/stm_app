@@ -2,7 +2,7 @@ use super::kwc::{KeywordCounter, KeywordCounterSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tracing::{debug, trace, warn};
+use tracing::{trace, warn, info};
 
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
@@ -273,7 +273,7 @@ impl Tech {
                 // .clone() is necessary to remove the local kwc from the list later
                 // there should only be a small number of imports per project
                 local_imports.push(kwc.clone());
-                debug!("Removing local import: {} / {}", kwc.k, full_file_name);
+                info!("Removing local import: {} / {}", kwc.k, full_file_name);
                 break;
             }
         }
