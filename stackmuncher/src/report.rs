@@ -320,7 +320,9 @@ impl Report {
         self.timestamp = chrono::Utc::now().to_rfc3339();
     }
 
-    /// Returns an abridge copy with some bulky sections removed for indexing in a DB
+    /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
+    /// * per_file_tech
+    /// * contributor.touched_files
     pub fn abridge(self) -> Self {
         let mut report = self;
 
@@ -328,9 +330,11 @@ impl Report {
         report.per_file_tech.clear();
 
         // the list of contributors is useful, but indexing every file in the db isn't needed
-        for contributor in report.contributors.as_mut().unwrap() {
-            contributor.touched_files.clear();
-        }
+        if let Some(contributors) = report.contributors.as_mut() {
+            for contributor in contributors {
+                contributor.touched_files.clear();
+            }
+        };
 
         report
     }
