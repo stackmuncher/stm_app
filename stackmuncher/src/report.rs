@@ -339,33 +339,6 @@ impl Report {
         report
     }
 
-    /// Generates a new report name in a consistent way if both github user and repo names are known.
-    /// The contributor hash is optional and is only used for contributor reports, which are stored in a folder with the repo name.
-    pub fn generate_report_s3_name(
-        github_user_name: &String,
-        github_repo_name: &String,
-        contributor_sha1_hash: Option<String>,
-    ) -> String {
-        if github_user_name.is_empty() || github_repo_name.is_empty() {
-            return String::new();
-        }
-
-        // contributor part is optional
-        let contributor_part = match contributor_sha1_hash {
-            None => String::new(),
-            Some(v) => ["/".to_owned(), v].concat(),
-        };
-
-        [
-            github_user_name,
-            "/",
-            github_repo_name,
-            &contributor_part,
-            Report::REPORT_FILE_NAME_SUFFIX,
-        ]
-        .concat()
-    }
-
     /// Create a blank report with the current timestamp and a unique ID.
     pub(crate) fn new() -> Self {
         Report {
@@ -391,52 +364,6 @@ impl Report {
             log_hash: None,
             last_commit_author: None,
         }
-    }
-
-    /// Add github details to the report and generate an S3 file name. Missing details are ignored. It will try to add whatever it can.
-    pub fn with_github(
-        self,
-        github_user_name: &String,
-        github_repo_name: &String,
-        contributor_sha1_hash: Option<String>,
-    ) -> Self {
-        // make self mutable
-        let mut report = self;
-
-        // check if any data is missing
-        if github_user_name.is_empty() || github_repo_name.is_empty() {
-            warn!(
-                "Missing github details for user {}, repo: {}",
-                github_user_name, github_repo_name
-            );
-        } else {
-            // generate the S3 file name
-            report.report_s3_name =
-                Report::generate_report_s3_name(&github_user_name, &github_repo_name, contributor_sha1_hash);
-            if !report.report_s3_name.is_empty() {
-                report.reports_included.insert(report.report_s3_name.clone());
-            }
-        }
-
-        report.github_user_name = github_user_name.clone();
-        report.github_repo_name = github_repo_name.clone();
-
-        report
-    }
-
-    /// A helper function to match the S3 output.
-    /// Returns None if there are any problems converting the S3 data into
-    /// the struct because it would be just regenerated downstream if None.
-    /// It's a bit of a hack.
-    pub fn from_s3_bytes(s3_bytes: Result<Vec<u8>, ()>) -> Option<Self> {
-        if let Ok(rpt) = s3_bytes {
-            if let Ok(rpt) = serde_json::from_slice::<Report>(rpt.as_slice()) {
-                info!("Loaded prev report from S3");
-                return Some(rpt);
-            }
-        };
-        info!("Failed to get a cached report from S3");
-        None
     }
 
     /// Load a report from the local storage, if one exists. Returns None and logs errors on failure.

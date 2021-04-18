@@ -30,7 +30,7 @@ impl Report {
     pub async fn process_project(
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
-        old_report: Option<report::Report>,
+        old_report: &Option<report::Report>,
         git_remote_url_regex: &Regex,
         git_log: Option<Vec<GitLogEntry>>,
     ) -> Result<Option<report::Report>, ()> {
@@ -232,7 +232,7 @@ impl Report {
         &self,
         code_rules: &mut code_rules::CodeRules,
         project_dir: &String,
-        old_contributor_report: Option<report::Report>,
+        old_contributor_report: &Option<report::Report>,
         contributor: &Contributor,
         all_tree_files: Option<&HashSet<String>>,
     ) -> Result<report::Report, ()> {
