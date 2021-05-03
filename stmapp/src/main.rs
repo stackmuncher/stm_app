@@ -133,7 +133,7 @@ async fn main() -> Result<(), ()> {
                 .process_contributor(
                     &mut code_rules,
                     &config.project_dir_path,
-                    cached_contributor_report,
+                    &cached_contributor_report,
                     contributor,
                     project_report.tree_files.as_ref(),
                 )
