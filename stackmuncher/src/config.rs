@@ -17,12 +17,21 @@ pub struct Config {
 
 impl Config {
     pub const PROJECT_REPORT_FILE_NAME: &'static str = "project_report";
+    /// The prefix of the file name followed by the contributor SHA1 hash.
     pub const CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report_";
     pub const COMBINED_CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report";
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const REPORT_FOLDER_NAME: &'static str = "stm_reports";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
-    pub const ENV_RULES_PATH: &'static str = "STACK_MUNCHER_CODERULES_DIR";
+    /// The code analysis rules should live in this folder, but the location of the folder itself
+    /// may vary from set up to set up.
+    pub const RULES_FOLDER_NAME_DEBUG: &'static str = "stm_rules";
+    pub const RULES_FOLDER_NAME_LINUX: &'static str = "/usr/share/stm_rules";
+    /// Location of file-type rules to recognize file types by extension. It is expected to be `stm_rules/file_types/`
+    pub const RULES_SUBFOLDER_FILE_TYPES: &'static str = "file_types";
+    /// Location of code munching rules for very specific file types, e.g. Cargo.toml, not just any .toml.
+    /// It is expected to be `stm_rules/munchers/`
+    pub const RULES_SUBFOLDER_MUNCHERS: &'static str = "munchers";
 
     /// Returns a minimal version of Self with no validation and default values.
     /// It compiles some regex and should be cached

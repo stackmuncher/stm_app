@@ -1,5 +1,6 @@
 use super::file_type::FileType;
 use super::muncher::Muncher;
+use crate::config::Config;
 use regex::Regex;
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -34,8 +35,13 @@ impl CodeRules {
     /// File-type rules are loaded upfront, munchers are loaded dynamically
     pub fn new(config_dir: &String) -> Self {
         // assume that the rule-files live in subfolders of the config dir
-        let file_type_dir = [config_dir.trim_end_matches("/").to_owned(), "/file-types".to_owned()].concat();
-        let muncher_dir = [config_dir.trim_end_matches("/").to_owned(), "/munchers".to_owned()].concat();
+        let file_type_dir = [
+            config_dir.trim_end_matches("/"),
+            "/",
+            Config::RULES_SUBFOLDER_FILE_TYPES,
+        ]
+        .concat();
+        let muncher_dir = [config_dir.trim_end_matches("/"), "/", Config::RULES_SUBFOLDER_MUNCHERS].concat();
 
         info!(
             "Loading config file for file_types from {} and munchers from {}",

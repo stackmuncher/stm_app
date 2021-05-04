@@ -53,7 +53,7 @@ async fn main() -> Result<(), ()> {
     let project_report = match Report::process_project(
         &mut code_rules,
         &config.project_dir_path,
-        cached_project_report,
+        &cached_project_report,
         &config.git_remote_url_regex,
         None,
     )
@@ -187,20 +187,26 @@ async fn main() -> Result<(), ()> {
 /// Inits values from ENV vars and the command line arguments
 fn new_config() -> Config {
     const CMD_ARGS: &'static str =
-        "Available CLI params: [--rules code_rules_dir] or use STACK_MUNCHER_CODERULES_DIR env var, \
+        "Optional CLI params: [--rules code_rules_dir] defaults to a platform-specific location, \
     [--project project_path] defaults to the current dir, \
-    [--files all|recent] defaults for all, [--log log_level] defaults to info.";
+    [--log log_level] defaults to info.";
 
     // Output it every time for now. Review and remove later when it's better documented.
     println!("{}", CMD_ARGS);
 
-    // init the structure with the default values
+    // look for the rules in the current working dir if in debug mode
+    // otherwise default to a platform-specific location
+    // this can be overridden by `--rules` CLI param
+    let code_rules_dir = if cfg!(debug_assertions) {
+        Config::RULES_FOLDER_NAME_DEBUG.to_owned()
+    } else if cfg!(target_os = "linux") {
+        Config::RULES_FOLDER_NAME_LINUX.to_owned()
+    } else {
+        unimplemented!("Only linux target is supported at the moment");
+    };
 
-    let mut config = Config::new(
-        std::env::var(Config::ENV_RULES_PATH).unwrap_or_else(|_| "assets".to_owned()),
-        String::new(),
-        String::new(),
-    );
+    // init the minimal config structure with the default values
+    let mut config = Config::new(code_rules_dir, String::new(), String::new());
 
     // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
     config.project_dir_path = std::env::current_dir()
@@ -239,12 +245,10 @@ fn new_config() -> Config {
         }
     }
 
-    // check if the params are correct
+    // this checks if the rules dir is present, but not its contents
+    // incomplete, may fall over later
     if config.code_rules_dir.is_empty() {
-        panic!(
-            "Path to files with code parsing rules was not specified. Use env var {} or --rules CLI arg with the path.",
-            Config::ENV_RULES_PATH
-        );
+        panic!("Path to files with code parsing rules was not specified.");
     }
     if !Path::new(&config.code_rules_dir).is_dir() {
         panic!(
@@ -253,6 +257,8 @@ fn new_config() -> Config {
         );
     }
 
+    // this tests the presence of the project dir, but it actually needs .git inside it
+    // incomplete, may fall over later
     if !Path::new(&config.project_dir_path).is_dir() {
         panic!("Invalid project dir location: {}", config.project_dir_path);
     }
