@@ -5,7 +5,7 @@ pub struct Config {
     /// Full path to the dir with code rules. Absolute or relative to the working dir.
     pub code_rules_dir: String,
     pub log_level: tracing::Level,
-    /// Absolute or relative path to the project directory with the files to analyze.
+    /// Absolute or relative path to the project directory with the files to analyze. 
     pub project_dir_path: String,
     /// Registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
     pub user_name: String,
@@ -25,8 +25,10 @@ impl Config {
     pub const GIT_FOLDER_NAME: &'static str = ".git";
     /// The code analysis rules should live in this folder, but the location of the folder itself
     /// may vary from set up to set up.
+    /// The values must agree with what is configured in the deployment packages:
+    /// * Linux: Cargo.toml
     pub const RULES_FOLDER_NAME_DEBUG: &'static str = "stm_rules";
-    pub const RULES_FOLDER_NAME_LINUX: &'static str = "/usr/share/stm_rules";
+    pub const RULES_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/stm_rules";
     /// Location of file-type rules to recognize file types by extension. It is expected to be `stm_rules/file_types/`
     pub const RULES_SUBFOLDER_FILE_TYPES: &'static str = "file_types";
     /// Location of code munching rules for very specific file types, e.g. Cargo.toml, not just any .toml.

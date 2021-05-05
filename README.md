@@ -1,4 +1,4 @@
-# Stack Muncher Library and Client App
+# StackMuncher Library and Client App
 
 StackMuncher is a language-agnostic code analysis tool that answers one question: 
 > What is my stack and how well do I know it?
@@ -11,17 +11,21 @@ The code analysis is un-opinionated. It does not impose any rules, passes a judg
 * libraries and dependencies used
 * number of lines of code and their types (comments, white space, docs, code)
 
-
-## Deployment
-
-Supported platforms:
-
-* Linux
+## Installation
 
 StackMuncher is a single executable file written in Rust. Its only external dependency is `git` that must be installed on the same machine and configuration files in JSON format.
 
 Run StackMuncher client app from the root of your project with a child `.git` folder.
 The app will access the contents of the repository, not the working folder. The reports are saved in `.git/stm-reports` folder.
+
+## Ubuntu
+
+```shell
+curl -SsL https://stackmuncher.github.io/ppa/ubuntu/KEY.gpg | sudo apt-key add -
+sudo curl -SsL -o /etc/apt/sources.list.d/stackmuncher.list https://stackmuncher.github.io/ppa/ubuntu/stackmuncher.list
+sudo apt update
+sudo apt install stackmuncher
+```
 
 ### Post-commit Git hook
 
@@ -32,9 +36,7 @@ This script downloads StackMuncher from GitHub and configures it as a global pos
 ```bash
 git config --global init.templatedir '~/.git-templates'
 mkdir -p ~/.git-templates/hooks
-wget https://github.com/users/rimutaka/packages/some-pkg-id -o /usr/bin/stackmuncher
-chmod a+x /usr/bin/stackmuncher
-echo "/usr/bin/stackmuncher" >> ~/.git-templates/hooks/post-commit
+echo "stackmuncher" >> ~/.git-templates/hooks/post-commit
 chmod a+x ~/.git-templates/hooks/post-commit
 ```
 
@@ -42,7 +44,7 @@ chmod a+x ~/.git-templates/hooks/post-commit
 
 * **new and cloned repositories**: no action needed, the hook will be installed from `~/.git-templates` folder on creation
 * **existing repositories WITH NO post-commit hooks**: run `git init` inside existing repositories to enable the hook
-* **existing repositories WITH OTHER post-commit hooks**: manually edit `.git/hooks/post-commit` file to add `/usr/bin/stackmuncher` line, probably at the very end to protect your workflow if the app crashes
+* **existing repositories WITH OTHER post-commit hooks**: manually edit `.git/hooks/post-commit` file to add `stackmuncher` line, probably at the very end to protect your workflow if the app crashes
 
 Running StackMuncher as a post-commit hook is reasonably safe. Even if the app crashes it will not affect the commit or delay your workflow by more than a few milliseconds. It may take up to a few seconds on the very first run with large repositories.
 

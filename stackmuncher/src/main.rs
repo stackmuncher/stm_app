@@ -1,4 +1,4 @@
-use stackmuncher::{
+use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
 use std::path::Path;
