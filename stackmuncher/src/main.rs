@@ -2,12 +2,14 @@ use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
 use std::path::Path;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
+
+mod config;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     // get input params
-    let config = new_config();
+    let config = config::new_config();
 
     tracing_subscriber::fmt()
         .with_max_level(config.log_level.clone())
@@ -15,32 +17,21 @@ async fn main() -> Result<(), ()> {
         //.without_time()
         .init();
 
-    info!("Stack munching started in {}", config.project_dir_path);
+    info!("StackMuncher started in {}", config.project_dir_path);
 
     let instant = std::time::Instant::now();
 
     // load code rules
     let mut code_rules = CodeRules::new(&config.code_rules_dir);
 
-    // Reports are saved into .git/stm_reports folder. It should be a safe per-project location.
-    // GIT ignores extra folders and they don't get checked into the repo. If the project is cloned to a different
-    // location the report would have to be regenerated.
-    let report_dir = Path::new(&config.project_dir_path)
-        .join(Config::GIT_FOLDER_NAME)
-        .join(Config::REPORT_FOLDER_NAME);
-
-    // create the reports folder if it doesn't exist
-    if !report_dir.exists() {
-        if let Err(e) = std::fs::create_dir(report_dir.clone()) {
-            error!(
-                "Cannot create reports folder at {} due to {}",
-                report_dir.to_string_lossy(),
-                e
-            );
-            panic!();
-        };
-        info!("Created reports folder at {}", report_dir.to_string_lossy());
-    }
+    // Reports are grouped per project with a canonical project name as the last subfolder
+    let report_dir = Path::new(
+        config
+            .report_dir
+            .as_ref()
+            .expect("Cannot unwrap config.report_dir. it's a bug."),
+    );
+    warn!("Reports folder: {}", report_dir.to_string_lossy());
 
     // load a previously generated report if it exists
     let project_report_filename = report_dir
@@ -182,99 +173,4 @@ async fn main() -> Result<(), ()> {
     }
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
     Ok(())
-}
-
-/// Inits values from ENV vars and the command line arguments
-fn new_config() -> Config {
-    const CMD_ARGS: &'static str =
-        "Optional CLI params: [--rules code_rules_dir] defaults to a platform-specific location, \
-    [--project project_path] defaults to the current dir, \
-    [--log log_level] defaults to info.";
-
-    // Output it every time for now. Review and remove later when it's better documented.
-    println!("{}", CMD_ARGS);
-
-    // look for the rules in the current working dir if in debug mode
-    // otherwise default to a platform-specific location
-    // this can be overridden by `--rules` CLI param
-    let code_rules_dir = if cfg!(debug_assertions) {
-        Config::RULES_FOLDER_NAME_DEBUG.to_owned()
-    } else if cfg!(target_os = "linux") {
-        Config::RULES_FOLDER_NAME_LINUX.to_owned()
-    } else {
-        unimplemented!("Only linux target is supported at the moment");
-    };
-
-    // init the minimal config structure with the default values
-    let mut config = Config::new(code_rules_dir, String::new(), String::new());
-
-    // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
-    config.project_dir_path = std::env::current_dir()
-        .expect("Cannot access the current directory.")
-        .to_str()
-        .unwrap_or_default()
-        .to_owned();
-
-    // check if there were any arguments passed to override the ENV vars
-    let mut args = std::env::args().peekable();
-    loop {
-        if let Some(arg) = args.next() {
-            match arg.to_lowercase().as_str() {
-                "--rules" => {
-                    config.code_rules_dir = args
-                        .peek()
-                        .expect("--rules requires a path to the folder with code rules")
-                        .into()
-                }
-
-                "--project" => {
-                    config.project_dir_path = args
-                        .peek()
-                        .expect("--project requires a path to the root of the project to be analyzed")
-                        .into()
-                }
-                "--log" => {
-                    config.log_level =
-                        string_to_log_level(args.peek().expect("--log requires a valid logging level").into())
-                }
-                _ => { //do nothing
-                }
-            };
-        } else {
-            break;
-        }
-    }
-
-    // this checks if the rules dir is present, but not its contents
-    // incomplete, may fall over later
-    if config.code_rules_dir.is_empty() {
-        panic!("Path to files with code parsing rules was not specified.");
-    }
-    if !Path::new(&config.code_rules_dir).is_dir() {
-        panic!(
-            "Invalid path to folder with code parsing rules: {}",
-            config.code_rules_dir
-        );
-    }
-
-    // this tests the presence of the project dir, but it actually needs .git inside it
-    // incomplete, may fall over later
-    if !Path::new(&config.project_dir_path).is_dir() {
-        panic!("Invalid project dir location: {}", config.project_dir_path);
-    }
-
-    config
-}
-
-/// Converts case insensitive level as String into Enum, defaults to INFO
-fn string_to_log_level(s: String) -> tracing::Level {
-    match s.to_lowercase().as_str() {
-        "trace" => tracing::Level::TRACE,
-        "debug" => tracing::Level::DEBUG,
-        "error" => tracing::Level::ERROR,
-        "warn" => tracing::Level::WARN,
-        _ => {
-            panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
-        }
-    }
 }

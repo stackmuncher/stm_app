@@ -4,8 +4,11 @@ use regex::Regex;
 pub struct Config {
     /// Full path to the dir with code rules. Absolute or relative to the working dir.
     pub code_rules_dir: String,
+    /// All reports are placed in a centralized location, but this can be overridden by CLI params.
+    /// Set it to None if reports are not stored locally at all.
+    pub report_dir: Option<String>,
     pub log_level: tracing::Level,
-    /// Absolute or relative path to the project directory with the files to analyze. 
+    /// Absolute or relative path to the project directory with the files to analyze.
     pub project_dir_path: String,
     /// Registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
     pub user_name: String,
@@ -21,8 +24,13 @@ impl Config {
     pub const CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report_";
     pub const COMBINED_CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report";
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
-    pub const REPORT_FOLDER_NAME: &'static str = "stm_reports";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
+    pub const GIT_REMOTE_URL_REGEX: &'static str = r#"(?i)\s(http.*)\("#;
+    /// The default location of reports on linux. Chosen on the basis of https://www.pathname.com/fhs/
+    /// > The /var/tmp directory is made available for programs that require temporary files or directories that are preserved between system reboots.
+    /// > Therefore, data stored in/var/tmp is more persistent than data in /tmp.
+    pub const REPORT_FOLDER_NAME_LINUX: &'static str = "/var/tmp/stackmuncher/reports";
+    pub const REPORT_FOLDER_NAME_DEBUG: &'static str = "reports";
     /// The code analysis rules should live in this folder, but the location of the folder itself
     /// may vary from set up to set up.
     /// The values must agree with what is configured in the deployment packages:
@@ -41,10 +49,11 @@ impl Config {
         Config {
             log_level: tracing::Level::INFO,
             code_rules_dir,
+            report_dir: None,
             project_dir_path: String::new(),
             user_name,
             repo_name,
-            git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),
+            git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
         }
     }
 
@@ -55,6 +64,7 @@ impl Config {
         Config {
             log_level: log_level.clone(),
             code_rules_dir: String::new(),
+            report_dir: None,
             project_dir_path: String::new(),
             user_name: String::new(),
             repo_name: String::new(),
