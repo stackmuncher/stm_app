@@ -21,10 +21,17 @@ The app will access the contents of the repository, not the working folder. The 
 ## Ubuntu
 
 ```shell
-curl -SsL https://stackmuncher.github.io/ppa/ubuntu/KEY.gpg | sudo apt-key add -
-sudo curl -SsL -o /etc/apt/sources.list.d/stackmuncher.list https://stackmuncher.github.io/ppa/ubuntu/stackmuncher.list
+curl -SsL https://distro.stackmuncher.com/ubuntu/KEY.gpg | sudo apt-key add -
+sudo curl -SsL -o /etc/apt/sources.list.d/stackmuncher.list https://distro.stackmuncher.com/ubuntu/stackmuncher.list
 sudo apt update
 sudo apt install stackmuncher
+```
+
+To uninstall everything run:
+```shell
+sudo apt remove stackmuncher
+sudo apt-key del AC98A3AC
+sudo rm /etc/apt/sources.list.d/stackmuncher.list
 ```
 
 ### Post-commit Git hook

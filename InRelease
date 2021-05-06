@@ -1,0 +1,49 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Date: Thu, 06 May 2021 04:59:48 +0000
+MD5Sum:
+ 7dcca3cf0c0a95cf663afb8deb1b83c0             2699 Packages
+ d89b6ef512d053c0e92fd39002732940              711 Packages.gz
+ 380f27a07591abdb5023a60250195bff               38 Release
+ c6cb6af9a68964e8626eeb782be097e3             1992 ppa/ubuntu/Packages
+ 08ded6fcade457df9428d80adecb3056              686 ppa/ubuntu/Packages.gz
+ ef01c623c768304aa2ce3ea1010a031a             1204 ppa/ubuntu/Release
+SHA1:
+ 0b085d9944729f55d45a11291be5fd07bb5f1f87             2699 Packages
+ e1ec38f4287e0c3f98663ab7b7640216682b722d              711 Packages.gz
+ a13f8ad817c373d6cfea6dbe87b9a0720a92f9a2               38 Release
+ c6da964de0c4ede8a727f9804dcde6b7230372e7             1992 ppa/ubuntu/Packages
+ a6c826b5aa79271105c5ffa0fbfac7cb8c6a6fea              686 ppa/ubuntu/Packages.gz
+ 59bd309e9cf0d22cf34e76e752cf2670cee7591a             1204 ppa/ubuntu/Release
+SHA256:
+ 7a32d8774036713ecf9f2f7e33459bc5b9b999131ccdfd1f16b08673524a85d2             2699 Packages
+ ae74a0d1bc626ec2491f55eadff0d9ff2be5cccdeaba6eb5e82cc637fda9fe69              711 Packages.gz
+ a479f895fb17d370ad256c15ad8357bc12be0381e954a16dff637234135c7c1e               38 Release
+ ddf5ed418f2280359698d0c20e7573dba47e18e8ea4fd2f6cdc7c0d20b6e5352             1992 ppa/ubuntu/Packages
+ e7589e648dfa1acdf692d9b12c98cf3d776568fde7fc735333cb295398f5a35b              686 ppa/ubuntu/Packages.gz
+ ec776e5be72c2d57bc412918f4939309a5a34c42be66448a6cbcd2303c10023f             1204 ppa/ubuntu/Release
+SHA512:
+ c7636dd13c8f23565a8fe15d1c753d77a5213a3598f047efb8af3d86c108f7d3aaf7822b605917fd97f29ee2d0f0af51a664aa89a023f2238a844aeb2b43f38a             2699 Packages
+ 8aefce806366f0453e29027ff03c980ea17156d18ca5d7d9a1ae7a60552e087cdb5afea756fc5a33ec062a037d73b589b257b6e21769ab85dea7eb8bb52987fa              711 Packages.gz
+ ea2adb4d8fa2e8698869d0c509b925d5a4776e04a5f340fd297afbd7bb18b50e271af650477326b4f578f6014849c29b6fddd75095419647aab47ae7fcde3f74               38 Release
+ a0feb32fc7e86505b763d3d8f6bbd86d20170e210aef5a7e7a090d3bc7b00c27433cec2abc394058b77fd32a342ef14744da96df94bcfe364a47e77db5b25a64             1992 ppa/ubuntu/Packages
+ 9b9c7b6e56896ec29551184dd5be00962f195b4829ad6e272cc83ff8dc79c0bba3b5df694e397825c31406789bd21d9888afc1ea0fb9078e90b7ff601273f869              686 ppa/ubuntu/Packages.gz
+ cdb62886f8eac84ae896bcffe6cb213e8a5777890380facdcb61eb1232a3181fcd0fcfbcea569cb35a2bdad0c86eb8b47e1e84954aad71405d77ba73d58e38c6             1204 ppa/ubuntu/Release
+-----BEGIN PGP SIGNATURE-----
+
+iQJKBAEBCgA0FiEEvEibbsg5yLsOSpWifTTbyayYo6wFAmCTd90WHGluZm9Ac3Rh
+Y2ttdW5jaGVyLmNvbQAKCRB9NNvJrJijrDnrD/9v6HkCKKxb7xgfMOeLhprdrgQ0
+MANjs4UI242tJMZwrU0a0K9dGeI8nL2UzV/PHN+Iu8NBwqgWPDX27nDoJ/wn96VH
+Z3+co/A0hB7IH4WrEAag6DVF1F4t2fgscymI8alRmIQoHBTs0YDl4hqhTVe51iMK
+p7G500XJi0mDHlphbWZGbQpv9y6jtwOmzbWv+/ECasCanSFyG8mi4f/0fL5oevPa
+oHkENlRXIpXjYqX3Yq6A/sXSPgsSx7128VH0xBuQGDXIWzHjQ81qcLO1/9RVUPDG
+xJJ/fOyPnC7XDlvGp5MFKzeFZRHsdfqWyfW9Nfg3tKLrn/vCHZfmZmx1K+XBd/BK
+dYsNGjBa8sEf0XRY605zWYIlXFPbyDw1/0bTMhSAhslgJyHfUAj1PwRBo/Rpk7Kt
+Tq68c5fsAORbSx28mIRuvwNwVwE1qhSEz3JuPN3nezzG4sxKFAXg4q724BtjwSc6
+v2u0hEXU0RLZ2r1WImzbUpNZQ/TFtUKuKRj7LkBQ+eVqKbrc3GsTxVGjqcZ2yVQm
+dxqjg4D1OE/vAERxgKAoQQB3Txu2pV+ceNZ5PDfVuxiAtKB8EXx+VLYHV6RtZctt
+v+B7cZM6AFjqZp0JyxErRdKd5CL35/Ohwq0t0v7L53QcHVn7N5fGp5Ewl78oJgEm
+wzMa6sExUA/QAiBOyw==
+=l/Qu
+-----END PGP SIGNATURE-----
