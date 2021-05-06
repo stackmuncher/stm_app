@@ -448,7 +448,7 @@ impl Report {
     /// Does not panic (exits early) if `git rev-list` command fails.
     pub(crate) async fn add_commits_history(
         self,
-        repo_dir: &String,
+        repo_dir: &Path,
         git_remote_url_regex: &Regex,
         git_log: Vec<GitLogEntry>,
     ) -> Self {

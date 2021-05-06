@@ -7,6 +7,7 @@ use encoding_rs_io::{DecodeReaderBytes, DecodeReaderBytesBuilder};
 use regex::Regex;
 use std::collections::HashSet;
 use std::io::Read;
+use std::path::Path;
 use tracing::{debug, trace, warn};
 
 /// Extract the file as git blob contents from the repository and perform the analysis.
@@ -15,7 +16,7 @@ pub(crate) async fn process_file(
     file_name: &String,
     blob_sha1: &String,
     rules: &Muncher,
-    project_dir: &String,
+    project_dir: &Path,
     commit_sha1: &String,
     commit_date_epoch: i64,
     commit_date_iso: &String,
@@ -161,7 +162,7 @@ pub(crate) async fn process_file(
 async fn get_file_lines(
     file_name: &String,
     blob_sha1: &String,
-    project_dir: &String,
+    project_dir: &Path,
     try_ansi: bool,
 ) -> Result<Vec<String>, ()> {
     // read the file

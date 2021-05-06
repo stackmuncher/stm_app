@@ -3,6 +3,7 @@ use git::{log_entries_to_list_of_blobs, GitBlob, GitLogEntry, ListOfBlobs};
 use regex::Regex;
 use report::Report;
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use tracing::{debug, info, trace, warn};
 
 pub mod code_rules;
@@ -29,7 +30,7 @@ impl Report {
     /// * `Some` - an updated report
     pub async fn process_project(
         code_rules: &mut code_rules::CodeRules,
-        project_dir: &String,
+        project_dir: &Path,
         old_report: &Option<report::Report>,
         git_remote_url_regex: &Regex,
         git_log: Option<Vec<GitLogEntry>>,
@@ -127,11 +128,14 @@ impl Report {
     pub(crate) async fn process_project_files(
         self,
         code_rules: &mut code_rules::CodeRules,
-        project_dir: &String,
+        project_dir: &Path,
         blobs_to_process: &ListOfBlobs,
         all_tree_files: Option<&HashSet<String>>,
     ) -> Result<report::Report, ()> {
-        info!("Processing individual project files from {}", project_dir);
+        info!(
+            "Processing individual project files from {}",
+            project_dir.to_string_lossy()
+        );
 
         // result collectors
         let mut report = self;
@@ -231,7 +235,7 @@ impl Report {
     pub async fn process_contributor(
         &self,
         code_rules: &mut code_rules::CodeRules,
-        project_dir: &String,
+        project_dir: &Path,
         old_contributor_report: &Option<report::Report>,
         contributor: &Contributor,
         all_tree_files: Option<&HashSet<String>>,

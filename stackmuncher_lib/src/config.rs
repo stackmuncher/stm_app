@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Config {
@@ -9,7 +10,7 @@ pub struct Config {
     pub report_dir: Option<String>,
     pub log_level: tracing::Level,
     /// Absolute or relative path to the project directory with the files to analyze.
-    pub project_dir_path: String,
+    pub project_dir_path: PathBuf,
     /// Registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
     pub user_name: String,
     /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
@@ -50,7 +51,7 @@ impl Config {
             log_level: tracing::Level::INFO,
             code_rules_dir,
             report_dir: None,
-            project_dir_path: String::new(),
+            project_dir_path: PathBuf::default(),
             user_name,
             repo_name,
             git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
@@ -65,7 +66,7 @@ impl Config {
             log_level: log_level.clone(),
             code_rules_dir: String::new(),
             report_dir: None,
-            project_dir_path: String::new(),
+            project_dir_path: PathBuf::default(),
             user_name: String::new(),
             repo_name: String::new(),
             git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),

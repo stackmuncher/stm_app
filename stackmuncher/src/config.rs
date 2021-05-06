@@ -33,10 +33,7 @@ pub(crate) fn new_config() -> Config {
     };
 
     // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
-    let project_dir_path = std::env::current_dir()
-        .expect("Cannot access the current directory.")
-        .to_string_lossy()
-        .to_string();
+    let project_dir_path = std::env::current_dir().expect("Cannot access the current directory.");
 
     // init the minimal config structure with the default values
     let mut config = Config {
@@ -100,8 +97,11 @@ pub(crate) fn new_config() -> Config {
 
     // this tests the presence of the project dir, but it actually needs .git inside it
     // incomplete, may fall over later
-    if !Path::new(&config.project_dir_path).is_dir() {
-        panic!("Invalid project dir location: {}", config.project_dir_path);
+    if !config.project_dir_path.is_dir() {
+        panic!(
+            "Invalid project dir location: {}",
+            config.project_dir_path.to_string_lossy()
+        );
     }
 
     // check if the reports dir is ready to receive reports
@@ -129,7 +129,7 @@ pub(crate) fn new_config() -> Config {
     // out of the absolute project path and its own hash
     // the hash is included in the path for ease of search and matching with the report contents because the report itself does not contain any project or user
     // identifiable info
-    let project_dir_path = Path::new(&config.project_dir_path);
+    let project_dir_path = &config.project_dir_path;
     let absolute_project_path = if project_dir_path.is_absolute() {
         project_dir_path.to_string_lossy().to_string()
     } else {
@@ -151,6 +151,7 @@ pub(crate) fn new_config() -> Config {
     // append its own hash at the end
     let canonical_project_name_hash = hash_str_sha1(&canonical_project_name)[0..8].to_string();
     let canonical_project_name = [canonical_project_name, canonical_project_name_hash].join("_");
+    let canonical_project_name = trim_canonical_project_name(canonical_project_name);
 
     // append the project report subfolder name to the reports root folder
     let report_dir_path = report_dir_path.join(canonical_project_name);
@@ -185,4 +186,30 @@ fn string_to_log_level(s: String) -> tracing::Level {
             panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
         }
     }
+}
+
+/// Shortens a potentially long folder name like home_mx_projects_stm_stm_apps_stm_28642a39
+/// to a reasonable length of about 250 bytes, which can be 250 ASCII chars or much fewer for UTF-8.
+/// The trimming is done by cutting off segments at the _ from the start.
+/// The worst case scenario it will be just the hash left.
+fn trim_canonical_project_name(name: String) -> String {
+    let mut name = name;
+
+    // windows - 260, linux - 255, mac - 255, but that is in chars
+    // it gets tricky with UTF-8 because some chars are multi-byte, so technically it is even shorter
+    // having a very long name is kind of pointless - most useful info is at the end,
+    // anything over 100 glyphs would be hard to read
+    while name.as_bytes().len() > 250 {
+        // cut off the first segment_
+        // there should be at least one _ under the 255 limit because the hash is at the end and it's only 8 chars long
+        let cut_off_idx = name
+            .find("_")
+            .expect("Failed to trim a canonical project name. It's a bug")
+            + 1;
+        name = name[cut_off_idx..].to_string();
+        // keep cutting until it is within the acceptable limit
+        continue;
+    }
+
+    name
 }

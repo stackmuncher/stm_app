@@ -1,6 +1,7 @@
 use crate::utils;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use tokio::process::Command;
 use tracing::{debug, error, info, trace, warn};
 
@@ -74,13 +75,13 @@ impl GitLogEntry {
 /// Set `expect_blank_err_msg` to `false` if any kind of error should be logged and returned as such.
 pub async fn execute_git_command(
     args: Vec<String>,
-    repo_dir: &String,
+    repo_dir: &Path,
     expect_blank_err_msg: bool,
 ) -> Result<Vec<u8>, ()> {
     // build `git ...` command
     let mut cmd = Command::new("git");
     cmd.args(args);
-    cmd.current_dir(&repo_dir);
+    cmd.current_dir(repo_dir);
 
     // try to run the command - it should never fail at this point unless there is a process failure
     let git_output = match cmd.output().await {
@@ -138,7 +139,7 @@ pub async fn execute_git_command(
 /// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
 /// ```
 pub(crate) async fn populate_blob_sha1(
-    dir: &String,
+    dir: &Path,
     blobs: ListOfBlobs,
     commit_sha1: Option<String>,
 ) -> Result<ListOfBlobs, ()> {
@@ -202,7 +203,7 @@ pub(crate) async fn populate_blob_sha1(
 /// 100644 blob f288702d2fa16d3cdf0035b15a9fcbc552cd88e7    LICENSE
 /// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
 /// ```
-pub(crate) async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>) -> Result<HashSet<String>, ()> {
+pub(crate) async fn get_all_tree_files(dir: &Path, commit_sha1: Option<String>) -> Result<HashSet<String>, ()> {
     // use HEAD by default
     let commit_sha1 = commit_sha1.unwrap_or("HEAD".to_owned());
 
@@ -231,7 +232,7 @@ pub(crate) async fn get_all_tree_files(dir: &String, commit_sha1: Option<String>
 }
 
 /// Get the contents of the Git blob as text.
-pub(crate) async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Result<Vec<u8>, ()> {
+pub(crate) async fn get_blob_contents(dir: &Path, blob_sha1: &String) -> Result<Vec<u8>, ()> {
     let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir, false).await?;
 
     Ok(blob_contents)
@@ -240,7 +241,7 @@ pub(crate) async fn get_blob_contents(dir: &String, blob_sha1: &String) -> Resul
 /// Returns a list of hashes for all remote URLs for inclusion in the report instead of the URLs themselves for privacy.
 /// E.g., `base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)` will get only `https://github.com/awslabs/aws-lambda-rust-runtime.git`
 /// hashed as `&str`. The type must match exactly for the hash to be the same. See https://github.com/rust-lang/rust/issues/27108.
-pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &Regex) -> Result<HashSet<String>, ()> {
+pub(crate) async fn get_hashed_remote_urls(dir: &Path, git_remote_url_regex: &Regex) -> Result<HashSet<String>, ()> {
     // get the list of remotes, which may look like this
     /*
         base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)
@@ -277,7 +278,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &String, git_remote_url_regex: &
 /// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.
 /// Merge commits are excluded.
 pub(crate) async fn get_log(
-    repo_dir: &String,
+    repo_dir: &Path,
     contributor_git_identity: Option<&String>,
 ) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
@@ -408,7 +409,7 @@ pub(crate) async fn get_log(
 /// will be already stored in the additional identities section
 /// The email part of the identity is preferred. The name part is only used if the email is blank.
 /// The values are converted to lower case.
-pub async fn get_local_identities(repo_dir: &String) -> Result<HashSet<String>, ()> {
+pub async fn get_local_identities(repo_dir: &Path) -> Result<HashSet<String>, ()> {
     debug!("Extracting git identities");
 
     let mut git_identities: HashSet<String> = HashSet::new();

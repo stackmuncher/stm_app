@@ -17,7 +17,7 @@ async fn main() -> Result<(), ()> {
         //.without_time()
         .init();
 
-    info!("StackMuncher started in {}", config.project_dir_path);
+    info!("StackMuncher started in {}", config.project_dir_path.to_string_lossy());
 
     let instant = std::time::Instant::now();
 
