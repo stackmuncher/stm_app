@@ -2,8 +2,11 @@ use super::file_type::FileType;
 use super::muncher::Muncher;
 use crate::config::Config;
 use regex::Regex;
-use std::collections::{BTreeMap, HashSet};
-use std::fs;
+use std::{
+    collections::{BTreeMap, HashSet},
+    path::Path,
+};
+use std::{fs, path::PathBuf};
 use tracing::{debug, info, trace};
 
 #[derive(Debug, Clone)]
@@ -15,7 +18,7 @@ pub struct CodeRules {
     pub munchers: BTreeMap<String, Option<Muncher>>,
 
     /// Directory path where muncher files are stored
-    muncher_files_dir: String,
+    muncher_files_dir: PathBuf,
 
     /// A compiled regex for fetching a file extension from the full
     /// file path, including directories
@@ -33,25 +36,25 @@ pub struct CodeRules {
 impl CodeRules {
     /// Create a new instance from a a list of file-type files at `file_type_dir`
     /// File-type rules are loaded upfront, munchers are loaded dynamically
-    pub fn new(config_dir: &String) -> Self {
+    pub fn new(config_dir: &Path) -> Self {
         // assume that the rule-files live in subfolders of the config dir
-        let file_type_dir = [
-            config_dir.trim_end_matches("/"),
-            "/",
-            Config::RULES_SUBFOLDER_FILE_TYPES,
-        ]
-        .concat();
-        let muncher_dir = [config_dir.trim_end_matches("/"), "/", Config::RULES_SUBFOLDER_MUNCHERS].concat();
+        let file_type_dir = config_dir.join(Config::RULES_SUBFOLDER_FILE_TYPES);
+        let muncher_dir = config_dir.join(Config::RULES_SUBFOLDER_MUNCHERS);
 
         info!(
             "Loading config file for file_types from {} and munchers from {}",
-            file_type_dir, muncher_dir
+            file_type_dir.to_string_lossy(),
+            muncher_dir.to_string_lossy()
         );
 
         // get the list of files from the target folder
         let dir = match fs::read_dir(&file_type_dir) {
             Err(e) => {
-                panic!("Cannot load file rules from {} with {}. Aborting.", file_type_dir, e);
+                panic!(
+                    "Cannot load file rules from {} with {}. Aborting.",
+                    file_type_dir.to_string_lossy(),
+                    e
+                );
             }
             Ok(v) => v,
         };
@@ -100,15 +103,17 @@ impl CodeRules {
                 if let Some(muncher_name) = file_type.get_muncher_name(file_path) {
                     // load the muncher from its file on the first use
                     if !self.munchers.contains_key(&muncher_name) {
-                        let muncher_file_name = [
-                            self.muncher_files_dir.clone(),
-                            "/".to_owned(),
-                            muncher_name.clone(),
-                            ".json".to_owned(),
-                        ]
-                        .concat();
+                        // a round-about way of appending .json to a PathBuf
+                        // the existing methods on PathBuf can only replace the existing ext, not append a new one
+                        let mut muncher_file_name =
+                            self.muncher_files_dir.join(&muncher_name).as_os_str().to_os_string();
+                        muncher_file_name.push(".json");
+                        let muncher_file_name = Path::new(&muncher_file_name).to_path_buf();
 
-                        trace!("Loading muncher {} for the 1st time", muncher_file_name);
+                        trace!(
+                            "Loading muncher {} for the 1st time",
+                            muncher_file_name.to_string_lossy()
+                        );
 
                         // Insert None if the muncher could not be loaded so that it doesn't try to load it again
                         self.munchers

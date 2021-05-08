@@ -17,7 +17,7 @@ async fn main() -> Result<(), ()> {
         //.without_time()
         .init();
 
-    info!("StackMuncher started in {}", config.project_dir_path.to_string_lossy());
+    info!("StackMuncher started in {}", config.project_dir.to_string_lossy());
 
     let instant = std::time::Instant::now();
 
@@ -43,7 +43,7 @@ async fn main() -> Result<(), ()> {
 
     let project_report = match Report::process_project(
         &mut code_rules,
-        &config.project_dir_path,
+        &config.project_dir,
         &cached_project_report,
         &config.git_remote_url_regex,
         None,
@@ -66,7 +66,7 @@ async fn main() -> Result<(), ()> {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
         // get the list of user identities for processing their contributions individually
-        let git_identities = get_local_identities(&config.project_dir_path).await?;
+        let git_identities = get_local_identities(&config.project_dir).await?;
         if git_identities.is_empty() {
             warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
             eprintln!(
@@ -123,7 +123,7 @@ async fn main() -> Result<(), ()> {
             let contributor_report = project_report
                 .process_contributor(
                     &mut code_rules,
-                    &config.project_dir_path,
+                    &config.project_dir,
                     &cached_contributor_report,
                     contributor,
                     project_report.tree_files.as_ref(),

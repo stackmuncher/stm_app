@@ -18,29 +18,38 @@ pub(crate) fn new_config() -> Config {
     // this can be overridden by `--rules` CLI param
     let (code_rules_dir, report_dir, log_level) = if cfg!(debug_assertions) {
         (
-            Config::RULES_FOLDER_NAME_DEBUG.to_owned(),
-            Config::REPORT_FOLDER_NAME_DEBUG.to_owned(),
+            Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
+            Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
         (
-            Config::RULES_FOLDER_NAME_LINUX.to_owned(),
-            Config::REPORT_FOLDER_NAME_LINUX.to_owned(),
+            Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
+            Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::WARN,
         )
+    } else if cfg!(target_os = "windows") {
+        // apps should store their data in the user profile and the exact location is obtained via an env var
+        let local_appdata_dir = std::env::var("LOCALAPPDATA").expect("%LOCALAPPDATA% env variable not found");
+        let local_appdata_dir = Path::new(&local_appdata_dir);
+        (
+            local_appdata_dir.join(Config::RULES_FOLDER_NAME_WIN),
+            local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
+            tracing::Level::INFO,
+        )
     } else {
-        unimplemented!("Only linux target is supported at the moment");
+        unimplemented!("Only Linux and Windows are supported at the moment");
     };
 
-    // project_dir_path code is dodgy and may fail cross-platform with non-ASCII chars
-    let project_dir_path = std::env::current_dir().expect("Cannot access the current directory.");
+    // assume that the project_dir is the current working folder
+    let project_dir = std::env::current_dir().expect("Cannot access the current directory.");
 
     // init the minimal config structure with the default values
     let mut config = Config {
         log_level,
         code_rules_dir,
         report_dir: Some(report_dir),
-        project_dir_path,
+        project_dir,
         user_name: String::new(),
         repo_name: String::new(),
         git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
@@ -52,23 +61,27 @@ pub(crate) fn new_config() -> Config {
         if let Some(arg) = args.next() {
             match arg.to_lowercase().as_str() {
                 "--rules" => {
-                    config.code_rules_dir = args
-                        .peek()
-                        .expect("--rules requires a path to the folder with code rules")
-                        .into()
+                    config.code_rules_dir = Path::new(
+                        args.peek()
+                            .expect("--rules requires a path to the folder with code rules"),
+                    )
+                    .to_path_buf()
                 }
 
                 "--project" => {
-                    config.project_dir_path = args
-                        .peek()
-                        .expect("--project requires a path to the root of the project to be analyzed")
-                        .into()
+                    config.project_dir = Path::new(
+                        args.peek()
+                            .expect("--project requires a path to the root of the project to be analyzed"),
+                    )
+                    .to_path_buf()
                 }
                 "--report" => {
                     config.report_dir = Some(
-                        args.peek()
-                            .expect("--report requires a path to a writable folder where to store the reports")
-                            .into(),
+                        Path::new(
+                            args.peek()
+                                .expect("--report requires a path to a writable folder where to store the reports"),
+                        )
+                        .to_path_buf(),
                     )
                 }
                 "--log" => {
@@ -85,42 +98,17 @@ pub(crate) fn new_config() -> Config {
 
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
-    if config.code_rules_dir.is_empty() {
-        panic!("Path to files with code parsing rules was not specified.");
-    }
-    if !Path::new(&config.code_rules_dir).is_dir() {
+    if !config.code_rules_dir.is_dir() {
         panic!(
             "Invalid path to folder with code parsing rules: {}",
-            config.code_rules_dir
+            config.code_rules_dir.to_string_lossy()
         );
     }
 
     // this tests the presence of the project dir, but it actually needs .git inside it
     // incomplete, may fall over later
-    if !config.project_dir_path.is_dir() {
-        panic!(
-            "Invalid project dir location: {}",
-            config.project_dir_path.to_string_lossy()
-        );
-    }
-
-    // check if the reports dir is ready to receive reports
-    // this is for the root report folder that can hold reports for multiple projects
-    // e.g. /var/tmp/stackmuncher or /home/ubuntu/stackmuncher
-    let report_dir = config
-        .report_dir
-        .as_ref()
-        .expect("Cannot unwrap the report dir. It's a bug.");
-    let report_dir_path = Path::new(report_dir);
-    if !report_dir_path.is_dir() {
-        // is there something with this name that is not a directory?
-        if report_dir_path.exists() {
-            panic!("Invalid report directory: {}", report_dir);
-        }
-        // create it
-        if let Err(e) = std::fs::create_dir_all(report_dir_path) {
-            panic!("Cannot create reports directory at {} due to {}", report_dir, e);
-        };
+    if !config.project_dir.is_dir() {
+        panic!("Invalid project dir location: {}", config.project_dir.to_string_lossy());
     }
 
     // individual project reports are grouped in their own folders - build that path here
@@ -129,14 +117,14 @@ pub(crate) fn new_config() -> Config {
     // out of the absolute project path and its own hash
     // the hash is included in the path for ease of search and matching with the report contents because the report itself does not contain any project or user
     // identifiable info
-    let project_dir_path = &config.project_dir_path;
-    let absolute_project_path = if project_dir_path.is_absolute() {
-        project_dir_path.to_string_lossy().to_string()
+    let project_dir = &config.project_dir;
+    let absolute_project_path = if project_dir.is_absolute() {
+        project_dir.to_string_lossy().to_string()
     } else {
         // join the current working folder with the relative path to the project
         std::env::current_dir()
             .expect("Cannot get the current dir. It's a bug.")
-            .join(project_dir_path)
+            .join(project_dir)
             .to_string_lossy()
             .to_string()
     };
@@ -154,18 +142,25 @@ pub(crate) fn new_config() -> Config {
     let canonical_project_name = trim_canonical_project_name(canonical_project_name);
 
     // append the project report subfolder name to the reports root folder
-    let report_dir_path = report_dir_path.join(canonical_project_name);
-    let report_dir = report_dir_path.to_string_lossy().to_string();
+    let report_dir = config
+        .report_dir
+        .as_ref()
+        .expect("Cannot unwrap the report dir. It's a bug.")
+        .join(canonical_project_name);
 
     // check if the project report folder exists or create it if possible
-    if !report_dir_path.is_dir() {
-        if report_dir_path.exists() {
+    if !report_dir.is_dir() {
+        if report_dir.exists() {
             // the path exists as something else
-            panic!("Invalid report directory: {}", report_dir);
+            panic!("Invalid report directory: {}", report_dir.to_string_lossy());
         }
         // create it
-        if let Err(e) = std::fs::create_dir_all(report_dir_path) {
-            panic!("Cannot create reports directory at {} due to {}", report_dir, e);
+        if let Err(e) = std::fs::create_dir_all(report_dir.clone()) {
+            panic!(
+                "Cannot create reports directory at {} due to {}",
+                report_dir.to_string_lossy(),
+                e
+            );
         };
     }
 
