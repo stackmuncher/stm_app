@@ -40,3 +40,4 @@ aws s3 cp ./ppa/ubuntu/ s3://stm-ppa-7b4g14ydlm/ubuntu/ --recursive
 aws cloudfront create-invalidation --distribution-id E102XVLT2KLJHS --paths "/"
 #aws s3 cp ./ppa/README.md s3://stm-ppa-7b4g14ydlm/
 #aws s3 cp ./ppa/index.txt s3://stm-ppa-7b4g14ydlm/
+aws s3 ls s3://stm-ppa-7b4g14ydlm/ --recursive > toc.txt

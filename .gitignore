@@ -5,3 +5,9 @@ stm-report.json
 trace*.txt
 *report*.json
 *.deb
+*.msix
+*.pfx
+*.exe
+*.cer
+*.pri
+ppa/msix/content/stm_rules
