@@ -17,23 +17,40 @@ pub(crate) fn new_config() -> Config {
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
     let (code_rules_dir, report_dir, log_level) = if cfg!(debug_assertions) {
+        println!("debug");
         (
             Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
+        println!("linux");
         (
             Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::WARN,
         )
     } else if cfg!(target_os = "windows") {
+        println!("windows");
+        // the easiest way to store the rules on Win is next to the executable
+        let exec_dir = match std::env::current_exe() {
+            Err(e) => {
+                panic!("No current dir: {}", e);
+            }
+            Ok(v) => v
+                .parent()
+                .expect(&format!(
+                    "Cannot determine the location of the exe file from: {}",
+                    v.to_string_lossy()
+                ))
+                .to_path_buf(),
+        };
+
         // apps should store their data in the user profile and the exact location is obtained via an env var
         let local_appdata_dir = std::env::var("LOCALAPPDATA").expect("%LOCALAPPDATA% env variable not found");
         let local_appdata_dir = Path::new(&local_appdata_dir);
         (
-            local_appdata_dir.join(Config::RULES_FOLDER_NAME_WIN),
+            exec_dir.join(Config::RULES_FOLDER_NAME_WIN),
             local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
             tracing::Level::INFO,
         )
@@ -96,6 +113,9 @@ pub(crate) fn new_config() -> Config {
         }
     }
 
+    println!("Config rules dir: {}", config.code_rules_dir.to_string_lossy());
+    println!("Config proj dir: {}", config.project_dir.to_string_lossy());
+
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
     if !config.code_rules_dir.is_dir() {
@@ -107,6 +127,9 @@ pub(crate) fn new_config() -> Config {
 
     // this tests the presence of the project dir, but it actually needs .git inside it
     // incomplete, may fall over later
+    if !config.project_dir.exists() {
+        panic!("Project dir location doesn't exist: {}", config.project_dir.to_string_lossy());
+    }
     if !config.project_dir.is_dir() {
         panic!("Invalid project dir location: {}", config.project_dir.to_string_lossy());
     }

@@ -40,8 +40,8 @@ impl Config {
     /// * Linux: Cargo.toml
     pub const RULES_FOLDER_NAME_DEBUG: &'static str = "stm_rules";
     pub const RULES_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/stm_rules";
-    /// This value is to be appended to the value of %LOCALAPPDATA% environment variable
-    pub const RULES_FOLDER_NAME_WIN: &'static str = "stackmuncher\\stm_rules";
+    /// This value is to be appended to the folder of the executable
+    pub const RULES_FOLDER_NAME_WIN: &'static str = "stm_rules";
     /// Location of file-type rules to recognize file types by extension. It is expected to be `stm_rules/file_types/`
     pub const RULES_SUBFOLDER_FILE_TYPES: &'static str = "file_types";
     /// Location of code munching rules for very specific file types, e.g. Cargo.toml, not just any .toml.
