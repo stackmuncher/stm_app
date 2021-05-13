@@ -15,8 +15,8 @@ cargo semver bump patch
 cd ..
 cargo deb -p stackmuncher
 
-# copy all debs into the ppa folder
-cp target/debian/stackmuncher*.deb ppa/ubuntu/
+# copy all debs into the distro folder
+cp target/debian/stackmuncher*.deb distro/ubuntu/
 
 
 
@@ -24,7 +24,7 @@ cp target/debian/stackmuncher*.deb ppa/ubuntu/
 # Entry 'Filename: /stackmuncher_0.1.0_amd64.deb' causes problems with CloudFront.
 # E.g. https://distro.stackmuncher.com/ubuntu/./stackmuncher_0.1.2_amd64.deb  403  Forbidden
 # It has to be cleaned up
-cd ./ppa/ubuntu/
+cd ./distro/ubuntu/
 dpkg-scanpackages --multiversion . > Packages
 sed -i 's+Filename: ./+Filename: +g' Packages
 gzip -k -f Packages
@@ -36,8 +36,8 @@ gpg --default-key "info@stackmuncher.com" --clearsign -o - Release > InRelease
 
 # upload everything to S3 and invalidate the cloudfront cache
 cd ../..
-aws s3 cp ./ppa/ubuntu/ s3://stm-ppa-7b4g14ydlm/ubuntu/ --recursive
+aws s3 cp ./distro/ubuntu/ s3://stm-ppa-7b4g14ydlm/ubuntu/ --recursive
 aws cloudfront create-invalidation --distribution-id E102XVLT2KLJHS --paths "/"
-#aws s3 cp ./ppa/README.md s3://stm-ppa-7b4g14ydlm/
-#aws s3 cp ./ppa/index.txt s3://stm-ppa-7b4g14ydlm/
+#aws s3 cp ./distro/README.md s3://stm-ppa-7b4g14ydlm/
+#aws s3 cp ./distro/index.txt s3://stm-ppa-7b4g14ydlm/
 aws s3 ls s3://stm-ppa-7b4g14ydlm/ --recursive > toc.txt

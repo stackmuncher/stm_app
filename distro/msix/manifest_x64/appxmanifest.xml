@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+  <Identity Name="stackmuncher" Version="1.1.1.103" Publisher="CN=stackmuncher, C=NZ" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>stackmuncher</DisplayName>
+    <PublisherDisplayName>stackmuncher</PublisherDisplayName>
+    <Description>stackmuncher app</Description>
+    <Logo>logo-color-150.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.14316.0" MaxVersionTested="10.0.15063.0" />
+  </Dependencies>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+  <Applications>
+    <Application Id="stackmuncher" Executable="stackmuncher.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="stackmuncher" Description="stackmuncher app" Square150x150Logo="logo-color-150.png" Square44x44Logo="logo-color-44.png" BackgroundColor="#aaaaaa" />
+      <Extensions>
+        <uap3:Extension Category="windows.appExecutionAlias" EntryPoint="Windows.FullTrustApplication" Executable="stackmuncher.exe">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="stackmuncher.exe"/>
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>
+
+

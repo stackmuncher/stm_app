@@ -9,7 +9,7 @@
 set -e
 set -v
 
-cd ./ppa/ubuntu
+cd ./distro/ubuntu
 
 gpg --armor --export "info@stackmuncher.com" > KEY.gpg
 

@@ -10,4 +10,5 @@ trace*.txt
 *.exe
 *.cer
 *.pri
-ppa/msix/content/stm_rules
+*.zip
+distro/msix/manifest_*/stm_rules

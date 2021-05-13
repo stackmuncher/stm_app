@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2" Version="1.0.0.0" Uri="https://distro.stackmuncher.com/msix/stackmuncher_arm64.appinstaller">
+
+    <MainPackage Name="stackmuncher" Publisher="CN=stackmuncher, C=NZ" Version="1.1.1.103" ProcessorArchitecture="arm64" Uri="https://distro.stackmuncher.com/msix/stackmuncher_arm64.msix" />
+
+    <UpdateSettings>
+        <AutomaticBackgroundTask/>
+    </UpdateSettings>
+
+</AppInstaller>
+
+
+
