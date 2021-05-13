@@ -64,8 +64,9 @@ Use *distro\msix\cert_add_self_signed_to_root.ps1* to install it as *root* or cl
 
 #### Related resources
 
-* https://docs.microsoft.com/en-us/uwp/schemas/appxpackage/appx-package-manifest
-* https://docs.microsoft.com/en-us/powershell/module/appx/add-appxpackage?view=windowsserver2019-ps#parameters
-* https://docs.microsoft.com/en-us/uwp/schemas/appinstallerschema/schema-root
-* https://docs.microsoft.com/en-us/windows/msix/package/manual-packaging-root
-* https://techcommunity.microsoft.com/t5/windows-dev-appconsult/handling-application-updates-with-app-installer-and-msix-in/ba-p/355389
+* MSIX package schema: https://docs.microsoft.com/en-us/uwp/schemas/appxpackage/appx-package-manifest
+* MSIX app installer schema: https://docs.microsoft.com/en-us/uwp/schemas/appinstallerschema/schema-root
+* MSIX auto-update: https://docs.microsoft.com/en-us/uwp/schemas/appinstallerschema/element-update-settings
+* More on MSIX auto-update: https://techcommunity.microsoft.com/t5/windows-dev-appconsult/handling-application-updates-with-app-installer-and-msix-in/ba-p/355389
+* MSIX manual packaging https://docs.microsoft.com/en-us/windows/msix/package/manual-packaging-root
+* MSIX install with PS: https://docs.microsoft.com/en-us/powershell/module/appx/add-appxpackage?view=windowsserver2019-ps#parameters
