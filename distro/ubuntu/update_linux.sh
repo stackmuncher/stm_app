@@ -37,7 +37,10 @@ gpg --default-key "info@stackmuncher.com" --clearsign -o - Release > InRelease
 # upload everything to S3 and invalidate the cloudfront cache
 cd ../..
 aws s3 cp ./distro/ubuntu/ s3://stm-ppa-7b4g14ydlm/ubuntu/ --recursive
+
+# index update
+echo "This domain is used to distribute StackMuncher software packages for different platforms. Learn more from https://github.com/stackmuncher/stm/distro." > distro\index.txt
+echo "" >> distro/index.txt
+aws s3 ls s3://stm-ppa-7b4g14ydlm/ --recursive --summarize >> distro/index.txt
+aws s3 cp distro/index.txt s3://stm-ppa-7b4g14ydlm/index.txt
 aws cloudfront create-invalidation --distribution-id E102XVLT2KLJHS --paths "/"
-#aws s3 cp ./distro/README.md s3://stm-ppa-7b4g14ydlm/
-#aws s3 cp ./distro/index.txt s3://stm-ppa-7b4g14ydlm/
-aws s3 ls s3://stm-ppa-7b4g14ydlm/ --recursive > toc.txt

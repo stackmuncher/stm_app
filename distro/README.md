@@ -62,6 +62,30 @@ Dev cert: http://distro.stackmuncher.com/msix/stm_dev.cer <-- FOR DEVELOPMENT ON
 *stm_dev.pfx* is needed to sign a package. *stm_dev.cer* should be installed on the test machine. Both files can be generated with *distro\msix\cert_gen_self_signed.ps1*.
 Use *distro\msix\cert_add_self_signed_to_root.ps1* to install it as *root* or click on the file (Win10 only).
 
+### Build server set up
+
+This is an outline of the manual set up. Most of it can be scripted later.
+
+* Create an instance with AWS Win Base AMI
+* Disable Enhanced Sec config in Server manager
+* Install FireFox https://www.mozilla.org/en-US/firefox/download/thanks/
+* Install VS Build Tools https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  * C++ Build Tools Workload
+  * EN language pack
+  * MSVC NS2019 C++ x64/86 Build Tools
+  * MSVC NS2019 C++ ARM64 Build Tools
+  * MSVC NS2019 C++ ARM64 Spectre Build Tools
+  * Win 10 SDK
+  * VS SDK Build Tools Core
+  * whatever else is selected by default for this workload
+* Install Rust https://www.rust-lang.org/tools/install?platform_override=win
+* Install Git https://git-scm.com/download/win
+* Install AWS CLI https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-windows.html#cliv2-windows-install
+* Install VSCode https://code.visualstudio.com/download
+* Run `rustup target add aarch64-pc-windows-msvc`
+* Make sure `cl.exe` is included in PATH, e.g. `C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.28.29910\bin\Hostx64\x64\`
+
+
 #### Related resources
 
 * MSIX package schema: https://docs.microsoft.com/en-us/uwp/schemas/appxpackage/appx-package-manifest
