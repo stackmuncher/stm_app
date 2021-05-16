@@ -8,26 +8,6 @@ mod config;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    match std::env::current_dir() {
-        Err(e) => {
-            println!("No current dir: {}", e)
-        }
-        Ok(v) => {
-            println!("Current dir: {}", v.to_string_lossy())
-        }
-    }
-
-    match std::env::current_exe() {
-        Err(e) => {
-            println!("No current exe: {}", e)
-        }
-        Ok(v) => {
-            println!("Current exe: {}", v.to_string_lossy())
-        }
-    }
-
-    println!("Temp dir: {}", std::env::temp_dir().to_string_lossy());
-
     // get input params
     let config = config::new_config();
 
@@ -37,7 +17,13 @@ async fn main() -> Result<(), ()> {
         //.without_time()
         .init();
 
-    info!("StackMuncher started in {}", config.project_dir.to_string_lossy());
+    info!(
+        "StackMuncher started in {} from {}",
+        config.project_dir.to_string_lossy(),
+        std::env::current_exe()
+            .expect("Cannot get path to stackmuncher executable")
+            .to_string_lossy()
+    );
 
     let instant = std::time::Instant::now();
 

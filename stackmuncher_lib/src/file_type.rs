@@ -34,7 +34,11 @@ impl FileType {
         // load the file definition from a json file
         let file_def = match fs::File::open(json_definition_file_path) {
             Err(e) => {
-                panic!("Cannot read config file {} with {}", json_definition_file_path, e);
+                println!(
+                    "CONFIG ERROR. Cannot read file type definitions from  {} with {}",
+                    json_definition_file_path, e
+                );
+                std::process::exit(1);
             }
             Ok(v) => v,
         };

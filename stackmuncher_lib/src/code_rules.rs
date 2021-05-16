@@ -50,11 +50,12 @@ impl CodeRules {
         // get the list of files from the target folder
         let dir = match fs::read_dir(&file_type_dir) {
             Err(e) => {
-                panic!(
-                    "Cannot load file rules from {} with {}. Aborting.",
+                eprintln!(
+                    "CONFIG ERROR. Cannot load file rules from {} with {}.",
                     file_type_dir.to_string_lossy(),
                     e
                 );
+                std::process::exit(1);
             }
             Ok(v) => v,
         };

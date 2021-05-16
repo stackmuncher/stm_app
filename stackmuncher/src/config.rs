@@ -1,6 +1,7 @@
 use regex::Regex;
 use stackmuncher_lib::{config::Config, utils::hash_str_sha1};
 use std::path::Path;
+use std::process::exit;
 
 /// Inits values from ENV vars and the command line arguments
 pub(crate) fn new_config() -> Config {
@@ -17,25 +18,26 @@ pub(crate) fn new_config() -> Config {
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
     let (code_rules_dir, report_dir, log_level) = if cfg!(debug_assertions) {
-        println!("debug");
         (
             Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
-        println!("linux");
         (
             Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::WARN,
         )
     } else if cfg!(target_os = "windows") {
-        println!("windows");
         // the easiest way to store the rules on Win is next to the executable
         let exec_dir = match std::env::current_exe() {
             Err(e) => {
-                panic!("No current dir: {}", e);
+                // in theory, this should never happen
+                panic!(
+                    "No current exe path: {}. This is a bug. The app should at least see the path to its own executable.",
+                    e
+                );
             }
             Ok(v) => v
                 .parent()
@@ -113,25 +115,37 @@ pub(crate) fn new_config() -> Config {
         }
     }
 
-    println!("Config rules dir: {}", config.code_rules_dir.to_string_lossy());
-    println!("Config proj dir: {}", config.project_dir.to_string_lossy());
-
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
-    if !config.code_rules_dir.is_dir() {
-        panic!(
-            "Invalid path to folder with code parsing rules: {}",
+    if !config.code_rules_dir.exists() {
+        eprintln!(
+            "CONFIG ERROR. Cannot access the code parsing rules folder at : {}",
             config.code_rules_dir.to_string_lossy()
         );
+        exit(1);
+    }
+    if !config.code_rules_dir.is_dir() {
+        eprintln!(
+            "CONFIG ERROR. The code parsing rules folder path exists, but it is not a folder: {}",
+            config.code_rules_dir.to_string_lossy()
+        );
+        exit(1);
     }
 
     // this tests the presence of the project dir, but it actually needs .git inside it
     // incomplete, may fall over later
     if !config.project_dir.exists() {
-        panic!("Project dir location doesn't exist: {}", config.project_dir.to_string_lossy());
+        eprintln!(
+            "CONFIG ERROR. Cannot access the project folder at {}",
+            config.project_dir.to_string_lossy()
+        );
+        exit(1);
     }
     if !config.project_dir.is_dir() {
-        panic!("Invalid project dir location: {}", config.project_dir.to_string_lossy());
+        eprintln!(
+            "CONFIG ERROR. This path to project folder exists, but it is not a folder: {}",
+            config.project_dir.to_string_lossy()
+        );
     }
 
     // individual project reports are grouped in their own folders - build that path here
@@ -175,12 +189,15 @@ pub(crate) fn new_config() -> Config {
     if !report_dir.is_dir() {
         if report_dir.exists() {
             // the path exists as something else
-            panic!("Invalid report directory: {}", report_dir.to_string_lossy());
+            eprintln!(
+                "CONFIG ERROR. The path to report directory exists, but it is not a directory: {}",
+                report_dir.to_string_lossy()
+            );
         }
         // create it
         if let Err(e) = std::fs::create_dir_all(report_dir.clone()) {
-            panic!(
-                "Cannot create reports directory at {} due to {}",
+            eprintln!(
+                "CONFIG ERROR. Cannot create reports directory at {} due to {}",
                 report_dir.to_string_lossy(),
                 e
             );
@@ -200,8 +217,14 @@ fn string_to_log_level(s: String) -> tracing::Level {
         "debug" => tracing::Level::DEBUG,
         "error" => tracing::Level::ERROR,
         "warn" => tracing::Level::WARN,
+        "info" => tracing::Level::INFO,
         _ => {
-            panic!("Invalid tracing level. Use trace, debug, warn, error. Default level: info.");
+            // the user specified something, but is it not a valid value
+            // it may still be better off to complete the job with some extended logging, so defaulting to INFO
+            println!(
+                "CONFIG ERROR. Invalid tracing level. Use TRACE, DEBUG, WARN or ERROR(default). Choosing INFO level."
+            );
+            return tracing::Level::INFO;
         }
     }
 }

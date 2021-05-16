@@ -432,8 +432,8 @@ impl Report {
         // try to create the file
         let mut file = match File::create(file_name) {
             Err(e) => {
-                error!("Cannot save in {} due to {}", file_name, e);
-                panic!();
+                eprintln!("Cannot save a report in {} due to {}", file_name, e);
+                std::process::exit(1);
             }
             Ok(f) => {
                 info!("Saving into {}", file_name);
