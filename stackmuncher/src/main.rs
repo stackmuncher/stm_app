@@ -6,6 +6,7 @@ use std::path::Path;
 use tracing::{debug, info, warn};
 
 mod config;
+mod help;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
