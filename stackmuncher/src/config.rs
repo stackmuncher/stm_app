@@ -24,7 +24,7 @@ pub(crate) fn new_config() -> Config {
         (
             Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
-            tracing::Level::WARN,
+            tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
         // the easiest way to store the rules on Win is next to the executable
@@ -51,7 +51,7 @@ pub(crate) fn new_config() -> Config {
         (
             exec_dir.join(Config::RULES_FOLDER_NAME_WIN),
             local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
-            tracing::Level::INFO,
+            tracing::Level::ERROR,
         )
     } else {
         unimplemented!("Only Linux and Windows are supported at the moment");
@@ -87,7 +87,7 @@ pub(crate) fn new_config() -> Config {
                     // incomplete, may fall over later
                     let code_rules_dir = code_rules_dir
                         .absolutize()
-                        .expect("Cannot convert rules dir path to absolute. It's a bug.")
+                        .expect("Cannot convert rules dir path to absolute. Check if it looks valid and try to simplify it.")
                         .to_path_buf();
                     if !code_rules_dir.is_dir() {
                         eprintln!(
@@ -97,15 +97,41 @@ pub(crate) fn new_config() -> Config {
                         emit_code_rules_msg();
                         exit(1);
                     }
+                    // it's a valid path
                     config.code_rules_dir = code_rules_dir;
                 }
 
                 "--project" => {
-                    config.project_dir = Path::new(
+                    let project_dir = Path::new(
                         args.peek()
                             .expect("--project requires a path to the root of the project to be analyzed"),
                     )
-                    .to_path_buf()
+                    .absolutize()
+                    .expect(
+                        "Cannot convert project dir path to absolute. Check if it looks valid and try to simplify it.",
+                    )
+                    .to_path_buf();
+
+                    // this only tests the presence of the project dir, not .git inside it
+                    // incomplete, may fall over later
+                    if !project_dir.exists() {
+                        eprintln!(
+                            "STACKMUNCHER CONFIG ERROR: Cannot access the project folder at {}",
+                            project_dir.to_string_lossy()
+                        );
+                        emit_usage_msg();
+                        exit(1);
+                    }
+                    if !project_dir.is_dir() {
+                        eprintln!(
+                            "STACKMUNCHER CONFIG ERROR: The path to project folder is not a folder: {}",
+                            project_dir.to_string_lossy()
+                        );
+                        emit_usage_msg();
+                        exit(1);
+                    }
+                    // it's a valid path
+                    config.project_dir = project_dir;
                 }
                 "--report" => {
                     config.report_dir = Some(
@@ -127,6 +153,8 @@ pub(crate) fn new_config() -> Config {
             break;
         }
     }
+
+    // -------------- RULES DIRECTORY CHECKS -------------------
 
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
@@ -168,28 +196,18 @@ pub(crate) fn new_config() -> Config {
         std::process::exit(1);
     }
 
-    // this tests the presence of the project dir, but it actually needs .git inside it
-    // incomplete, may fall over later
-    if !config.project_dir.exists() {
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR. Cannot access the project folder at {}",
-            config.project_dir.to_string_lossy()
-        );
-        exit(1);
-    }
-    if !config.project_dir.is_dir() {
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR. This path to project folder exists, but it is not a folder: {}",
-            config.project_dir.to_string_lossy()
-        );
-    }
+    // -------------- PROJECT DIRECTORY CHECKS -------------------
+
+    // the project dir at this point is either a tested param from the CLI or the current dir
+    // a full-trust app is guaranteed access to the current dir
+    // a restricted app would need to test if the dir is actually accessible, but it may fail over even earlier when it tried to get the current dir name
 
     // check if there is .git subfolder in the project dir
     let git_path = config.project_dir.join(".git");
     if !git_path.is_dir() {
         eprintln!(
-            "STACKMUNCHER CONFIG ERROR. No Git repository found in {}",
-            git_path.to_string_lossy()
+            "STACKMUNCHER CONFIG ERROR: No Git repository found in the project folder {}",
+            config.project_dir.to_string_lossy()
         );
         emit_usage_msg();
         exit(1);
