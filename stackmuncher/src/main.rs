@@ -10,7 +10,7 @@ mod config;
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     // get input params
-    let config = config::new_config();
+    let config = config::new_config().await;
 
     tracing_subscriber::fmt()
         .with_max_level(config.log_level.clone())

@@ -126,6 +126,17 @@ pub async fn execute_git_command(
     Ok(git_output.stdout)
 }
 
+/// Returns the current git version installed on the machine
+pub async fn check_git_version(dir: &Path) -> Result<String, ()> {
+    let version = execute_git_command(vec!["--version".into()], dir, false).await?;
+    let version = String::from_utf8_lossy(&version).to_string();
+
+    // this is likely to go nowhere if the function is called before the logging was initialized
+    info!("{}", version);
+
+    Ok(version)
+}
+
 /// Populates blob's sha1 property at the point of the given commit.
 /// Only one `git ls-tree` call is used to get the data.
 /// * `blobs` param: Must be a ListOfBlobs with commit details populated per file. This function only adds the blob SHA1.

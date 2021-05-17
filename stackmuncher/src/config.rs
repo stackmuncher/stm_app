@@ -1,6 +1,6 @@
 use path_absolutize::{self, Absolutize};
 use regex::Regex;
-use stackmuncher_lib::{config::Config, utils::hash_str_sha1};
+use stackmuncher_lib::{config::Config, git::check_git_version, utils::hash_str_sha1};
 use std::path::Path;
 use std::process::exit;
 
@@ -10,7 +10,7 @@ pub(crate) const CMD_ARGS: &'static str = "Optional CLI params: [--rules path_to
 [--log error|warn|info|debug|trace] defaults to `error`.";
 
 /// Inits values from ENV vars and the command line arguments
-pub(crate) fn new_config() -> Config {
+pub(crate) async fn new_config() -> Config {
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
@@ -212,6 +212,17 @@ pub(crate) fn new_config() -> Config {
         emit_usage_msg();
         exit(1);
     }
+
+    // check if GIT is installed
+    // this check will change to using the git supplied as part of STM package
+    if let Err(_e) = check_git_version(&config.project_dir).await {
+        eprintln!(
+            "STACKMUNCHER CONFIG ERROR: Cannot launch Git from {} folder. Is it installed on this machine?",
+            config.project_dir.to_string_lossy()
+        );
+        emit_usage_msg();
+        exit(1);
+    };
 
     // individual project reports are grouped in their own folders - build that path here
     // this can be relative or absolute, which should be converted into absolute in a canonical form as a single folder name
