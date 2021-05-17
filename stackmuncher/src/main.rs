@@ -80,6 +80,10 @@ async fn main() -> Result<(), ()> {
         None => {
             // there were no changes since the previous report - it can be reused as-is
             info!("Done in {}ms", instant.elapsed().as_millis());
+            // do not print the end user msg if the logging is enabled
+            if config.log_level == tracing::Level::ERROR {
+                println!("StackMuncher: no new commits since the last report.");
+            }
             return Ok(());
         }
         Some(v) => v,
@@ -191,5 +195,9 @@ async fn main() -> Result<(), ()> {
         }
     }
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
+    // do not print the end user msg if the logging is enabled
+    if config.log_level == tracing::Level::ERROR {
+        println!("StackMuncher: reports saved in {}", report_dir.to_string_lossy());
+    }
     Ok(())
 }
