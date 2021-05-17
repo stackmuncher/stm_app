@@ -1,6 +1,7 @@
 use super::file_type::FileType;
 use super::muncher::Muncher;
 use crate::config::Config;
+use path_absolutize::{self, Absolutize};
 use regex::Regex;
 use std::{
     collections::{BTreeMap, HashSet},
@@ -50,12 +51,16 @@ impl CodeRules {
         // get the list of files from the target folder
         let dir = match fs::read_dir(&file_type_dir) {
             Err(e) => {
-                eprintln!(
-                    "CONFIG ERROR. Cannot load file rules from {} with {}.",
+                let file_type_dir = file_type_dir
+                    .absolutize()
+                    .expect("Cannot convert rules / file_types dir path to absolute. It's a bug.")
+                    .to_path_buf();
+
+                panic!(
+                    "Cannot load file type rules from {} due to {}",
                     file_type_dir.to_string_lossy(),
                     e
                 );
-                std::process::exit(1);
             }
             Ok(v) => v,
         };

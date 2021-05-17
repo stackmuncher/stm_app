@@ -3,13 +3,14 @@ use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
 use chrono;
+use path_absolutize::{self, Absolutize};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -367,11 +368,14 @@ impl Report {
     }
 
     /// Load a report from the local storage, if one exists. Returns None and logs errors on failure.
-    pub fn from_disk(path: &String) -> Option<Self> {
+    pub fn from_disk(path: &PathBuf) -> Option<Self> {
         // check if the file exists at all
         let existing_report_file = Path::new(path);
         if !existing_report_file.exists() {
-            info!("No report found at {}. The repo will be processed in full.", path,);
+            info!(
+                "No report found at {}. The repo will be processed in full.",
+                path.to_string_lossy()
+            );
 
             return None;
         }
@@ -379,25 +383,33 @@ impl Report {
         // try to load the file and read its contents
         let mut existing_report_file = match File::open(path) {
             Err(e) => {
-                error!("Cannot read report at {} due to {}.", path, e);
+                error!("Cannot read report at {} due to {}.", path.to_string_lossy(), e);
                 return None;
             }
             Ok(v) => v,
         };
         let mut report_contents = String::new();
         if let Err(e) = existing_report_file.read_to_string(&mut report_contents) {
-            error!("Failed to read report contents from {} due to {}", path, e);
+            error!(
+                "Failed to read report contents from {} due to {}",
+                path.to_string_lossy(),
+                e
+            );
             return None;
         };
 
         // convert to a struct and return
         match serde_json::from_str::<Report>(&report_contents) {
             Err(e) => {
-                error!("Failed to deser report contents from {} due to {}", path, e);
+                error!(
+                    "Failed to deser report contents from {} due to {}",
+                    path.to_string_lossy(),
+                    e
+                );
                 return None;
             }
             Ok(v) => {
-                info!("Loaded a report from {}", path);
+                info!("Loaded a report from {}", path.to_string_lossy());
                 return Some(v);
             }
         }
@@ -428,15 +440,19 @@ impl Report {
     }
 
     /// First it tries to save into the specified location. If that failed it saves into the local folder.
-    pub fn save_as_local_file(&self, file_name: &String) {
+    pub fn save_as_local_file(&self, file_name: &PathBuf) {
         // try to create the file
         let mut file = match File::create(file_name) {
             Err(e) => {
-                eprintln!("Cannot save a report in {} due to {}", file_name, e);
+                let file_name = file_name
+                    .absolutize()
+                    .expect("Cannot convert rules / file_type dir path to absolute. It's a bug.")
+                    .to_path_buf();
+                eprintln!("Cannot save a report in {} due to {}", file_name.to_string_lossy(), e);
                 std::process::exit(1);
             }
             Ok(f) => {
-                info!("Saving into {}", file_name);
+                info!("Saving into {}", file_name.to_string_lossy());
                 f
             }
         };

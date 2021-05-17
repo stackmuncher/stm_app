@@ -1,19 +1,16 @@
+use path_absolutize::{self, Absolutize};
 use regex::Regex;
 use stackmuncher_lib::{config::Config, utils::hash_str_sha1};
 use std::path::Path;
 use std::process::exit;
 
+pub(crate) const CMD_ARGS: &'static str = "Optional CLI params: [--rules path_to_folder_with_alternative_code_rules], \
+[--project path_to_project_to_be_analyzed] defaults to the current directory, \
+[--report path_to_reports_folder] defaults to a platform specific location, \
+[--log error|warn|info|debug|trace] defaults to `error`.";
+
 /// Inits values from ENV vars and the command line arguments
 pub(crate) fn new_config() -> Config {
-    const CMD_ARGS: &'static str =
-        "Optional CLI params: [--rules code_rules_dir] defaults to a platform-specific location, \
-    [--project project_path] defaults to the current dir, \
-    [--report report_dir_path] defaults to a platform specific location, \
-    [--log log_level] defaults to warn.";
-
-    // Output it every time for now. Review and remove later when it's better documented.
-    println!("{}", CMD_ARGS);
-
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
@@ -80,11 +77,27 @@ pub(crate) fn new_config() -> Config {
         if let Some(arg) = args.next() {
             match arg.to_lowercase().as_str() {
                 "--rules" => {
-                    config.code_rules_dir = Path::new(
+                    let code_rules_dir = Path::new(
                         args.peek()
-                            .expect("--rules requires a path to the folder with code rules"),
+                            .expect("`--rules` requires a path to the folder with code rules"),
                     )
-                    .to_path_buf()
+                    .to_path_buf();
+
+                    // this checks if the rules dir is present, but not its contents
+                    // incomplete, may fall over later
+                    let code_rules_dir = code_rules_dir
+                        .absolutize()
+                        .expect("Cannot convert rules dir path to absolute. It's a bug.")
+                        .to_path_buf();
+                    if !code_rules_dir.is_dir() {
+                        eprintln!(
+                            "STACKMUNCHER CONFIG ERROR: Invalid code rules folder `{}`.",
+                            code_rules_dir.to_string_lossy()
+                        );
+                        emit_code_rules_msg();
+                        exit(1);
+                    }
+                    config.code_rules_dir = code_rules_dir;
                 }
 
                 "--project" => {
@@ -118,34 +131,68 @@ pub(crate) fn new_config() -> Config {
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
     if !config.code_rules_dir.exists() {
-        eprintln!(
-            "CONFIG ERROR. Cannot access the code parsing rules folder at : {}",
-            config.code_rules_dir.to_string_lossy()
-        );
+        eprintln!("STACKMUNCHER CONFIG ERROR: Cannot find StackMuncher code parsing rules.");
+        emit_code_rules_msg();
         exit(1);
     }
-    if !config.code_rules_dir.is_dir() {
+
+    // check if the sub-folders of stm_rules are present
+    let file_type_dir = config.code_rules_dir.join(Config::RULES_SUBFOLDER_FILE_TYPES);
+    if !file_type_dir.exists() {
+        let file_type_dir = file_type_dir
+            .absolutize()
+            .expect("Cannot convert rules / file_types dir path to absolute. It's a bug.")
+            .to_path_buf();
+
         eprintln!(
-            "CONFIG ERROR. The code parsing rules folder path exists, but it is not a folder: {}",
-            config.code_rules_dir.to_string_lossy()
+            "STACKMUNCHER CONFIG ERROR: Cannot find file type rules folder {}",
+            file_type_dir.to_string_lossy()
         );
-        exit(1);
+        emit_code_rules_msg();
+        std::process::exit(1);
+    }
+
+    // check if the munchers sub-folder is present
+    let muncher_dir = config.code_rules_dir.join(Config::RULES_SUBFOLDER_MUNCHERS);
+    if !muncher_dir.exists() {
+        let muncher_dir = muncher_dir
+            .absolutize()
+            .expect("Cannot convert rules / munchers dir path to absolute. It's a bug.")
+            .to_path_buf();
+
+        eprintln!(
+            "STACKMUNCHER CONFIG ERROR: Cannot find rules directory for munchers in {}",
+            muncher_dir.to_string_lossy()
+        );
+        emit_code_rules_msg();
+        std::process::exit(1);
     }
 
     // this tests the presence of the project dir, but it actually needs .git inside it
     // incomplete, may fall over later
     if !config.project_dir.exists() {
         eprintln!(
-            "CONFIG ERROR. Cannot access the project folder at {}",
+            "STACKMUNCHER CONFIG ERROR. Cannot access the project folder at {}",
             config.project_dir.to_string_lossy()
         );
         exit(1);
     }
     if !config.project_dir.is_dir() {
         eprintln!(
-            "CONFIG ERROR. This path to project folder exists, but it is not a folder: {}",
+            "STACKMUNCHER CONFIG ERROR. This path to project folder exists, but it is not a folder: {}",
             config.project_dir.to_string_lossy()
         );
+    }
+
+    // check if there is .git subfolder in the project dir
+    let git_path = config.project_dir.join(".git");
+    if !git_path.is_dir() {
+        eprintln!(
+            "STACKMUNCHER CONFIG ERROR. No Git repository found in {}",
+            git_path.to_string_lossy()
+        );
+        emit_usage_msg();
+        exit(1);
     }
 
     // individual project reports are grouped in their own folders - build that path here
@@ -190,18 +237,19 @@ pub(crate) fn new_config() -> Config {
         if report_dir.exists() {
             // the path exists as something else
             eprintln!(
-                "CONFIG ERROR. The path to report directory exists, but it is not a directory: {}",
+                "STACKMUNCHER CONFIG ERROR. The path to report directory exists, but it is not a directory: {}",
                 report_dir.to_string_lossy()
             );
         }
         // create it
         if let Err(e) = std::fs::create_dir_all(report_dir.clone()) {
             eprintln!(
-                "CONFIG ERROR. Cannot create reports directory at {} due to {}",
+                "STACKMUNCHER CONFIG ERROR. Cannot create reports directory at {} due to {}",
                 report_dir.to_string_lossy(),
                 e
             );
         };
+        println!("StackMuncher reports folder: {}", report_dir.to_string_lossy());
     }
 
     // save the project report path in config as String
@@ -221,9 +269,7 @@ fn string_to_log_level(s: String) -> tracing::Level {
         _ => {
             // the user specified something, but is it not a valid value
             // it may still be better off to complete the job with some extended logging, so defaulting to INFO
-            println!(
-                "CONFIG ERROR. Invalid tracing level. Use TRACE, DEBUG, WARN or ERROR(default). Choosing INFO level."
-            );
+            println!("STACKMUNCHER CONFIG ERROR. Invalid tracing level. Use TRACE, DEBUG, WARN or ERROR. Choosing INFO level.");
             return tracing::Level::INFO;
         }
     }
@@ -253,4 +299,42 @@ fn trim_canonical_project_name(name: String) -> String {
     }
 
     name
+}
+
+/// Prints out a standard multi-line message on how to use the app and where to find more info
+pub(crate) fn emit_usage_msg() {
+    println!("Launch StackMuncher app from the root folder of your project with a Git repository in .git subfolder.");
+    println!("The app will analyze the Git repo and produce a report.");
+    println!("");
+    println!("{}", CMD_ARGS);
+    println!("");
+    emit_support_msg();
+}
+
+/// Prints out a standard multi-line message on where to find more info
+pub(crate) fn emit_support_msg() {
+    println!("Source code and usage instructions: https://github.com/stackmuncher/stm");
+    println!("Bug reports and questions: https://github.com/stackmuncher/stm/issues or mailto:info@stackmuncher.com");
+}
+
+/// Prints out info on where the rules are expected
+pub(crate) fn emit_code_rules_msg() {
+    println!("");
+    if cfg!(debug_assertions) {
+        println!("The default location for StackMuncher code rules in DEBUGGING MODE is `{}` sub-folder of the current working directory.", Config::RULES_FOLDER_NAME_DEBUG);
+    } else if cfg!(target_os = "linux") {
+        println!(
+            "The default location for StackMuncher code rules on Linux is `{}` folder.",
+            Config::RULES_FOLDER_NAME_LINUX
+        );
+    } else if cfg!(target_os = "windows") {
+        println!(
+            "The default location for StackMuncher code rules on Windows is `{}` folder placed next stackmuncher.exe.",
+            Config::RULES_FOLDER_NAME_WIN
+        );
+    }
+    println!("To specify a different location use `--rules` param followed by a relative or absolute path to the rules folder.");
+    println!("The latest copy of the rules can be downloaded from https://github.com/stackmuncher/stm repo or https://distro.stackmuncher.com/stm_rules.zip");
+    println!("");
+    emit_support_msg();
 }

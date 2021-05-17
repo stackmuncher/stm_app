@@ -1,3 +1,4 @@
+use path_absolutize::{self, Absolutize};
 use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
@@ -21,9 +22,32 @@ async fn main() -> Result<(), ()> {
         "StackMuncher started in {} from {}",
         config.project_dir.to_string_lossy(),
         std::env::current_exe()
-            .expect("Cannot get path to stackmuncher executable")
+            .expect("Cannot get path to stackmuncher executable. It's a bug.")
             .to_string_lossy()
     );
+
+    info!(
+        "Report folder: {}",
+        config
+            .report_dir
+            .as_ref()
+            .expect("Cannot unwrap config.report_dir. It's a bug.")
+            .absolutize()
+            .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
+            .to_string_lossy()
+    );
+
+    info!(
+        "Code rules folder: {}",
+        config
+            .code_rules_dir
+            .absolutize()
+            .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
+            .to_string_lossy()
+    );
+
+    #[cfg(debug_assertions)]
+    info!("Running in debug mode");
 
     let instant = std::time::Instant::now();
 
@@ -35,16 +59,13 @@ async fn main() -> Result<(), ()> {
         config
             .report_dir
             .as_ref()
-            .expect("Cannot unwrap config.report_dir. it's a bug."),
+            .expect("Cannot unwrap config.report_dir. It's a bug."),
     );
     warn!("Reports folder: {}", report_dir.to_string_lossy());
 
     // load a previously generated report if it exists
-    let project_report_filename = report_dir
-        .join([Config::PROJECT_REPORT_FILE_NAME, Config::REPORT_FILE_EXTENSION].concat())
-        .as_os_str()
-        .to_string_lossy()
-        .to_string();
+    let project_report_filename =
+        report_dir.join([Config::PROJECT_REPORT_FILE_NAME, Config::REPORT_FILE_EXTENSION].concat());
     let cached_project_report = Report::from_disk(&project_report_filename);
 
     let project_report = match Report::process_project(
@@ -95,18 +116,14 @@ async fn main() -> Result<(), ()> {
             let contributor_instant = std::time::Instant::now();
             // load the previous contributor report, if any
             let contributor_hash = hash_str_sha1(contributor.git_id.as_str());
-            let contributor_report_filename = report_dir
-                .join(
-                    [
-                        Config::CONTRIBUTOR_REPORT_FILE_NAME,
-                        contributor_hash.as_str(),
-                        Config::REPORT_FILE_EXTENSION,
-                    ]
-                    .concat(),
-                )
-                .as_os_str()
-                .to_string_lossy()
-                .to_string();
+            let contributor_report_filename = report_dir.join(
+                [
+                    Config::CONTRIBUTOR_REPORT_FILE_NAME,
+                    contributor_hash.as_str(),
+                    Config::REPORT_FILE_EXTENSION,
+                ]
+                .concat(),
+            );
 
             let cached_contributor_report = Report::from_disk(&contributor_report_filename);
 
@@ -163,17 +180,13 @@ async fn main() -> Result<(), ()> {
 
             // save the combined report
             combined_report.save_as_local_file(
-                &report_dir
-                    .join(
-                        [
-                            Config::COMBINED_CONTRIBUTOR_REPORT_FILE_NAME,
-                            Config::REPORT_FILE_EXTENSION,
-                        ]
-                        .concat(),
-                    )
-                    .as_os_str()
-                    .to_string_lossy()
-                    .to_string(),
+                &report_dir.join(
+                    [
+                        Config::COMBINED_CONTRIBUTOR_REPORT_FILE_NAME,
+                        Config::REPORT_FILE_EXTENSION,
+                    ]
+                    .concat(),
+                ),
             );
         }
     }
