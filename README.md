@@ -13,10 +13,10 @@ The code analysis is un-opinionated. It does not impose any rules, passes a judg
 
 ## Installation
 
-StackMuncher is a single executable file written in Rust. Its only external dependency is `git` that must be installed on the same machine and configuration files in JSON format.
+StackMuncher is a single executable file written in Rust. Its only external dependencies are `git` and JSON files with stack analysis templates.
 
 Run StackMuncher client app from the root of your project with a child `.git` folder.
-The app will access the contents of the repository, not the working folder. The reports are saved in `.git/stm-reports` folder.
+The app will access the contents of the repository and save its stack analysis reports in temporary folder.
 
 ## Ubuntu
 
@@ -34,7 +34,19 @@ sudo apt-key del AC98A3AC
 sudo rm /etc/apt/sources.list.d/stackmuncher.list
 ```
 
-### Post-commit Git hook
+## Windows
+
+Download and run the installer from https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller or use this PowerShell command:
+
+```powershell
+Add-AppxPackage "https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller" -AppInstallerFile
+```
+
+To uninstall everything run this PowerShell command: `Get-AppxPackage |  Where-Object { $_.Name -like "*stackmuncher*" } | Remove-AppxPackage`
+
+See [distro](distro) section for more detailed installation instructions and troubleshooting.
+
+### Keep stack reports up to date
 
 The best way to run StackMuncher client app is via a global [post-commit](https://git-scm.com/docs/githooks#_post_commit) Git hook to update your stack reports automatically every time you make a new commit.
 
