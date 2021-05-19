@@ -7,6 +7,8 @@ use tracing::{debug, info, warn};
 
 mod config;
 mod help;
+mod signing;
+mod submission;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -90,8 +92,8 @@ async fn main() -> Result<(), ()> {
         Some(v) => v,
     };
 
-    project_report.save_as_local_file(&project_report_filename);
-    info!("Project report done in {}ms", instant.elapsed().as_millis());
+    let _ = project_report.save_as_local_file(&project_report_filename);
+    info!("Project stack analyzed in {}ms", instant.elapsed().as_millis());
 
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
@@ -158,13 +160,15 @@ async fn main() -> Result<(), ()> {
                 )
                 .await?;
 
-            contributor_report.save_as_local_file(&contributor_report_filename);
+            let submission_payload = contributor_report.save_as_local_file(&contributor_report_filename);
 
             info!(
-                "Contributor report for {} done in {}ms",
+                "Contributor stack for {} analyzed in {}ms",
                 contributor.git_id,
                 contributor_instant.elapsed().as_millis()
             );
+
+            submission::submit_report(&contributor.git_id, submission_payload, &config).await;
 
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));

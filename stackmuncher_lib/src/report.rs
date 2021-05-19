@@ -439,25 +439,40 @@ impl Report {
         }
     }
 
-    /// First it tries to save into the specified location. If that failed it saves into the local folder.
-    pub fn save_as_local_file(&self, file_name: &PathBuf) {
-        // try to create the file
-        let mut file = match File::create(file_name) {
+    /// Serializes the report and saves it in the specified location. Panics if either ser or save fail.
+    /// Returns the contents of the file it saved for submission to STM
+    pub fn save_as_local_file(&self, file_name: &PathBuf) -> Vec<u8> {
+        let absolute_file_name = file_name
+            .absolutize()
+            .expect("Cannot convert rules / file_type dir path to absolute. It's a bug.")
+            .to_path_buf();
+
+        // serialize the report into bytes
+        let payload = match serde_json::to_vec(&self) {
             Err(e) => {
-                let file_name = file_name
-                    .absolutize()
-                    .expect("Cannot convert rules / file_type dir path to absolute. It's a bug.")
-                    .to_path_buf();
-                eprintln!("Cannot save a report in {} due to {}", file_name.to_string_lossy(), e);
+                eprintln!(
+                    "Cannot save a report in {} due to {}",
+                    absolute_file_name.to_string_lossy(),
+                    e
+                );
                 std::process::exit(1);
             }
-            Ok(f) => {
-                info!("Saving into {}", file_name.to_string_lossy());
-                f
-            }
+            Ok(v) => v,
         };
 
-        write!(file, "{}", self).expect("Failed to save in the specified location. ");
+        // save into a file
+        if let Err(e) = std::fs::write(file_name, payload.clone()) {
+            eprintln!(
+                "Cannot save a report in {} due to {}",
+                absolute_file_name.to_string_lossy(),
+                e
+            );
+            std::process::exit(1);
+        };
+
+        info!("Report saved into {}", absolute_file_name.to_string_lossy());
+
+        payload
     }
 
     /// Adds details about the commit history to the report: head, init, contributors, collaborators, log hash, and remote URLs.
