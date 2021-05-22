@@ -27,7 +27,7 @@ impl ReportSignature {
     /// Retrieves an existing key from the storage or generates a new one, then signs the payload and returns the signature details.
     /// Keys are stored in *reports/.keys/* folder with the norm hash as the file name. There should be only one key per email.
     /// If no keys are present they are generated and saved on disk.
-    pub(crate) fn sign(email: &String, payload: &[u8], config: &Config) -> Self {
+    pub(crate) fn sign(email: &String, report_as_bytes: &[u8], config: &Config) -> Self {
         // normalize the email
         let normalized_email = email.to_lowercase().trim().to_string();
         // the hash looks like 3xMKTSi8KZiJGG7vqGSaFS7hC9B2EAMDHv7Yp3CSr5LQ
@@ -40,10 +40,21 @@ impl ReportSignature {
         // get a new or previously generated and stored locally key-pair
         let key_pair = get_key_pair(&normalized_email_hash, &config);
         // the public key is extracted from the key-pair (zero cost op)
-        let public_key = bs58::encode(key_pair.public_key()).into_string();
-        // sign and encode as base58
-        let signature = bs58::encode(key_pair.sign(payload).as_ref()).into_string();
+        let public_key = key_pair.public_key();
 
+        // combine email, key and report_bytes into a single payload
+        // the order must match the order at the receiving end:
+        // * headers sorted alphabetically
+        // * report bytes come last
+        let mut payload = Vec::from(normalized_email.clone());
+        payload.extend_from_slice(public_key.as_ref());
+        payload.append(&mut Vec::from(report_as_bytes));
+
+        // sign and encode as base58
+        let signature = bs58::encode(key_pair.sign(&payload).as_ref()).into_string();
+
+        // we need the public key in a string format for sending it in a header
+        let public_key = bs58::encode(public_key).into_string();
         info!("Pub: {}, Sig: {}", public_key, signature);
 
         Self {

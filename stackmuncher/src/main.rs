@@ -160,7 +160,7 @@ async fn main() -> Result<(), ()> {
                 )
                 .await?;
 
-            let submission_payload = contributor_report.save_as_local_file(&contributor_report_filename);
+            let report_as_bytes = contributor_report.save_as_local_file(&contributor_report_filename);
 
             info!(
                 "Contributor stack for {} analyzed in {}ms",
@@ -168,7 +168,7 @@ async fn main() -> Result<(), ()> {
                 contributor_instant.elapsed().as_millis()
             );
 
-            submission::submit_report(&contributor.git_id, submission_payload, &config).await;
+            submission::submit_report(&contributor.git_id, report_as_bytes, &config).await;
 
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));

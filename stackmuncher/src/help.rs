@@ -58,3 +58,12 @@ pub(crate) fn emit_report_dir_msg() {
     println!("");
     emit_support_msg();
 }
+
+/// Prints out either Win or nix/Mac msg with --log info instructions on getting more info
+pub(crate) fn emit_detailed_output_msg() {
+    if cfg!(target_os = "windows") {
+        eprintln!("To see detailed output run `stackmuncher.exe --log info` from the project root directory (where .git folder is).");
+    } else {
+        eprintln!("To see detailed output run `stackmuncher --log info` from the project root directory (where .git folder is).");
+    }
+}
