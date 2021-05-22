@@ -6,7 +6,6 @@ use stackmuncher_lib::config::Config;
 use tracing::{debug, info, warn};
 
 const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
-const HEADER_USER_ID: &str = "stackmuncher_id";
 const HEADER_USER_PUB_KEY: &str = "stackmuncher_key";
 const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
@@ -27,7 +26,6 @@ pub(crate) async fn submit_report(email: &String, report_as_bytes: Vec<u8>, conf
     let req = Request::builder()
         .method("POST")
         .uri(STM_REPORT_SUBMISSION_URL)
-        .header(HEADER_USER_ID, report_sig.normalized_email)
         .header(HEADER_USER_PUB_KEY, report_sig.public_key.clone())
         .header(HEADER_USER_SIGNATURE, report_sig.signature.clone())
         .body(hyper::Body::from(report_as_bytes))

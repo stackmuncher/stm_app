@@ -42,16 +42,8 @@ impl ReportSignature {
         // the public key is extracted from the key-pair (zero cost op)
         let public_key = key_pair.public_key();
 
-        // combine email, key and report_bytes into a single payload
-        // the order must match the order at the receiving end:
-        // * headers sorted alphabetically
-        // * report bytes come last
-        let mut payload = Vec::from(normalized_email.clone());
-        payload.extend_from_slice(public_key.as_ref());
-        payload.append(&mut Vec::from(report_as_bytes));
-
         // sign and encode as base58
-        let signature = bs58::encode(key_pair.sign(&payload).as_ref()).into_string();
+        let signature = bs58::encode(key_pair.sign(report_as_bytes).as_ref()).into_string();
 
         // we need the public key in a string format for sending it in a header
         let public_key = bs58::encode(public_key).into_string();
