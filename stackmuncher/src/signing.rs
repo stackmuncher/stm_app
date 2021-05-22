@@ -6,7 +6,7 @@ use ring::{
 use stackmuncher_lib::config::Config;
 use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
 use std::{path::PathBuf, process::exit};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// The core sruct for storing the user pub key and signing payloads.
 pub(crate) struct ReportSignature {
@@ -55,7 +55,7 @@ impl ReportSignature {
 
         // we need the public key in a string format for sending it in a header
         let public_key = bs58::encode(public_key).into_string();
-        info!("Pub: {}, Sig: {}", public_key, signature);
+        debug!("Pub: {}, Sig: {}", public_key, signature);
 
         Self {
             normalized_email,
@@ -78,7 +78,7 @@ fn get_key_pair(normalized_email_hash: &String, config: &Config) -> Ed25519KeyPa
             generate_and_save_new_pkcs8(&key_file_path)
         }
         Ok(v) => {
-            info!("Key read from: {}", key_file_path.to_string_lossy());
+            debug!("Key read from: {}", key_file_path.to_string_lossy());
             v
         }
     };

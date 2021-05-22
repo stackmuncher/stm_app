@@ -51,7 +51,7 @@ pub(crate) async fn submit_report(email: &String, report_as_bytes: Vec<u8>, conf
     };
 
     let status = res.status();
-    info!("STM response arrived. Status: {}", status);
+    info!("stm_inbox response arrived. Status: {}", status);
 
     // Concatenate the body stream into a single buffer...
     let buf = match hyper::body::to_bytes(res).await {
@@ -72,7 +72,7 @@ pub(crate) async fn submit_report(email: &String, report_as_bytes: Vec<u8>, conf
 
     // a 200 OK body can be empty if everything is OK
     if status.as_u16() == 200 && buf.is_empty() {
-        info!("Empty response body, 200 OK");
+        debug!("Empty response body, 200 OK");
         return;
     }
 
@@ -92,7 +92,7 @@ fn log_http_body(body_bytes: &hyper::body::Bytes) {
         warn!("StackMuncher server response: {}", s);
         eprintln!("{}", s);
     } else {
-        info!(
+        warn!(
             "StackMuncher server response is too long to log: {}B. Something's broken at their end.",
             body_bytes.len()
         );

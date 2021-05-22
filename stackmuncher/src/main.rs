@@ -1,4 +1,5 @@
 use path_absolutize::{self, Absolutize};
+use serde_json;
 use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
@@ -87,13 +88,14 @@ async fn main() -> Result<(), ()> {
             if config.log_level == tracing::Level::ERROR {
                 println!("StackMuncher: no new commits since the last report.");
             }
-            return Ok(());
+            cached_project_report.expect("Cannot unwrap cached report. It's a bug.")
         }
-        Some(v) => v,
+        Some(v) => {
+            let _ = v.save_as_local_file(&project_report_filename);
+            info!("Project stack analyzed in {}ms", instant.elapsed().as_millis());
+            v
+        }
     };
-
-    let _ = project_report.save_as_local_file(&project_report_filename);
-    info!("Project stack analyzed in {}ms", instant.elapsed().as_millis());
 
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
@@ -141,6 +143,21 @@ async fn main() -> Result<(), ()> {
                         "Used cached report for contributor {} / single commit",
                         contributor.git_id
                     );
+
+                    // serialize the report into bytes
+                    let report_as_bytes = match serde_json::to_vec(&cached_contributor_report) {
+                        Err(e) => {
+                            eprintln!(
+                                "Faulty report file {} due to {}",
+                                contributor_report_filename.to_string_lossy(),
+                                e
+                            );
+                            continue;
+                        }
+                        Ok(v) => v,
+                    };
+
+                    submission::submit_report(&contributor.git_id, report_as_bytes, &config).await;
                     contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
                 }
