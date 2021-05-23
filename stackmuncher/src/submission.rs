@@ -5,7 +5,8 @@ use hyper_rustls::HttpsConnector;
 use stackmuncher_lib::config::Config;
 use tracing::{debug, info, warn};
 
-const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
+//const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
+const STM_REPORT_SUBMISSION_URL: &str = "https://inbox.stackmuncher.com";
 const HEADER_USER_PUB_KEY: &str = "stackmuncher_key";
 const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
