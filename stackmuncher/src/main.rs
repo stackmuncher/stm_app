@@ -1,3 +1,4 @@
+use futures::stream::{FuturesUnordered, StreamExt};
 use path_absolutize::{self, Absolutize};
 use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
@@ -110,6 +111,9 @@ async fn main() -> Result<(), ()> {
             return Err(());
         }
 
+        // prepare a container for async submission jobs
+        let mut submission_jobs = FuturesUnordered::new();
+
         // a container for the combined contributor report if there are multiple identities
         // we save all identities (for a single contributor) separate and then combine them into a single report
         let mut contributor_reports: Vec<(Report, String)> = Vec::new();
@@ -143,7 +147,12 @@ async fn main() -> Result<(), ()> {
                         contributor.git_id
                     );
 
-                    submission::submit_report(&contributor.git_id, &cached_contributor_report, &config).await;
+                    // execute multiple submissions concurrently
+                    submission_jobs.push(submission::submit_report(
+                        &contributor.git_id,
+                        cached_contributor_report.clone(),
+                        &config,
+                    ));
                     contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
                 }
@@ -171,7 +180,12 @@ async fn main() -> Result<(), ()> {
                 contributor_instant.elapsed().as_millis()
             );
 
-            submission::submit_report(&contributor.git_id, &contributor_report, &config).await;
+            // execute multiple submissions concurrently
+            submission_jobs.push(submission::submit_report(
+                &contributor.git_id,
+                contributor_report.clone(),
+                &config,
+            ));
 
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));
@@ -200,6 +214,18 @@ async fn main() -> Result<(), ()> {
                     .concat(),
                 ),
             );
+        }
+
+        // await all submissions
+        loop {
+            match submission_jobs.next().await {
+                Some(_) => {
+                    continue;
+                }
+                None => {
+                    break;
+                }
+            }
         }
     }
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
