@@ -1,5 +1,4 @@
 use path_absolutize::{self, Absolutize};
-use serde_json;
 use stackmuncher_lib::{
     code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
 };
@@ -144,20 +143,7 @@ async fn main() -> Result<(), ()> {
                         contributor.git_id
                     );
 
-                    // serialize the report into bytes
-                    let report_as_bytes = match serde_json::to_vec(&cached_contributor_report) {
-                        Err(e) => {
-                            eprintln!(
-                                "Faulty report file {} due to {}",
-                                contributor_report_filename.to_string_lossy(),
-                                e
-                            );
-                            continue;
-                        }
-                        Ok(v) => v,
-                    };
-
-                    submission::submit_report(&contributor.git_id, report_as_bytes, &config).await;
+                    submission::submit_report(&contributor.git_id, &cached_contributor_report, &config).await;
                     contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
                 }
@@ -177,7 +163,7 @@ async fn main() -> Result<(), ()> {
                 )
                 .await?;
 
-            let report_as_bytes = contributor_report.save_as_local_file(&contributor_report_filename);
+            contributor_report.save_as_local_file(&contributor_report_filename);
 
             info!(
                 "Contributor stack for {} analyzed in {}ms",
@@ -185,7 +171,7 @@ async fn main() -> Result<(), ()> {
                 contributor_instant.elapsed().as_millis()
             );
 
-            submission::submit_report(&contributor.git_id, report_as_bytes, &config).await;
+            submission::submit_report(&contributor.git_id, &contributor_report, &config).await;
 
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));

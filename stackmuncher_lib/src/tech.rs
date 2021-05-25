@@ -2,8 +2,12 @@ use super::kwc::{KeywordCounter, KeywordCounterSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tracing::{trace, warn, info};
+use tracing::{info, trace, warn};
 
+/// # PRIVACY REMINDER
+/// Any additions to this struct should be considered for clean up before submission to stackmuncher.com
+/// to avoid sending out any info that doesn't need to be sent.
+/// See https://github.com/stackmuncher/stm/issues/12
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
@@ -57,6 +61,10 @@ pub struct Tech {
     /// all user reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pkgs_kw: Option<HashSet<KeywordCounter>>,
+    // PRIVACY REMINDER
+    // Any additions to this struct should be considered for clean up before submission to stackmuncher.com
+    // to avoid sending out any info that doesn't need to be sent.
+    // See https://github.com/stackmuncher/stm/issues/12
 }
 
 impl std::hash::Hash for Tech {

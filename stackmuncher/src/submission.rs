@@ -2,7 +2,8 @@ use crate::help;
 use crate::signing::ReportSignature;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
-use stackmuncher_lib::config::Config;
+use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
+use stackmuncher_lib::{config::Config, report::Report, tech::Tech};
 use tracing::{debug, info, warn};
 
 //const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
@@ -19,9 +20,17 @@ const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
 /// Submits the serialized report to STM or some other web service. Includes signing.
 /// May panic if the signing fails (missing keys, can't access keystore).
-pub(crate) async fn submit_report(email: &String, report_as_bytes: Vec<u8>, config: &Config) {
+pub(crate) async fn submit_report(email: &String, report: &Report, config: &Config) {
+    // remove any sensitive info from the report
+    let report = match pre_submission_cleanup(report.clone()) {
+        Err(_) => {
+            return;
+        }
+        Ok(v) => v,
+    };
+
     // sign the report
-    let report_sig = ReportSignature::sign(email, &report_as_bytes, config);
+    let report_sig = ReportSignature::sign(email, &report, config);
 
     // prepare HTTP request which should go without a hitch unless the report or one of the headers is somehow invalid
     let req = Request::builder()
@@ -29,12 +38,13 @@ pub(crate) async fn submit_report(email: &String, report_as_bytes: Vec<u8>, conf
         .uri(STM_REPORT_SUBMISSION_URL)
         .header(HEADER_USER_PUB_KEY, report_sig.public_key.clone())
         .header(HEADER_USER_SIGNATURE, report_sig.signature.clone())
-        .body(hyper::Body::from(report_as_bytes))
+        .body(hyper::Body::from(report))
         .expect("Invalid report submission payload. It's a bug.");
 
     debug!("Http rq: {:?}", req);
 
     // send out the request
+    info!("Sending request to INBOX");
     let res = match Client::builder()
         .build::<_, hyper::Body>(HttpsConnector::with_native_roots())
         .request(req)
@@ -95,5 +105,40 @@ fn log_http_body(body_bytes: &hyper::body::Bytes) {
             "StackMuncher server response is too long to log: {}B. Something's broken at their end.",
             body_bytes.len()
         );
+    }
+}
+
+/// Removes or replaces any sensitive info from the report for submission to stackmuncher.com.
+/// Returns a sanitized report as bytes ready to be sent out
+pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
+    // this function should be replaced with a macro
+    // see https://github.com/stackmuncher/stm/issues/12
+
+    info!("Report pre-submission cleanup started");
+    // expensive, but probably unavoidable given that the original report will still be used at the point of call
+    let mut report = report.clone();
+
+    // clean up per_file_tech section
+    let per_file_tech = report.per_file_tech.drain().collect::<Vec<Tech>>();
+    for mut x in per_file_tech {
+        x.file_name = Some(hash_str_to_sha256_as_base58(&x.file_name.unwrap_or_default()));
+        x.keywords.clear();
+        x.pkgs.clear();
+        x.pkgs_kw = None;
+        x.refs.clear();
+        x.refs_kw = None;
+        report.per_file_tech.insert(x);
+    }
+
+    // this may be email of someone else
+    report.last_commit_author = None;
+
+    // serialize the report into bytes
+    match serde_json::to_vec(&report) {
+        Err(e) => {
+            eprintln!("Cannot serialize a report after pre-sub cleanup due to {}", e);
+            return Err(());
+        }
+        Ok(v) => Ok(v),
     }
 }

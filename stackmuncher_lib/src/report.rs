@@ -439,9 +439,8 @@ impl Report {
         }
     }
 
-    /// Serializes the report and saves it in the specified location. Panics if either ser or save fail.
-    /// Returns the contents of the file it saved for submission to STM
-    pub fn save_as_local_file(&self, file_name: &PathBuf) -> Vec<u8> {
+    /// Serializes the report and saves it in the specified location. Panics if either serialize or save fail.
+    pub fn save_as_local_file(&self, file_name: &PathBuf) {
         let absolute_file_name = file_name
             .absolutize()
             .expect("Cannot convert rules / file_type dir path to absolute. It's a bug.")
@@ -471,8 +470,6 @@ impl Report {
         };
 
         info!("Report saved into {}", absolute_file_name.to_string_lossy());
-
-        payload
     }
 
     /// Adds details about the commit history to the report: head, init, contributors, collaborators, log hash, and remote URLs.
