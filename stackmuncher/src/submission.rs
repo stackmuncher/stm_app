@@ -1,9 +1,12 @@
 use crate::help;
 use crate::signing::ReportSignature;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
 use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
 use stackmuncher_lib::{config::Config, report::Report, tech::Tech};
+use std::io::prelude::*;
 use tracing::{debug, info, warn};
 
 //const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
@@ -109,6 +112,7 @@ fn log_http_body(body_bytes: &hyper::body::Bytes) {
 }
 
 /// Removes or replaces any sensitive info from the report for submission to stackmuncher.com.
+/// Gzips the sanitized report and returns the raw bytes.
 /// Returns a sanitized report as bytes ready to be sent out
 pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
     // this function should be replaced with a macro
@@ -134,11 +138,30 @@ pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
     report.last_commit_author = None;
 
     // serialize the report into bytes
-    match serde_json::to_vec(&report) {
+    let report = match serde_json::to_vec(&report) {
         Err(e) => {
             eprintln!("Cannot serialize a report after pre-sub cleanup due to {}", e);
             return Err(());
         }
-        Ok(v) => Ok(v),
-    }
+        Ok(v) => v,
+    };
+
+    // gzip it
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    if let Err(e) = encoder.write_all(&report) {
+        eprintln!("Cannot gzip the report due to {}", e);
+        return Err(());
+    };
+    let gzip_bytes = match encoder.finish() {
+        Err(e) => {
+            eprintln!("Cannot finish gzipping the report due to {}", e);
+            return Err(());
+        }
+
+        Ok(v) => v,
+    };
+
+    info!("Report size: {}, GZip: {}", report.len(), gzip_bytes.len());
+
+    Ok(gzip_bytes)
 }
