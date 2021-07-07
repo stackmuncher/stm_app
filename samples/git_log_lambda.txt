@@ -1,0 +1,1542 @@
+commit 4a2cbb5f46c2ab5a70e847e7c5fa783b9ae0befe
+Merge: 0691662 031eda9
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 22 10:26:39 2020 +0000
+
+    Merge branch 'master' of https://github.com/rimutaka/aws-lambda-rust-runtime
+
+commit 031eda933866c7939b0c489ad8288fd1c46fbf40
+Merge: 12a0ef8 8e84585
+Author: max <max@onebro.me>
+Date:   Tue Sep 22 21:45:26 2020 +1200
+
+    Merged 'rimutaka/davidbarsky/update-readme' (PR awslabs#244) into `rimutaka/master`.
+    
+    * origin/davidbarsky/update-readme:
+      Removed unnecessary + Sync on handler's future
+      Added docs and missing _vars to reduce warnings
+      Enforced Send+Sync for http Handler impl.
+      Added some tracing!() to lib.rs.
+      Fixed "Process exited" error in lib.rs.
+      client.rs formatting fix
+      Log panic as Debug+Display, improved examples
+      Added err logging to lib.rs, consolidated examples
+      Added error handling for #241, interim, broken.
+      disable time on `tracing_subscriber`
+      Add log and tracing examples; fix `tracing` dependency features.
+      Create a reusable runtime struct + builder
+      Cleanup docs; handle panics in lambda functions correctly.
+      Add Cargo.lock to gitignore; whoops.
+      don't depend on serde_derive directly
+      Replace `genawaiter` with `async-stream` (#240)
+      reorg
+
+commit 12a0ef80ba911fd3eec270bc72359e165f441cf1
+Merge: 6743dd4 c36409c
+Author: max <max@onebro.me>
+Date:   Tue Sep 22 21:41:39 2020 +1200
+
+    Merged 'base/master' into 'rimutaka/master' to catch up on new commits.
+
+commit c36409c5e65f994c7ff48510cd111905b4aa77c9
+Author: Johan Smits <johansmitsnl@users.noreply.github.com>
+Date:   Thu Sep 17 03:14:50 2020 +0200
+
+    Allow mock methods to be used in external apps (#253)
+    
+    Make mock api available
+
+lambda-http/src/ext.rs
+
+commit ed40f5a7b7e8f09a679f7b6b6334e5e3ed86b1de
+Author: Frank Prößdorf <frank@naa.li>
+Date:   Thu Sep 17 01:55:56 2020 +0300
+
+    Pass cookies from LambdaRequest::ApiGatewayV2 to Request (#258)
+
+lambda-http/src/request.rs
+lambda-http/tests/data/apigw_v2_proxy_request.json
+
+commit 8e845856eb5ce91a8b2369e5d8ae4a3525962af3
+Author: rimutaka <max@onebro.me>
+Date:   Wed Aug 19 09:22:27 2020 +0000
+
+    Removed unnecessary + Sync on handler's future
+
+lambda/src/lib.rs
+
+commit 17c2a2939822ff53ab76c0ea2ca8b0b00f43c188
+Merge: 186b4db 6743dd4
+Author: max <max@onebro.me>
+Date:   Wed Aug 19 10:20:39 2020 +1200
+
+    Merge branch 'master' into davidbarsky/update-readme
+    
+    # Conflicts resolved in favour of davidbarsky/update-readme:
+    #       Cargo.lock
+    #       lambda/Cargo.toml
+    #       lambda/examples/README.md
+    #       lambda/examples/basic.rs
+    #       lambda/examples/error-handling.rs
+    #       lambda/src/client.rs
+    #       lambda/src/lib.rs
+
+commit 6743dd435bb3e220a5ad0ade7eeb2d0526215826
+Merge: 64d54f8 a9de2fc
+Author: max <max@onebro.me>
+Date:   Wed Aug 19 10:02:07 2020 +1200
+
+    Merge remote-tracking branch 'base/master'
+
+commit 06916625006ebafdacd84345d1ba8fca3f53737b
+Merge: 6d369a5 a9de2fc
+Author: rimutaka <max@onebro.me>
+Date:   Tue Aug 18 21:52:23 2020 +0000
+
+    Merge branch 'master' of https://github.com/awslabs/aws-lambda-rust-runtime
+
+commit 186b4dbec07bc8b3325d653491d596c5099a7e59
+Author: rimutaka <max@onebro.me>
+Date:   Tue Aug 18 00:39:15 2020 +0000
+
+    Added docs and missing _vars to reduce warnings
+
+lambda-http/src/request.rs
+
+commit 166d63848419639c5c30ad3c263781613f8f9341
+Author: rimutaka <max@onebro.me>
+Date:   Mon Aug 17 23:28:05 2020 +0000
+
+    Enforced Send+Sync for http Handler impl.
+
+lambda-http/src/lib.rs
+
+commit 7d9955550d836465c42d9a7a08d74d49b720dd03
+Author: rimutaka <max@onebro.me>
+Date:   Sun Jul 26 11:01:49 2020 +0000
+
+    Added some tracing!() to lib.rs.
+
+lambda/src/lib.rs
+
+commit 7e58282e643610765b98d250c4b7d5818a5b33e5
+Author: rimutaka <max@onebro.me>
+Date:   Sun Jul 26 10:15:06 2020 +0000
+
+    Fixed "Process exited" error in lib.rs.
+
+lambda/src/lib.rs
+
+commit e2ae1e56edc3c187198da39d46d20c4ff1db5adb
+Author: rimutaka <max@onebro.me>
+Date:   Sat Jul 25 23:47:35 2020 +0000
+
+    client.rs formatting fix
+
+lambda/src/client.rs
+
+commit e40ea17b8627b84ae3503873ff34024cde0283f7
+Author: rimutaka <max@onebro.me>
+Date:   Sat Jul 25 23:40:45 2020 +0000
+
+    Log panic as Debug+Display, improved examples
+
+lambda/examples/README.md
+lambda/examples/basic.rs
+lambda/examples/error-handling.rs
+lambda/src/lib.rs
+
+commit 59227cd1bd0016c01319a0dac8ced8c665837711
+Author: rimutaka <max@onebro.me>
+Date:   Sat Jul 25 09:49:26 2020 +0000
+
+    Added err logging to lib.rs, consolidated examples
+
+lambda/examples/README.md
+lambda/examples/basic.rs
+lambda/examples/error-handling.rs
+lambda/examples/hello-without-macro-log.rs
+lambda/examples/hello-without-macro-tracing.rs
+lambda/examples/macro.rs
+lambda/src/lib.rs
+
+commit a9de2fcb24030a00e402348aba3c368b717feb6d
+Author: Yogendra Sharma <Eh.yogendra@gmail.com>
+Date:   Fri Jul 24 21:59:13 2020 +0530
+
+    #245 Fix for Invalid URL in README (#246)
+
+README.md
+
+commit ad25ed7154c9c98ddc4437a7a12415ace2ecc0bd
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 23 23:47:12 2020 +0000
+
+    Added error handling for #241, interim, broken.
+
+lambda/Cargo.toml
+lambda/examples/README.md
+lambda/examples/basic.rs
+lambda/examples/error-handling.rs
+lambda/examples/hello-without-macro-log.rs
+lambda/examples/hello-without-macro-tracing.rs
+lambda/src/lib.rs
+
+commit 6d369a513bd260ac4199f323247c5b397490c85b
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 23 03:21:18 2020 +0000
+
+    Removed unused refs from basic.rs
+
+lambda/examples/basic.rs
+
+commit f03d2b554de0935a7d2dad0a7ae58de12f3180ae
+Author: David Barsky <me@davidbarsky.com>
+Date:   Wed Jul 22 22:48:33 2020 -0400
+
+    disable time on `tracing_subscriber`
+
+lambda/examples/hello-without-macro-tracing.rs
+lambda/src/lib.rs
+
+commit 878788cd94b1512a1123f8f90869c5bad309387d
+Author: David Barsky <me@davidbarsky.com>
+Date:   Wed Jul 22 21:52:19 2020 -0400
+
+    Add log and tracing examples; fix `tracing` dependency features.
+
+lambda/Cargo.toml
+lambda/examples/hello-without-macro-log.rs
+lambda/examples/hello-without-macro-tracing.rs
+
+commit 64d54f85c5296977527d7f36eaa825fd27af488b
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 23 01:20:45 2020 +0000
+
+    Upper-cased and edited examples/readme.md
+
+lambda/examples/README.md
+
+commit 5f63aa952a4e22b386f657620e06b7c7d410f5b3
+Author: mx <max@onebro.me>
+Date:   Thu Jul 23 12:53:39 2020 +1200
+
+    Corrected handler_fn interface misconception in basic.rs
+    
+    Co-authored-by: Veetaha <veetaha2@gmail.com>
+
+lambda/examples/basic.rs
+
+commit 82d235195d053601e9a9a9d26abeef66e4e37a47
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jul 22 11:22:10 2020 +0000
+
+    Fixed comment in lib.rs
+
+lambda/src/lib.rs
+
+commit 5d07f3f975fb8b4efe97de0b61f298652c7e0a0f
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jul 22 11:11:25 2020 +0000
+
+    Formatting fix in error-handling.rs.
+
+lambda/examples/error-handling.rs
+
+commit 96a90afb462e0a7fdcf570141b92b0b6d702db10
+Author: Ubuntu <ubuntu@ip-172-31-47-28.ap-southeast-2.compute.internal>
+Date:   Wed Jul 22 10:51:16 2020 +0000
+
+    Fixed headers in examples readme.
+
+lambda/examples/readme.md
+
+commit 64fcfc2223e1d9bf508d115ba9dd909dfaef757d
+Author: Ubuntu <ubuntu@ip-172-31-47-28.ap-southeast-2.compute.internal>
+Date:   Wed Jul 22 10:46:32 2020 +0000
+
+    Tidied up examples readme.
+
+lambda/examples/readme.md
+
+commit afb2b79bba087fefd519590f0a0c9e730acfb54b
+Author: Ubuntu <ubuntu@ip-172-31-47-28.ap-southeast-2.compute.internal>
+Date:   Wed Jul 22 10:05:38 2020 +0000
+
+    Added basic.rs example, comments to other examples
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/examples/basic.rs
+lambda/examples/hello.rs
+lambda/examples/readme.md
+
+commit a8ef3c3aa2f401e0054b2069e0fcfcf59c61fecd
+Author: Ubuntu <ubuntu@ip-172-31-47-28.ap-southeast-2.compute.internal>
+Date:   Wed Jul 22 05:08:55 2020 +0000
+
+    Log handler errors in runtime. Issue #241
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/examples/error-handling.rs
+lambda/examples/readme.md
+lambda/src/client.rs
+lambda/src/lib.rs
+
+commit e2b22e3e4cf50786ed30fb93a3cb790f49c02700
+Author: David Barsky <me@davidbarsky.com>
+Date:   Sun Jul 19 15:48:23 2020 -0400
+
+    Create a reusable runtime struct + builder
+
+lambda-http/src/lib.rs
+lambda/Cargo.toml
+lambda/src/client.rs
+lambda/src/lib.rs
+lambda/src/requests.rs
+lambda/src/simulated.rs
+
+commit c0d34189a2d85bfcb4ceecd96639da00f95294f5
+Author: David Barsky <me@davidbarsky.com>
+Date:   Sun Jul 19 12:11:52 2020 -0400
+
+    Cleanup docs; handle panics in lambda functions correctly.
+
+lambda/Cargo.toml
+lambda/src/lib.rs
+
+commit d4a937672bfd7ba0423267877f6f956a9a637d24
+Author: David Barsky <me@davidbarsky.com>
+Date:   Fri Jul 17 17:57:45 2020 -0400
+
+    Add Cargo.lock to gitignore; whoops.
+
+.gitignore
+Cargo.lock
+lambda/src/simulated.rs
+
+commit 116368221a5d64e0063dd7cb4f2df8788fc7243b
+Author: David Barsky <me@davidbarsky.com>
+Date:   Fri Jul 17 17:51:08 2020 -0400
+
+    don't depend on serde_derive directly
+
+Cargo.lock
+lambda-http/Cargo.toml
+lambda-http/src/ext.rs
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/src/strmap.rs
+lambda/src/lib.rs
+
+commit 64cd7dff02846a987426b15d560127f510704bd9
+Author: Lucio Franco <luciofranco14@gmail.com>
+Date:   Fri Jul 17 17:37:23 2020 -0400
+
+    Replace `genawaiter` with `async-stream` (#240)
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/src/lib.rs
+
+commit f40461785625d8ac23e7c248367b1d724ef2b5ba
+Author: Lucio Franco <luciofranco14@gmail.com>
+Date:   Fri Jul 17 17:37:23 2020 -0400
+
+    Replace `genawaiter` with `async-stream` (#240)
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/src/lib.rs
+
+commit eed16d1c8f43c0df462e7ce50e1d8c8bb926d35b
+Author: David Barsky <me@davidbarsky.com>
+Date:   Fri Jul 17 17:30:18 2020 -0400
+
+    reorg
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/src/client.rs
+lambda/src/lib.rs
+lambda/src/simulated.rs
+
+commit e528ef6650b16e6c7e50ba22048f6097c3d0e595
+Author: Veetaha <veetaha2@gmail.com>
+Date:   Tue Jul 14 20:55:13 2020 +0300
+
+    Fix docs generation (#239)
+
+.github/workflows/build.yml
+
+commit 834be267b83542d7987bad0f42828d230f808428
+Author: mx <max@onebro.me>
+Date:   Wed Jul 15 03:26:32 2020 +1200
+
+    Corrected --target name in README, added links. (#238)
+
+README.md
+
+commit c8dbcd39e0b1cf9ecf395e2b2f9df6c6c0d97780
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Thu Jul 2 11:15:29 2020 -0400
+
+    Publish latest rustdocs to gh-pages (#234)
+
+.github/workflows/build.yml
+
+commit e193e700cf158e357b6ab31eaec0e9990102e601
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Wed Jul 1 09:26:07 2020 -0400
+
+    Retire INVOCATION_CTX task local; lambda::Context is now a normal argument (#237)
+
+lambda/src/lib.rs
+
+commit ae3ce1d4aee593b9425a045cd19d2b967d5cf367
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Tue Jun 30 13:06:36 2020 -0400
+
+    Make lambda::Context a first-class part of the Handler API (#233)
+
+lambda-attributes/src/lib.rs
+lambda-http/examples/hello-http-without-macros.rs
+lambda-http/examples/hello-http.rs
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda/examples/hello-with-ctx.rs
+lambda/examples/hello-without-macro.rs
+lambda/examples/hello.rs
+lambda/src/lib.rs
+lambda/src/types.rs
+
+commit ed3fd167528125b73ce47abfadc38cd274bf59bc
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Thu May 28 10:27:02 2020 -0400
+
+    replace anyhow with std error and an type alias (#231)
+    
+    Resolves #229.
+
+Cargo.lock
+lambda-http/examples/hello-http-without-macros.rs
+lambda-http/examples/hello-http.rs
+lambda-http/src/lib.rs
+lambda/Cargo.toml
+lambda/src/client.rs
+lambda/src/lib.rs
+lambda/src/requests.rs
+lambda/src/types.rs
+
+commit 91d2a60d4a0d040332521576f9ac349add3db128
+Author: Marc Bowes <marcbowes@gmail.com>
+Date:   Fri May 15 14:46:12 2020 -0700
+
+    Fix Reciever typo (#225)
+
+lambda/src/client.rs
+
+commit 5c49bccf732673349f9fe9497697a39ca17ed0e0
+Author: Marc Bowes <marcbowes@gmail.com>
+Date:   Fri May 15 14:34:04 2020 -0700
+
+    Fix Receiver typo (#224)
+
+lambda/src/client.rs
+
+commit 4463351a73c3bfc3f9366f50da871757a87fbdd7
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Fri May 8 11:27:41 2020 -0400
+
+    Adapt lambda-http to new lambda runtime api (#217)
+
+.github/workflows/build.yml
+Cargo.lock
+Cargo.toml
+lambda-attributes/src/lib.rs
+lambda-http/Cargo.toml
+lambda-http/examples/basic.rs
+lambda-http/examples/hello.rs
+lambda-http/src/body.rs
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/tests/data/apigw_v2_proxy_request.json
+lambda-http/tests/data/apigw_v2_proxy_request_minimal.json
+lambda/src/lib.rs
+
+commit 8f026a051a47295b197b072ee64c1a6533ad1489
+Author: Darren Meehan <Darrenmeehan@users.noreply.github.com>
+Date:   Wed May 6 15:06:27 2020 +0100
+
+    Documentation fixes with some linting (#219)
+
+.gitignore
+README.md
+lambda/Cargo.toml
+lambda/src/client.rs
+lambda/src/lib.rs
+
+commit 4f1d44eb862cd282dc9669f600026abe80a8e7f8
+Author: Jake Thompson <jake@zenlist.com>
+Date:   Tue Apr 28 14:03:58 2020 -0400
+
+    Loop the generator to continue yeilding values (#220)
+
+lambda/src/lib.rs
+
+commit 3fa8df3c29da5bb36e4e4dc3327237fe6b4b3c9d
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Mon Apr 27 18:42:41 2020 -0400
+
+    internal: internal cleanup; correctness (#214)
+
+Cargo.lock
+lambda/Cargo.toml
+lambda/src/client.rs
+lambda/src/lib.rs
+lambda/src/requests.rs
+lambda/src/simulated.rs
+lambda/src/types.rs
+
+commit ebc5474b303930b95ff612a49ea15c09a5bfba48
+Author: Robert Bragg <robert@sixbynine.org>
+Date:   Tue Mar 17 18:01:06 2020 +0000
+
+    docs: ensure example handlers use a structured event type (#213)
+
+lambda/examples/hello-with-ctx.rs
+lambda/examples/hello-without-macro.rs
+lambda/examples/hello.rs
+lambda/src/lib.rs
+
+commit dd4cb4a1b274f8db77fc18a6986838300a0032d0
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Wed Mar 11 12:42:32 2020 -0400
+
+    Lambda with Async/Await (#111)
+
+.github/workflows/build.yml
+.rustfmt.toml
+.travis.yml
+Cargo.lock
+Cargo.toml
+NOTICE
+lambda-attributes/Cargo.toml
+lambda-attributes/src/lib.rs
+lambda-http/Cargo.toml
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-client/src/lib.rs
+lambda-runtime-core/Cargo.toml
+lambda-runtime-core/build.rs
+lambda-runtime-core/examples/simple.rs
+lambda-runtime-core/src/context.rs
+lambda-runtime-core/src/env.rs
+lambda-runtime-core/src/error.rs
+lambda-runtime-core/src/handler.rs
+lambda-runtime-core/src/lib.rs
+lambda-runtime-core/src/runtime.rs
+lambda-runtime-errors-derive/Cargo.toml
+lambda-runtime-errors-derive/src/lib.rs
+lambda-runtime-errors-derive/tests/tests.rs
+lambda-runtime-errors/Cargo.toml
+lambda-runtime-errors/errorgen.py
+lambda-runtime-errors/src/error_ext_impl.rs
+lambda-runtime-errors/src/lib.rs
+lambda-runtime/Cargo.toml
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/custom_error.rs
+lambda-runtime/examples/custom_error_failure.rs
+lambda-runtime/examples/failure_error.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/src/lib.rs
+lambda/Cargo.toml
+lambda/examples/hello-with-ctx.rs
+lambda/examples/hello-without-macro.rs
+lambda/examples/hello.rs
+lambda/src/client.rs
+lambda/src/lib.rs
+lambda/src/requests.rs
+lambda/src/types.rs
+
+commit c8d97d32f10ec62016b8ef370c721d9573a97417
+Author: Bryan Moffatt <bmoffatt@users.noreply.github.com>
+Date:   Fri Dec 6 20:03:45 2019 +0000
+
+    send the runtime user agent when polling for events (#180)
+
+Cargo.lock
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+
+commit 6866f2bfb5f3e40c3108da0d16d9cd4edfddc3d4
+Author: Andrii Radyk <ander.ender@gmail.com>
+Date:   Sun Nov 17 18:21:34 2019 +0100
+
+    ci: nightly failure workaround (#170)
+
+.github/workflows/build.yml
+
+commit 439c25ffe493fba10f135d5675c74cbc806ae0b7
+Author: Andrii Radyk <ander.ender@gmail.com>
+Date:   Sat Nov 16 16:35:48 2019 +0100
+
+    ci: GitHub actions (#165)
+
+.github/workflows/build.yml
+lambda-http/src/request.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-core/src/error.rs
+lambda-runtime-errors-derive/tests/tests.rs
+
+commit 0ac259a711d6486e7f6b7dc641539fbec1ee7b79
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Thu May 2 18:39:14 2019 -0400
+
+    Prepare Release (#103)
+
+Cargo.lock
+lambda-http/Cargo.toml
+lambda-runtime-client/Cargo.toml
+lambda-runtime-core/Cargo.toml
+lambda-runtime-errors-derive/Cargo.toml
+lambda-runtime-errors/Cargo.toml
+lambda-runtime/Cargo.toml
+
+commit b97d11223978fe60f3a81aad12b9730ecf35e2c5
+Author: Observer42 <yishengxu@outlook.com>
+Date:   Mon Apr 22 22:10:21 2019 +0800
+
+    change log level to error for handler error (#99)
+
+lambda-runtime-core/src/runtime.rs
+
+commit d02b0e40b57e8b1ef4c33369465984d04cf60d65
+Author: Doug Tangren <d.tangren@gmail.com>
+Date:   Sat Mar 9 16:41:48 2019 -0500
+
+    Expose Functions for deserializing HTTP types from raw event sources (#93)
+
+CHANGELOG.md
+lambda-http/src/request.rs
+
+commit d739445d17a53b01bda30fb93c13dcd36072ba8d
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Tue Feb 26 14:10:15 2019 -0800
+
+    Panic when X-Ray header not present (#91)
+    
+    Changed the X-Ray trace id header to be optional since X-Ray is not support in GovCloud. This addresses issue #89. Also bumped version for patch release.
+
+Cargo.lock
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-core/Cargo.toml
+lambda-runtime-core/src/context.rs
+lambda-runtime/src/lib.rs
+
+commit 3b796f311ad5fe012c068e06470f4e9296f99790
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Sun Feb 24 14:22:31 2019 -0500
+
+    Enable Unit Testing of HTTP Handlers via #[cfg(test)] (#85)
+
+CHANGELOG.md
+Cargo.lock
+lambda-http/Cargo.toml
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+
+commit 13c571d66787c530075fdb4ceb5dadcb19b7b7fb
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Thu Feb 14 16:24:18 2019 -0500
+
+    HTTP Lambda Crate Documentation Fixes (#86)
+    
+    * don't teach unwrap
+    
+    * use 2018 edition style in rustdoc example
+
+lambda-http/examples/basic.rs
+lambda-http/src/ext.rs
+
+commit 66fe4e5c2f45eeda2b803ea50f8a60f7a1ec78ec
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Mon Feb 4 15:21:48 2019 -0500
+
+    correct and expand on lambda-http requestext docs (#81)
+
+lambda-http/src/ext.rs
+
+commit 05190efea642243b62ec277a0f2bda9e741d449b
+Author: Luke Jones <jones_ld@protonmail.com>
+Date:   Tue Jan 29 11:56:38 2019 +1300
+
+    README: Update example in readme to match basic.rs example (#80)
+    
+    Also removes reference to `new_error()` in client.rs `event_error`
+    doc comment as this function is removed from `Context`
+
+README.md
+lambda-runtime-client/src/client.rs
+
+commit 4f05f8c549c8b38428d92c65a4f8a377d97b2ccb
+Author: Aliaksandr Rahalevich <saks@users.noreply.github.com>
+Date:   Mon Jan 28 14:54:07 2019 -0800
+
+    Adjust import to mitigate compilation errors (#79)
+    
+    https://github.com/serde-rs/serde/issues/1441
+
+lambda-http/src/request.rs
+
+commit c1238125326d54d717dffe9297b78455dd60fc2a
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Sat Jan 26 12:43:41 2019 -0500
+
+    add docs.rs badges (#78)
+
+README.md
+
+commit 9c68a4f4bc7503d885c13dda00883658a505515f
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Fri Jan 25 12:12:35 2019 -0500
+
+    keep a changelog (#76)
+    
+    * keep a changelog
+
+CHANGELOG.md
+
+commit 66c0ba00753276314f97a4a4bf3bd13afae95aef
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Jan 24 18:54:48 2019 -0800
+
+    Preparing for 0.2 release (#75)
+    
+    * Added errors and derive crate to workspace and exported derive crate from errors crate
+
+Cargo.lock
+Cargo.toml
+lambda-runtime-core/Cargo.toml
+lambda-runtime-errors-derive/Cargo.toml
+lambda-runtime-errors/Cargo.toml
+lambda-runtime-errors/src/lib.rs
+
+commit 0a1537387c07035c21b5a4e46413ddb859481cc0
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Jan 24 13:49:05 2019 -0800
+
+    Prepare 0.2 release [#74]
+
+Cargo.lock
+lambda-http/Cargo.toml
+lambda-runtime-client/Cargo.toml
+lambda-runtime-core/Cargo.toml
+lambda-runtime/Cargo.toml
+
+commit 50b71ae765a198eb62d0888958633bdf4421c5f6
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Jan 24 10:30:16 2019 -0800
+
+    [Do not merge] Refactor to address RFCs (#63)
+    
+    * Refactor of the crate structure: Moved the "main loop" to a core crate that only handles `Vec<u8>` and changed the runtime handler to be a simple wrapper over the new core crate
+    * Changed error handling to support any error type
+    * Added LambdaErrorExt for the `error_type` field in the response and new derive crate for it.
+
+.gitignore
+Cargo.lock
+Cargo.toml
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-client/src/lib.rs
+lambda-runtime-core/Cargo.toml
+lambda-runtime-core/build.rs
+lambda-runtime-core/examples/simple.rs
+lambda-runtime-core/src/context.rs
+lambda-runtime-core/src/env.rs
+lambda-runtime-core/src/error.rs
+lambda-runtime-core/src/handler.rs
+lambda-runtime-core/src/lib.rs
+lambda-runtime-core/src/runtime.rs
+lambda-runtime-errors-derive/Cargo.toml
+lambda-runtime-errors-derive/src/lib.rs
+lambda-runtime-errors-derive/tests/tests.rs
+lambda-runtime-errors/Cargo.toml
+lambda-runtime-errors/errorgen.py
+lambda-runtime-errors/src/error_ext_impl.rs
+lambda-runtime-errors/src/lib.rs
+lambda-runtime/Cargo.toml
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/custom_error.rs
+lambda-runtime/examples/custom_error_failure.rs
+lambda-runtime/examples/failure_error.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/src/error.rs
+lambda-runtime/src/lib.rs
+
+commit bbf19586eb91370362819dbe9d277fe81f83f2ce
+Author: rmcteggart-r7 <rmcteggart@rapid7.com>
+Date:   Wed Jan 23 16:28:24 2019 +0000
+
+    Updating readme with typo fixes (#72)
+
+README.md
+
+commit 7d66db75519b5371845e85c83a21a99e3a74cbcb
+Author: Alex Ozdemir <aozdemir@hmc.edu>
+Date:   Sun Jan 20 12:10:32 2019 -0800
+
+    Fix Typo in JSON Serialization Error Message (#70)
+
+lambda-runtime/src/runtime.rs
+
+commit a2aeb2c9cb667d39fad9f0908863f54e2fd33c66
+Author: Alex Ozdemir <aozdemir@hmc.edu>
+Date:   Sun Jan 20 11:57:10 2019 -0800
+
+    Wrote Minimal Documentation for the Lambda Macro (#71)
+
+lambda-runtime/src/runtime.rs
+
+commit 6f693fbfd9f82e027c176436b18f2f0bd9f71f2a
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Jan 1 22:17:00 2019 -0500
+
+    Support both API Gateway and ALB events as http::{Request,Response} (#64)
+    
+    * support both apigw and alb events as http::{Request,Response}
+    
+    * rustfmt
+    
+    * not specific apigw now
+    
+    * sentence casing
+
+lambda-http/Cargo.toml
+lambda-http/src/body.rs
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/tests/data/alb_health_check.json
+lambda-http/tests/data/alb_multi_value_request.json
+lambda-http/tests/data/alb_request.json
+
+commit 9966ee3b639af30c7bfd4ae6ad62082aa85d0fec
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Wed Dec 26 22:51:25 2018 +0900
+
+    impl http multi value query str parameters (#59)
+    
+    * impl multi_value_headers
+    
+    * remove redundant closure
+    
+    * impl multi_value_headers in response
+    
+    * fmt
+    
+    * unprefix
+    
+    * missing import in test
+    
+    * rustfmt
+    
+    * impl multi_value_query_string_parameters
+    
+    * improve test assertion msg
+    
+    * rustfmt
+
+lambda-http/src/ext.rs
+lambda-http/src/request.rs
+lambda-http/src/strmap.rs
+
+commit e881b724291b3031d093b18c6047f09567259fcb
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Wed Dec 26 13:36:05 2018 +0900
+
+    how to build and test with docker (#61)
+    
+    * how to build and test with docker
+    
+    * typo
+
+README.md
+
+commit 7436632e185902c2ee40cf0f8a8424683e7b26b0
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Wed Dec 26 13:33:02 2018 +0900
+
+    update out of date readme doc on runtime handler type (#48)
+    
+    * update out of date readme doc on runtime handler type
+    
+    * typo
+
+README.md
+
+commit 26d0ece3355d09984510648cb640d45f96bcb491
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Wed Dec 26 13:31:51 2018 +0900
+
+    impl multi_value_headers (#58)
+    
+    * impl multi_value_headers
+    
+    * remove redundant closure
+    
+    * impl multi_value_headers in response
+    
+    * fmt
+    
+    * unprefix
+    
+    * missing import in test
+    
+    * rustfmt
+    
+    * improve test assertion msg
+    
+    * rustfmt
+
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/tests/data/apigw_multi_value_proxy_request.json
+lambda-http/tests/data/apigw_proxy_request.json
+
+commit d117272fc535265851c9eb028179475ef87e20cb
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 18 00:55:20 2018 +0900
+
+    Ensure a consistent style for all changes (#51)
+
+.rustfmt.toml
+.travis.yml
+CONTRIBUTING.md
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-http/src/request.rs
+lambda-runtime/src/context.rs
+lambda-runtime/src/env.rs
+lambda-runtime/src/lib.rs
+lambda-runtime/src/runtime.rs
+
+commit 48c503931b6b885512b250762d1093a3ea365133
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Mon Dec 17 03:51:04 2018 +0900
+
+    note to contributors about docs during pr flow (#49)
+
+.github/PULL_REQUEST_TEMPLATE.md
+
+commit 7ee965d8a8ce387761d617dbb9fcbd9438a712de
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Mon Dec 17 03:30:06 2018 +0900
+
+    documented better developer experience (#47)
+    
+    * documented better developer experience
+    
+    * consistent shell example fmt
+    
+    * teach fewer tools
+    
+    * better description of what deploy does
+    
+    * move one-time-cmd to one time run block
+    
+    * links to serverless application templates
+    
+    * fix link
+    
+    * address pr copy feedback
+    
+    * colon after source
+
+README.md
+
+commit 545f653b5ca5895e4c394e55509c35f9faa882c6
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 11 23:34:57 2018 +0700
+
+    Populate crates.io with useful information (#46)
+
+lambda-http/Cargo.toml
+lambda-runtime-client/Cargo.toml
+lambda-runtime/Cargo.toml
+
+commit 141189c72b8b9a818abce426284b8b8c20aa6dfe
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 11 23:32:19 2018 +0700
+
+    fix unused import warning in lambda-http example (#45)
+
+commit 838d130c9a7c2a948f749987292b579b5d9e5ba4
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 11 21:58:17 2018 +0700
+
+    Add parity to the `lambda!` macro to support handler closure impl (#44)
+
+lambda-http/src/lib.rs
+lambda-runtime/src/lib.rs
+lambda-runtime/src/runtime.rs
+
+commit 3b7ce4162219e53ce382e42efece64600cecd79c
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 11 19:54:37 2018 +0700
+
+    impl PartialEq for HandlerError (#43)
+    
+    * impl PartialEq for HandleError
+    
+    * document partialeq
+
+lambda-runtime/src/error.rs
+
+commit 090d0f09ca5542ff33332ce825f61cce4fbbecbe
+Author: Christian Legnitto <LegNeato@users.noreply.github.com>
+Date:   Tue Dec 11 05:53:18 2018 -0700
+
+    Add note about `aws_lambda_events` crate (#42)
+    
+    * Add note about `aws_lambda_events` crate
+    
+    As mentioned in https://github.com/awslabs/aws-lambda-rust-runtime/issues/12
+    
+    * Use backticks for crate name
+
+README.md
+
+commit 105eaf871c7248c93ae2f13337e9881caf89d489
+Author: Antal Szabó <szabo.antal.92@gmail.com>
+Date:   Tue Dec 11 13:51:26 2018 +0100
+
+    Migrate lambda-http to Rust 2018 (#40)
+
+lambda-http/Cargo.toml
+lambda-http/examples/basic.rs
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/src/strmap.rs
+
+commit 01466984a97b6bc291ee8bff6c4f430243c733f4
+Author: Antal Szabó <szabo.antal.92@gmail.com>
+Date:   Tue Dec 11 13:50:44 2018 +0100
+
+    Migrate lambda-runtime to Rust 2018 (#39)
+
+lambda-runtime/Cargo.toml
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/src/context.rs
+lambda-runtime/src/env.rs
+lambda-runtime/src/error.rs
+lambda-runtime/src/lib.rs
+lambda-runtime/src/runtime.rs
+
+commit 70e7301fc7a778d011c95455ba099a9a88d46d32
+Author: António Nuno Monteiro <anmonteiro@gmail.com>
+Date:   Sun Dec 9 23:59:35 2018 +0000
+
+    Add `accessKey` to the request context `identity` in lambda-http (#37)
+
+lambda-http/src/request.rs
+
+commit 56f7dcfc29b6d1f5308b853b55db933bca4d7038
+Author: Antal Szabó <szabo.antal.92@gmail.com>
+Date:   Sun Dec 9 22:29:40 2018 +0100
+
+    Migrate lambda-runtime-client to Rust 2018 (#36)
+    
+    * Migrate lambda-runtime-client to Rust 2018
+    * Require Rust 1.31 as a minimum.
+
+.travis.yml
+README.md
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-client/src/lib.rs
+
+commit a8bdf7b7377000ef9de694642035ebe5124e2ae1
+Author: Taryn <Phrohdoh@users.noreply.github.com>
+Date:   Sat Dec 8 19:21:18 2018 -0600
+
+    Fix doc typo in env.rs (#35)
+
+lambda-runtime/src/env.rs
+
+commit a75e38bc5f5a1192c1017bcf9b64740438d28fd3
+Author: Lee Packham <lpackham@protonmail.com>
+Date:   Thu Dec 6 17:16:06 2018 +0000
+
+    Allow Context to be created outside of the Crate (#34)
+    
+    The deadline property was restricted to the crate by the (super)
+    addition to the property. Removing it has no impact on the crate but
+    does allow users of the crate to create mock Contexts for testing their
+    lambda functions.
+
+lambda-runtime/src/context.rs
+
+commit 8a305172ea75f41bb1b733b77414ae62260d7668
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Fri Dec 7 00:21:35 2018 +0800
+
+    clean up dependencies (#32)
+
+Cargo.lock
+lambda-runtime/Cargo.toml
+
+commit 3f4eeed1411c7621bf6b1596d16c262cbc8fa1ed
+Author: Antal Szabó <szabo.antal.92@gmail.com>
+Date:   Tue Dec 4 23:35:01 2018 +0100
+
+    Convert deadline-related values to i64 and fix comments. (#27)
+
+lambda-runtime-client/src/client.rs
+lambda-runtime/src/context.rs
+
+commit 771e5983111dcabad901e15bceca3d616d937426
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Wed Dec 5 00:23:01 2018 +0800
+
+    Introduce lambda_http::IntoResponse (#31)
+
+lambda-http/examples/basic.rs
+lambda-http/src/lib.rs
+lambda-http/src/response.rs
+
+commit b97446082558195b573cf29e71115d0c8f8eb3be
+Author: Antal Szabó <szabo.antal.92@gmail.com>
+Date:   Tue Dec 4 17:19:07 2018 +0100
+
+    Avoid Unnecessary allocations in lambda-runtime-client. (#28)
+
+lambda-runtime-client/src/client.rs
+
+commit 85a1c06900f526a959b827f35ded09274d803924
+Author: António Nuno Monteiro <anmonteiro@gmail.com>
+Date:   Tue Dec 4 16:08:51 2018 +0000
+
+    ERROR_TYPE_UNHANDLED should be "Unhandled" (#30)
+
+lambda-runtime-client/src/error.rs
+
+commit 2f7709f4c16efe98118d282deefda9801e33c642
+Author: doug tangren <d.tangren@gmail.com>
+Date:   Tue Dec 4 12:27:11 2018 +0800
+
+    Introduce lambda-http module based on lando to support API Gateway (#18)
+
+Cargo.lock
+Cargo.toml
+README.md
+lambda-http/Cargo.toml
+lambda-http/examples/basic.rs
+lambda-http/src/body.rs
+lambda-http/src/ext.rs
+lambda-http/src/lib.rs
+lambda-http/src/request.rs
+lambda-http/src/response.rs
+lambda-http/src/strmap.rs
+lambda-http/tests/data/proxy_request.json
+lambda-runtime/src/lib.rs
+
+commit 109a54770f25830fdd663a2d4cd46504bd72b1d0
+Author: David Barsky <me@davidbarsky.com>
+Date:   Sat Dec 1 21:22:03 2018 -0500
+
+    Have TravisCI cache cargo between builds. (#16)
+    
+    * Have TravisCI cache part of cargo between builds.
+
+.travis.yml
+
+commit 8a27cec566a5c74d390bfcd51c44e5d765489f80
+Author: Ricardo Ambrogi <ricardo.ambrogi@gmail.com>
+Date:   Sat Dec 1 18:03:25 2018 +0100
+
+    Update README.md (#21)
+    
+    bash script creates a `lambda.zip` not a `rust.zip`
+
+README.md
+
+commit 21ecb9a3adc2b649bcaf651e68e54e5d11d5f8d3
+Author: António Nuno Monteiro <anmonteiro@gmail.com>
+Date:   Sat Dec 1 17:02:14 2018 +0000
+
+    FunctionArn -> TraceID to get xray_trace_id (#22)
+
+lambda-runtime-client/src/client.rs
+
+commit ad28790312219fb63f26170ae0d8be697fc1f7f2
+Author: Sam Rijs <srijs@airpost.net>
+Date:   Sat Dec 1 11:32:42 2018 +1100
+
+    Support closures as handlers (#19)
+
+lambda-runtime/src/runtime.rs
+
+commit 26edea34314f614af718d516d895baf2072c5540
+Author: David Barsky <me@davidbarsky.com>
+Date:   Thu Nov 29 21:32:42 2018 -0500
+
+    Introduce TravisCI. (#15)
+    
+    * Introduce TravisCI, build for x86_64-unknown-linux-{musl, gnu}.
+
+.travis.yml
+README.md
+lambda-runtime/tests/skeptic.rs
+
+commit a03b4ae70c35218ff7f9b01928f78e6277423919
+Author: bdonlan <bdonlan@gmail.com>
+Date:   Thu Nov 29 10:50:35 2018 -0800
+
+    Fix typo in README.md (#11)
+
+README.md
+
+commit cc969373ee431198f71c6237386bc354cff88d49
+Author: David Barsky <me@davidbarsky.com>
+Date:   Thu Nov 29 13:15:09 2018 -0500
+
+    Removed skeptic because of failures during cargo package. (#10)
+
+Cargo.lock
+lambda-runtime/Cargo.toml
+lambda-runtime/build.rs
+
+commit 55557e2e01be9f2115669e9ddc75e211b7f91093
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Nov 29 09:52:02 2018 -0800
+
+    Removed SDK keyword (#9)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+    
+    * New error reporting method with correct content type and error type header.
+    
+    * Two fixes to honor max retries in the get_next_event method and call the error_reponse rather than init_fail when an error is thrown after the call to /next
+    
+    * Added homepage, docs, and repo to Cargo files
+    
+    * Added version of runtime client dependency
+    
+    * Passed environment config as reference and added fail on warnings
+    
+    * Removed SDK keyword
+
+lambda-runtime-client/Cargo.toml
+
+commit 4f15b636aab23288a993ed14eec4a9bf60684b72
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Nov 29 09:22:13 2018 -0800
+
+    Clippy warnings (#8)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+    
+    * New error reporting method with correct content type and error type header.
+    
+    * Two fixes to honor max retries in the get_next_event method and call the error_reponse rather than init_fail when an error is thrown after the call to /next
+    
+    * Added homepage, docs, and repo to Cargo files
+    
+    * Added version of runtime client dependency
+    
+    * Passed environment config as reference and added fail on warnings
+
+lambda-runtime-client/src/lib.rs
+lambda-runtime/src/lib.rs
+lambda-runtime/src/runtime.rs
+
+commit 9cd19e36d9446aa6a60d8c276e669edbc104b7c0
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Nov 29 08:56:01 2018 -0800
+
+    Added version to runtime_client dependency (#7)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+    
+    * New error reporting method with correct content type and error type header.
+    
+    * Two fixes to honor max retries in the get_next_event method and call the error_reponse rather than init_fail when an error is thrown after the call to /next
+    
+    * Added homepage, docs, and repo to Cargo files
+    
+    * Added version of runtime client dependency
+
+lambda-runtime/Cargo.toml
+
+commit cf1e3efb6dcd97d2575aa8af1ec71e489413f48d
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Thu Nov 29 08:52:33 2018 -0800
+
+    Added homepage, docs, and repo to Cargo files (#6)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+    
+    * New error reporting method with correct content type and error type header.
+    
+    * Two fixes to honor max retries in the get_next_event method and call the error_reponse rather than init_fail when an error is thrown after the call to /next
+    
+    * Added homepage, docs, and repo to Cargo files
+
+lambda-runtime-client/Cargo.toml
+lambda-runtime/Cargo.toml
+
+commit b787b703b00cb126000e8db3c238b0ab16d88aef
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Tue Nov 27 09:19:37 2018 -0800
+
+    Error reporting and retry fixes (#5)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+    
+    * New error reporting method with correct content type and error type header.
+    
+    * Two fixes to honor max retries in the get_next_event method and call the error_reponse rather than init_fail when an error is thrown after the call to /next
+
+lambda-runtime-client/src/client.rs
+lambda-runtime/src/error.rs
+lambda-runtime/src/runtime.rs
+
+commit 8c583c16427afe2ec2e8d8d4a6c6895ce632d562
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Sun Nov 25 12:36:52 2018 -0800
+
+    Switch to Chrono for deadline timestamp, doc fix (#4)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+    
+    * Removed libc dependency and switched to chrono for deadline calculation
+    
+    * Fixed docs example not to import HttpRuntimeClient
+
+Cargo.lock
+lambda-runtime-client/src/lib.rs
+lambda-runtime/Cargo.toml
+lambda-runtime/src/context.rs
+lambda-runtime/src/lib.rs
+
+commit 6b05202eaf4a7ea062074311f22e8d44e80986d2
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Sun Nov 25 11:51:19 2018 -0800
+
+    Updated header values for provided runtime (#2)
+    
+    * Updated header values for provided runtime and switched to ms time remaining
+    
+    * Fixed issue with deadline not being set in context and switched to realtime clock to get correct epoch
+
+lambda-runtime-client/src/client.rs
+lambda-runtime/src/context.rs
+lambda-runtime/src/runtime.rs
+
+commit c3dfd7b8608c5e41ad96074e0a82e33ce0d5cdcd
+Merge: 54fd3e7 80e9c1a
+Author: Stefano Buliani <2996317+sapessi@users.noreply.github.com>
+Date:   Sun Nov 25 11:44:04 2018 -0800
+
+    Merge pull request #3 from awslabs/lifetime-cleanup
+    
+    Remove RuntimeClient trait, simplify lifetimes in Runtime.
+
+commit 80e9c1a63153ebe341c870da650e0df52d6abebf
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Sun Nov 25 14:21:54 2018 -0500
+
+    Corrected documentation on runtime client.
+
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/lib.rs
+
+commit 628006cbe459811fb67b58030506efd37b07a2ec
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Sun Nov 25 10:59:43 2018 -0500
+
+    cleaned up lifetimes.
+
+.rustfmt.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/src/env.rs
+lambda-runtime/src/runtime.rs
+lambda-runtime/tests/skeptic.rs
+
+commit ae92c6b2f717f65e00f9d7b8f3eb953d79c68612
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Sat Nov 24 00:33:25 2018 -0500
+
+    Removed RuntimeClient trait.
+
+lambda-runtime-client/src/client.rs
+lambda-runtime/src/env.rs
+lambda-runtime/src/runtime.rs
+
+commit 54fd3e7ba28f0c7b840ff1be172d7305ac433622
+Merge: ee15e6a a1551d5
+Author: David Barsky <me@davidbarsky.com>
+Date:   Fri Nov 23 14:10:26 2018 -0500
+
+    Merge pull request #1 from awslabs/introduce-skeptic
+
+commit a1551d5e8177e2bb0ac6351e9614aaeb37b49e7b
+Author: David Barsky <dbarsky@amazon.com>
+Date:   Thu Nov 22 14:40:00 2018 -0500
+
+    Introduce Skeptic for testing the README.md
+    
+    This change introduces:
+    
+    - Skeptic (https://github.com/budziq/rust-skeptic) for testing the README.md
+    - Remove #[macro_use], allowing for macros to be imported without any special syntax.
+    - Introduce a minimum Rust version of 1.30 for examples.
+    
+    Signed-off-by: David Barsky <dbarsky@amazon.com>
+
+.gitignore
+Cargo.lock
+Cargo.toml
+README.md
+lambda-runtime/Cargo.toml
+lambda-runtime/build.rs
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/tests/skeptic.rs
+
+commit ee15e6a78bcbc7f1092ad5ae038cfe4607d413db
+Author: sapessi <stefano.buliani@gmail.com>
+Date:   Thu Nov 15 16:12:59 2018 -0800
+
+    Added .gitignore and .rustfmt
+
+.gitignore
+.rustfmt.toml
+
+commit 43a0cb6815ef66a290fd977b7941fac7ac8d6ccf
+Author: sapessi <stefano.buliani@gmail.com>
+Date:   Thu Nov 15 15:52:39 2018 -0800
+
+    First import
+
+Cargo.lock
+Cargo.toml
+README.md
+lambda-runtime-client/Cargo.toml
+lambda-runtime-client/src/client.rs
+lambda-runtime-client/src/error.rs
+lambda-runtime-client/src/lib.rs
+lambda-runtime/Cargo.toml
+lambda-runtime/examples/basic.rs
+lambda-runtime/examples/with_custom_runtime.rs
+lambda-runtime/src/context.rs
+lambda-runtime/src/env.rs
+lambda-runtime/src/error.rs
+lambda-runtime/src/lib.rs
+lambda-runtime/src/runtime.rs
+
+commit c99f660472b4dc34697745124224ad85a1664662
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:59 2018 -0800
+
+    Creating initial file from template
+
+CONTRIBUTING.md
+
+commit 8ddda6544fd8d86334b2a14d1d92ce74bda229e0
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:58 2018 -0800
+
+    Creating initial file from template
+
+CODE_OF_CONDUCT.md
+
+commit c64253baa58ad6db168b1a6889ed75e76e947d4d
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:57 2018 -0800
+
+    Updating initial README.md from template
+
+README.md
+
+commit 7c449270eacd4555b9b566a7378186fc1021f3ba
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:56 2018 -0800
+
+    Creating initial file from template
+
+NOTICE
+
+commit be6c762cfc2c79fdedc60eb099f8a92db5860d18
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:55 2018 -0800
+
+    Creating initial file from template
+
+LICENSE
+
+commit ae99b96149473621da718e8d7e467e3fc5354adc
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:55 2018 -0800
+
+    Creating initial file from template
+
+.github/PULL_REQUEST_TEMPLATE.md
+
+commit 8b538244f5c05299dc840749c42317d300d5a981
+Author: James Siri <jamesiri@amazon.com>
+Date:   Thu Nov 8 10:36:54 2018 -0800
+
+    Initial commit
+
+README.md

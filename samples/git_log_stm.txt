@@ -1,0 +1,766 @@
+commit 5bf0affe59c0735f70b1140ee42491e9ce028ff3
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jan 13 03:51:24 2021 +0000
+
+    Fixed incorrect Tech merge
+
+stackmuncher/src/report.rs
+stackmuncher/src/tech.rs
+
+commit 4f099890a4a7ed60432b3167f4731360c497cb6f
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jan 13 03:24:16 2021 +0000
+
+    Caching contributor data, very broken.
+
+stackmuncher/src/code_rules.rs
+stackmuncher/src/contributor.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stackmuncher/src/utils.rs
+stmapp/src/main.rs
+
+commit 1f718f7644c130ddd35d8d50c3c5cbc8f437da1b
+Author: rimutaka <max@onebro.me>
+Date:   Sun Jan 10 08:56:20 2021 +0000
+
+    Added commit info to per-file tech, dirty.
+
+stackmuncher/src/code_rules.rs
+stackmuncher/src/config.rs
+stackmuncher/src/contributor.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/processors/mod.rs
+stackmuncher/src/report.rs
+stackmuncher/src/tech.rs
+stmapp/src/main.rs
+
+commit 6a07cd8199e64ec1301c44c4ae24bc2c756ab0fd
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jan 7 08:57:45 2021 +0000
+
+    Process contributor files from the time of the commit
+
+stackmuncher/src/contributor.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit ba559b23b2932767d3509ae6e8c3e6e3e5dd94cd
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jan 5 05:41:38 2021 +0000
+
+    Fixed contributor file list for processing
+
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 5f15497a7ebaf3e7d660a74b82cde85e7d01672e
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jan 5 04:03:53 2021 +0000
+
+    Save contributor reports. Very buggy.
+
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/utils.rs
+stmapp/src/main.rs
+
+commit c1164ebc6c15c34d886e861809e51b871968aba5
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jan 5 01:32:23 2021 +0000
+
+    Save reports in .git folder, use commit hash to get tree
+
+stackmuncher/src/config.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 26bdf08b30f8cc1173729d8559933bea5c024c25
+Author: rimutaka <max@onebro.me>
+Date:   Mon Jan 4 21:18:45 2021 +0000
+
+    Use SHA1 for project name hashing
+
+stackmuncher/Cargo.toml
+stackmuncher/src/git.rs
+stackmuncher/src/report.rs
+
+commit f94b3c429814c4f88bcb6173bbc428a955734d55
+Author: rimutaka <max@onebro.me>
+Date:   Mon Jan 4 03:14:38 2021 +0000
+
+    Tracking individual contributions
+
+stackmuncher/src/contributor.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 5d510496979ea29d2ada8f16f1f22ba47f45a630
+Author: rimutaka <max@onebro.me>
+Date:   Sun Jan 3 08:33:54 2021 +0000
+
+    Hash remote URLs
+
+stackmuncher/src/config.rs
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit f527864cc944d52887d7cc26e79781ac1b01abc2
+Author: rimutaka <max@onebro.me>
+Date:   Sat Jan 2 22:33:34 2021 +0000
+
+    Switched from analyzing local files to GIT blobs
+
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/processors/mod.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 5cca4ed6e9914a91c9c847419cc5934045cbf565
+Author: rimutaka <max@onebro.me>
+Date:   Wed Dec 30 01:23:17 2020 +0000
+
+    Moved GIT functions into separate mod
+
+stackmuncher/src/git.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit fe2de737afb8abc62cfa6ad7392ebe618ea853ba
+Author: rimutaka <max@onebro.me>
+Date:   Tue Dec 29 23:56:23 2020 +0000
+
+    Correctly merge Tech records using file-techs
+
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stackmuncher/src/tech.rs
+stmapp/src/main.rs
+
+commit c00b6373dc5381722859191b08dcca19c2665fc7
+Author: rimutaka <max@onebro.me>
+Date:   Tue Dec 29 02:37:20 2020 +0000
+
+    Bug fix: missed get_all_tree_files
+
+stmapp/src/main.rs
+
+commit ce58bc85faaf7d031ddd5aabe1b7d657081922d4
+Author: rimutaka <max@onebro.me>
+Date:   Tue Dec 29 02:22:22 2020 +0000
+
+    Re-use old local reports, process changed files only
+
+stackmuncher/src/config.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/processors/mod.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 002c3a265974680d800e4ab9ca61f21423cdfe3e
+Author: rimutaka <max@onebro.me>
+Date:   Sat Dec 26 06:19:05 2020 +0000
+
+    Saving per-file tech in local report
+
+stackmuncher/src/lib.rs
+stackmuncher/src/processors/mod.rs
+stackmuncher/src/report.rs
+stackmuncher/src/tech.rs
+
+commit b200d4169fc274c67e7fb84aca9ab57bfdb705f5
+Author: rimutaka <max@onebro.me>
+Date:   Sat Dec 26 04:28:34 2020 +0000
+
+    Use list of files from git tree for full proj processing
+
+stackmuncher/Cargo.toml
+stackmuncher/src/lib.rs
+stackmuncher/src/report.rs
+stmapp/src/main.rs
+
+commit 7108573ed0298467fb31795e67b75f0f73274a5c
+Author: rimutaka <max@onebro.me>
+Date:   Sat Dec 26 02:00:08 2020 +0000
+
+    Renamed stmlib -> stackmuncher
+
+Cargo.toml
+stackmuncher/Cargo.toml
+stackmuncher/src/code_rules.rs
+stackmuncher/src/config.rs
+stackmuncher/src/file_type.rs
+stackmuncher/src/kwc.rs
+stackmuncher/src/lib.rs
+stackmuncher/src/muncher.rs
+stackmuncher/src/processors/mod.rs
+stackmuncher/src/report.rs
+stackmuncher/src/tech.rs
+stmapp/Cargo.toml
+stmapp/src/main.rs
+
+commit b34f9fa48c06dacb5c6c5f1bb2081f510f8e419e
+Author: rimutaka <max@onebro.me>
+Date:   Fri Dec 25 07:37:31 2020 +0000
+
+    Split the solution into an app and a lib
+
+Cargo.toml
+src/main.rs
+stmapp/Cargo.toml
+stmapp/src/main.rs
+stmlib/Cargo.toml
+stmlib/src/code_rules.rs
+stmlib/src/config.rs
+stmlib/src/file_type.rs
+stmlib/src/kwc.rs
+stmlib/src/lib.rs
+stmlib/src/muncher.rs
+stmlib/src/processors/mod.rs
+stmlib/src/report.rs
+stmlib/src/tech.rs
+
+commit ba6807045390d904411e124a7b9ea1f1b54d4fc0
+Author: rimutaka <max@onebro.me>
+Date:   Wed Dec 23 05:58:00 2020 +0000
+
+    Added deployment and install shell scripts
+
+shell/app_to_s3.sh
+shell/stm_up.sh
+
+commit b757560137510faff5f40d0b40279256f3198848
+Author: rimutaka <max@onebro.me>
+Date:   Wed Dec 16 22:57:36 2020 +0000
+
+    Output correct pkg version for Cargo.toml files
+
+assets/munchers/rust.cargo.toml.json
+assets/munchers/rust.rs.json
+src/kwc.rs
+src/tech.rs
+
+commit fa23e65d44177b3ddf4165013f057f75fddaf45a
+Author: rimutaka <max@onebro.me>
+Date:   Wed Dec 16 00:01:32 2020 +0000
+
+    Rust muncher defs, in_path muncher selection.
+
+assets/file-types/rs.json
+assets/file-types/toml.json
+assets/munchers/rust.cargo.toml.json
+assets/munchers/rust.rs.json
+assets/schemas/file-type.json
+src/code_rules.rs
+src/file_type.rs
+
+commit 3592dddf62c36e3ca6aa0ae4b6c926f1eb5225b8
+Author: rimutaka <max@onebro.me>
+Date:   Thu Oct 1 01:16:30 2020 +0000
+
+    Fixed / from path in file extension names
+
+src/report.rs
+
+commit 7a1b8b88ca626804c9e299444403cd68d2885d31
+Author: rimutaka <max@onebro.me>
+Date:   Thu Oct 1 01:15:38 2020 +0000
+
+    Added JS, TS, SQL, CSS, SCSS munchers
+
+assets/file-types/css.json
+assets/file-types/js.json
+assets/file-types/scss.json
+assets/file-types/sql.json
+assets/file-types/ts.json
+assets/munchers/css.json
+assets/munchers/js.json
+assets/munchers/scss.json
+assets/munchers/sql.json
+assets/munchers/ts.json
+
+commit 4446565d0197028c433e763c77827a00ba310e00
+Author: rimutaka <max@onebro.me>
+Date:   Wed Sep 30 20:29:09 2020 +0000
+
+    Impl Report::from_s3_bytes, removed . from file ext
+
+.gitignore
+src/report.rs
+
+commit 800e9ca4985216ef7d6c26a50b2089d7545ca709
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 29 09:36:00 2020 +0000
+
+    Copy unchanged report.tech sections from old to new report
+
+src/lib.rs
+src/main.rs
+src/muncher.rs
+src/processors/mod.rs
+src/report.rs
+src/tech.rs
+
+commit 6182cd13e382737fddc4141de4d47588a18c3e27
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 29 02:35:27 2020 +0000
+
+    Fixed report merging per language + tests
+
+.gitignore
+src/report.rs
+test-files/report1.json
+test-files/report2.json
+
+commit b9cba7b4cfd84e281a7a5942e3212f57beff6a3d
+Author: rimutaka <max@onebro.me>
+Date:   Sat Sep 26 01:04:49 2020 +0000
+
+    Improved adding new munchers to rules set.
+
+Cargo.lock
+src/code_rules.rs
+src/muncher.rs
+
+commit 5e43e33cd56ab43c9d817b5acbf799e21164119e
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 02:41:39 2020 +0000
+
+    Replaced panic!() with expect() in main.
+
+src/main.rs
+
+commit 49ea5288d6d69fb4ddb4cd2382b43209ddb0a721
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 02:40:58 2020 +0000
+
+    Removed panic!() from new_keyword, new_ref <- watchout!
+
+src/kwc.rs
+
+commit b837f987f2e44f4879df97e94a6b6dd914ef3815
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 02:27:02 2020 +0000
+
+    Replace EXIT with PANIC
+
+src/code_rules.rs
+src/file_type.rs
+
+commit 84cb7e9a14446023d22e5d6eda86b425523d348d
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 02:25:06 2020 +0000
+
+    Simplify CLI arguments.
+
+src/lib.rs
+src/main.rs
+
+commit 178537c11e43585b236f215146d84ff83fc9e41e
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 00:23:15 2020 +0000
+
+    Fixed inline comments in .cs
+
+assets/munchers/csharp.cs.json
+
+commit d42509fcb6eeb91effcd9629e6ca3e6d4426dd0e
+Author: rimutaka <max@onebro.me>
+Date:   Thu Sep 24 00:05:58 2020 +0000
+
+    Added `pkgs`, `pkgs_kw` to Tech reports.
+
+src/muncher.rs
+src/processors/mod.rs
+src/report.rs
+src/tech.rs
+
+commit 9941bdd692b00225ad028f5f3dab584ded4bbd47
+Author: rimutaka <max@onebro.me>
+Date:   Wed Sep 23 23:59:03 2020 +0000
+
+    Fixed `using` regex for .cs
+
+assets/munchers/csharp.cs.json
+
+commit e4c41d57e932ff0ca451a0bb9ca8918d5e4586ae
+Author: rimutaka <max@onebro.me>
+Date:   Wed Sep 23 04:57:29 2020 +0000
+
+    Added file_types and munchers to Rust.
+
+assets/config.json
+src/code_rules.rs
+src/file_type.rs
+src/lib.rs
+src/main.rs
+src/muncher.rs
+src/processors/mod.rs
+src/tech.rs
+
+commit ad1377b6eb42a141d390d5600a3b75c79e218d53
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 22 02:36:30 2020 +0000
+
+    Added new file and muncher definitions.
+
+assets/file-types/cs.json
+assets/file-types/csproj.json
+assets/file-types/md.json
+assets/file-types/ps1.json
+assets/munchers/csharp.cs.json
+assets/munchers/csharp.csproj.json
+assets/munchers/markdown.json
+assets/munchers/powershell.json
+
+commit 8677f1669419038ac331b265cbe60fddc625fc10
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 22 02:29:32 2020 +0000
+
+    Added schema props to muncher
+
+assets/schemas/file-type.json
+assets/schemas/muncher.json
+
+commit 46cbf1e9aac928bf0acf0ed63520e03fb216a477
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 22 01:47:21 2020 +0000
+
+    No additional props for Muncher schema.
+
+assets/schemas/muncher.json
+
+commit 70f84039c7d56eb1cb7cc8c27751cdc7c03838b0
+Author: rimutaka <max@onebro.me>
+Date:   Tue Sep 22 01:31:49 2020 +0000
+
+    Added JSON schema for file types and munchers.
+
+assets/schemas/file-type.json
+assets/schemas/muncher.json
+
+commit a3ce89c4a6e840f041453c05d2e45baf590caccc
+Author: rimutaka <max@onebro.me>
+Date:   Sun Aug 30 06:07:20 2020 +0000
+
+    Fixed DateHead and DateInit.
+
+src/report.rs
+
+commit 8b9e536ed2511cf1af0ec7c6509a20695adc702a
+Author: rimutaka <max@onebro.me>
+Date:   Wed Aug 26 03:21:05 2020 +0000
+
+    Bug fixes, moved unused fn's out, + commit check
+
+.gitignore
+Cargo.toml
+src/lib.rs
+src/main.rs
+src/report.rs
+src/tech.rs
+
+commit f2a25a65e4bdcc415f79040ca3587ef377057d7e
+Author: rimutaka <max@onebro.me>
+Date:   Mon Aug 24 21:23:43 2020 +0000
+
+    Removed Regex from add_unprocessed_file
+
+src/report.rs
+
+commit ba79a1b42df066fcafbb508cc16327afb9015640
+Author: rimutaka <max@onebro.me>
+Date:   Mon Aug 24 10:18:49 2020 +0000
+
+    Process ANSI files.
+
+src/processors/mod.rs
+
+commit e4293e52f2ad7f8cb81f3da401d0dcab87471480
+Author: rimutaka <max@onebro.me>
+Date:   Sun Aug 23 09:57:15 2020 +0000
+
+    Fixed kw/refs mixup.
+
+src/processors/mod.rs
+src/tech.rs
+
+commit 6f583fa40166470bf3d7a3a37713efd4f0f90265
+Author: rimutaka <max@onebro.me>
+Date:   Sun Aug 23 09:17:25 2020 +0000
+
+    Added compiling ref_kw during report merge.
+
+src/kwc.rs
+src/lib.rs
+src/processors/mod.rs
+src/report.rs
+src/tech.rs
+
+commit 7af87d10192926ca0deac68e41eb07d0f26436ce
+Author: rimutaka <max@onebro.me>
+Date:   Fri Aug 14 10:26:08 2020 +0000
+
+    Added Debug trait for async logging.
+
+src/code_rules.rs
+src/lib.rs
+
+commit 7bdbcc0ff719965293567e03392e8f31ebe8e63a
+Author: rimutaka <max@onebro.me>
+Date:   Fri Aug 14 04:09:53 2020 +0000
+
+    Added lang/tech to rules, upd merge.
+
+assets/config.json
+src/code_rules.rs
+src/processors/mod.rs
+src/report.rs
+
+commit fc730708ef6c84755cc9355f343e975e8ce52c5f
+Author: rimutaka <max@onebro.me>
+Date:   Fri Aug 14 00:04:29 2020 +0000
+
+    Added report file name parsing.
+
+Cargo.toml
+src/processors/mod.rs
+src/report.rs
+
+commit a13bba98fc5bee2289cbbbd2b9085e9c80d5df86
+Author: rimutaka <max@onebro.me>
+Date:   Wed Aug 12 10:44:17 2020 +0000
+
+    Safe unwrapping of file names.
+
+src/lib.rs
+
+commit fba57715a95b192a9dc55c3e07c1e88533b29042
+Author: rimutaka <max@onebro.me>
+Date:   Wed Aug 12 09:53:57 2020 +0000
+
+    Split refs into k,t,c in reports.
+
+src/processors/mod.rs
+src/report.rs
+
+commit 080e1b87d47b3dc1e8255870827ea75a4bf7e9ad
+Author: rimutaka <max@onebro.me>
+Date:   Tue Aug 11 02:30:51 2020 +0000
+
+    Added report merging
+
+src/report.rs
+
+commit 34a32a8f400c34c6cbc82b484a6343b10da75451
+Author: rimutaka <max@onebro.me>
+Date:   Mon Aug 10 01:09:58 2020 +0000
+
+    Added Clone to Report.
+
+src/report.rs
+
+commit b681a59b9c71cb39609f85a96ccdc5979dfabdf1
+Author: rimutaka <max@onebro.me>
+Date:   Mon Aug 10 00:28:08 2020 +0000
+
+    Changed report format to HashSets.
+
+Cargo.lock
+Cargo.toml
+src/lib.rs
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit f0ff4a0a48b2e9a87e87bad2e0c14e549420ba59
+Author: rimutaka <max@onebro.me>
+Date:   Sat Aug 8 09:14:31 2020 +0000
+
+    Changed to lib + app in one crate.
+
+Cargo.lock
+Cargo.toml
+src/code_rules.rs
+src/lib.rs
+src/main.rs
+src/processors/mod.rs
+
+commit 515c5a50103c5e9d7b09ad94d879c53f78c8db52
+Author: rimutaka <max@onebro.me>
+Date:   Sat Aug 8 00:33:48 2020 +0000
+
+    Split into app and lib.
+
+assets/config.json
+src/config.rs
+src/lib.rs
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 0e5fa26acb254fd7d686a7ca6f208e34a8c28f28
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 09:14:53 2020 +0000
+
+    Deleted py-rubbish.
+
+src/processors/garbage.py
+src/processors/more-garbage.py
+src/processors/rubbish.py
+
+commit 42d1869d9f3fb95afb67946c76a18850724ffca7
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 09:11:54 2020 +0000
+
+    py-test
+
+src/processors/garbage.py
+src/processors/more-garbage.py
+src/processors/rubbish.py
+
+commit 80c73c4dfc00f18fd8d574a8b90d41e8bc6c9cae
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 09:08:04 2020 +0000
+
+    Reading multiple UTF encodings.
+
+Cargo.lock
+Cargo.toml
+src/processors/mod.rs
+
+commit 58bf58c1ab63eb3acbff78a8a8b46430b86d83cb
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 08:29:07 2020 +0000
+
+    Added block comments.
+
+.gitignore
+assets/config.json
+src/config.rs
+src/processors/mod.rs
+
+commit 441b886e93fc8950bdff730bd0acc0660dd2ca85
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 02:54:40 2020 +0000
+
+    Fixed file counting, clearer refs.
+
+assets/config.json
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 8c05739bd32a87b5d449570dd85558441b4558f9
+Author: rimutaka <max@onebro.me>
+Date:   Fri Jul 31 00:42:48 2020 +0000
+
+    Simplified report file saving.
+
+src/main.rs
+src/report.rs
+
+commit 69a6aa54515fa9748deebbcfe4d8586ac786e8a0
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 30 11:46:07 2020 +0000
+
+    Saving the report locally.
+
+src/main.rs
+src/report.rs
+
+commit 7ae0df888866a28a4003d17b8fea37f7aa520ed2
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 30 05:13:42 2020 +0000
+
+    Basic command line args and env vars.
+
+src/main.rs
+
+commit ba42c5394887ed288cc4662cbbe93eedcfa87b3c
+Author: rimutaka <max@onebro.me>
+Date:   Thu Jul 30 01:55:57 2020 +0000
+
+    Handling multiple files with optional rules.
+
+assets/config.json
+src/config.rs
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 0913fe586cf2ecb8440d9439887aba9eda624c04
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jul 29 05:10:35 2020 +0000
+
+    Added logging, compiled regex.
+
+Cargo.lock
+Cargo.toml
+assets/config.json
+src/config.rs
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 1b4674137ecf18bb38282d8ab810d486a5271080
+Author: rimutaka <max@onebro.me>
+Date:   Wed Jul 29 00:28:25 2020 +0000
+
+    Output Report as JSON string
+
+Cargo.lock
+Cargo.toml
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 798eced707c4a01a41d0c928926d706e8a762118
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jul 28 10:36:59 2020 +0000
+
+    Basic tech report with line counts
+
+Cargo.lock
+Cargo.toml
+assets/config.json
+src/config.rs
+src/main.rs
+src/processors/mod.rs
+src/report.rs
+
+commit 0fae1230595c5a0e315de2da9a1495d189788f35
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jul 28 03:00:59 2020 +0000
+
+    Added license
+
+LICENSE
+
+commit 7474684abd480d9144c28e6902d4ecfb671ba3f9
+Author: rimutaka <max@onebro.me>
+Date:   Tue Jul 28 02:52:50 2020 +0000
+
+    Pretend to proc .cs files, output the rest.
+
+.gitignore
+Cargo.lock
+Cargo.toml
+assets/config.json
+rustfmt.toml
+src/main.rs
+src/structures.rs
