@@ -15,6 +15,7 @@ pub mod kwc;
 pub mod muncher;
 pub mod processors;
 pub mod report;
+pub mod report_brief;
 pub mod tech;
 pub mod utils;
 
