@@ -88,6 +88,9 @@ pub struct Report {
     /// The current list of files in the GIT tree
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tree_files: Option<HashSet<String>>,
+    /// The last N commits for matching projects that changed name, remote URL or any other identifying property
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recent_project_commits: Option<Vec<String>>,
 }
 
 /// A plug for Serde default
@@ -350,6 +353,8 @@ impl Report {
             }
         };
 
+        report.recent_project_commits = None;
+
         report
     }
 
@@ -378,6 +383,7 @@ impl Report {
             is_single_commit: false,
             log_hash: None,
             last_commit_author: None,
+            recent_project_commits: None,
         }
     }
 
@@ -499,6 +505,17 @@ impl Report {
         report.log_hash = Some(utils::hash_vec_sha1(
             git_log.iter().map(|entry| entry.sha1.clone()).collect::<Vec<String>>(),
         ));
+
+        // compile a list of the last N commits to match projects with different remote URL hashes
+        // the SHA1 is truncated to 8 chars to save space, but it increases the chance of collision
+        // https://github.com/source-foundry/font-v/issues/2
+        report.recent_project_commits = Some(
+            git_log
+                .iter()
+                .take(git_log.len().min(100))
+                .map(|entry| entry.sha1[..8].to_string())
+                .collect::<Vec<String>>(),
+        );
 
         // this part consumes git_log because there is a lot of data in it
         // so should appear at the end

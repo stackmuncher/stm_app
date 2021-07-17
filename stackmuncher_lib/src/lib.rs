@@ -133,10 +133,7 @@ impl Report {
         blobs_to_process: &ListOfBlobs,
         all_tree_files: Option<&HashSet<String>>,
     ) -> Result<report::Report, ()> {
-        info!(
-            "Processing individual project files from {}",
-            project_dir.to_string_lossy()
-        );
+        info!("Processing individual project files from {}", project_dir.to_string_lossy());
 
         // result collectors
         let mut report = self;
@@ -326,10 +323,7 @@ impl Report {
                 blobs_by_commit.insert(blob_commit_sha1, commit_blobs);
             }
         }
-        debug!(
-            "Found {} contributor commits for looking up blob SHA1s",
-            blobs_by_commit.len()
-        );
+        debug!("Found {} contributor commits for looking up blob SHA1s", blobs_by_commit.len());
 
         // loop through the commits and update blob SHA1s for commit-associated files
         let mut blobs_to_munch = ListOfBlobs::new();
@@ -361,6 +355,10 @@ impl Report {
         report.is_single_commit = project_report.is_single_commit;
         report.last_commit_author = project_report.last_commit_author.clone();
         report.git_ids_included.insert(contributor.git_id.clone());
+        report.recent_project_commits = project_report.recent_project_commits.clone();
+        report.date_init = project_report.date_init.clone();
+        report.date_head = project_report.date_head.clone();
+        report.projects_included.insert(project_report.get_overview());
 
         Ok(report)
     }

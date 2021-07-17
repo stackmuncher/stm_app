@@ -36,8 +36,10 @@ impl PartialEq for TechOverview {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct ProjectReportOverview {
     /// E.g. `save-golds`
+    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub project_name: String,
     /// E.g. `644/save-golds.report`
+    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_s3_key: String,
     /// The date of the first commit, e.g. 2020-08-26T14:15:46+01:00
     #[serde(skip_serializing_if = "Option::is_none")]
