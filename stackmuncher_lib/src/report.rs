@@ -16,19 +16,9 @@ use tracing::{debug, error, info, warn};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename = "tech")]
 pub struct Report {
-    /// Combined summary per technology, e.g. Rust, C# or CSS
-    /// This member can be shared publicly after some clean up
-    pub tech: HashSet<Tech>,
-    /// Per-file technology summary, e.g. Rust/main.rs.
-    /// This member should not be shared publicly, unless it's a public project
-    /// because file names are sensitive info that can be exploited.
-    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
-    pub per_file_tech: HashSet<Tech>,
+    /// The exact timestamp of the report generation in ISO3389 format.
+    /// E.g. 2018-12-09T22:29:40+01:00
     pub timestamp: String,
-    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
-    pub unprocessed_file_names: HashSet<String>,
-    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
-    pub unknown_file_types: HashSet<KeywordCounter>,
     /// GitHub user name, if known
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub github_user_name: String,
@@ -36,11 +26,6 @@ pub struct Report {
     /// E.g. `https://github.com/awslabs/aws-lambda-rust-runtime.git` would be `aws-lambda-rust-runtime`.
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub github_repo_name: String,
-    /// A list of hashed remote URLs from the repo. They are used in place of the private project name
-    /// and can be used to match a local project to publicly available projects. If that happens the project name
-    /// is populated automatically by STM on the server side
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub remote_url_hashes: Option<HashSet<String>>,
     /// A UUID of the report
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_id: String,
@@ -59,12 +44,40 @@ pub struct Report {
     /// Git identity of the author of the last (HEAD) commit. Should only be present in the project report.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_commit_author: Option<String>,
+    /// SHA1 of the last commit made by the contributor. Used in contributor reports only and is blank in project reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_contributor_commit_sha1: Option<String>,
+    /// An ISO formatted date of the last commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
+    /// E.g. 2018-12-09T22:29:40+01:00
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_contributor_commit_date_iso: Option<String>,
     /// The date of the first commit
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
     /// The date of the current HEAD
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
+    /// List of names or emails of contributors (authors and committers) from `contributors` section.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contributor_git_ids: Option<HashSet<String>>,
+    /// Combined summary per technology, e.g. Rust, C# or CSS
+    /// This member can be shared publicly after some clean up
+    pub tech: HashSet<Tech>,
+    /// Per-file technology summary, e.g. Rust/main.rs.
+    /// This member should not be shared publicly, unless it's a public project
+    /// because file names are sensitive info that can be exploited.
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
+    pub per_file_tech: HashSet<Tech>,
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
+    pub unprocessed_file_names: HashSet<String>,
+    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
+    pub unknown_file_types: HashSet<KeywordCounter>,
+    /// A list of hashed remote URLs from the repo. They are used in place of the private project name
+    /// and can be used to match a local project to publicly available projects. If that happens the project name
+    /// is populated automatically by STM on the server side
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_url_hashes: Option<HashSet<String>>,
     /// S3 keys of the reports from `report_s3_name` merged into a combined user or org report
     /// This attribute was depricated in favour of projects_included, but has to be in use until
     /// https://github.com/stackmuncher/stm-html/issues/8 is resolved.
@@ -82,9 +95,6 @@ pub struct Report {
     /// List of names and emails of all committers for this repo. Only applies to per-project reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributors: Option<Vec<Contributor>>,
-    /// List of names or emails of contributors (authors and committers) from `contributors` section.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub contributor_git_ids: Option<HashSet<String>>,
     /// The current list of files in the GIT tree
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tree_files: Option<HashSet<String>>,
@@ -278,7 +288,7 @@ impl Report {
     /// Combines per_file_tech records choosing the most recent record by comparing the commit dates if there is a conflict.
     /// It does not affect `tech` records. They need to be updated using a separate function.
     /// Adds the name of the other report to `reports_included`.
-    pub fn merge_contributor_reports(&mut self, other_report: Self, contributor_git_id: String) {
+    pub fn merge_same_project_contributor_reports(&mut self, other_report: Self, contributor_git_id: String) {
         debug!("Merging contributor report for {}", contributor_git_id);
         'outer: for tech in other_report.per_file_tech {
             // check if tech should be added to the report at all or is it older than what we already have
@@ -297,7 +307,21 @@ impl Report {
             self.per_file_tech.insert(tech);
         }
 
-        self.git_ids_included.insert(contributor_git_id);
+        self.git_ids_included.insert(contributor_git_id.clone());
+
+        // merge project metadata - the latest of the two contributor reports gets its data copied over
+        // to the combined report
+        if let Some(commit_date_iso) = other_report.last_contributor_commit_date_iso {
+            if commit_date_iso > self.last_contributor_commit_date_iso.clone().unwrap_or_default() {
+                debug!(
+                    "Report for {} is newer: {} vs {:?}",
+                    contributor_git_id, commit_date_iso, self.last_contributor_commit_date_iso
+                );
+                self.last_contributor_commit_date_iso = Some(commit_date_iso);
+                self.last_contributor_commit_sha1 = other_report.last_contributor_commit_sha1;
+                self.report_commit_sha1 = other_report.report_commit_sha1;
+            }
+        }
     }
 
     /// Deletes existing `tech` records and re-creates them from scratch using `per_file_tech` records.
@@ -310,13 +334,35 @@ impl Report {
         }
     }
 
-    /// Resets report timestamp, contributor and report IDs.
-    pub fn reset_combined_contributor_report(&mut self, contributor_git_id: String) {
+    /// Resets report timestamp, contributor, report IDs and other fields from the individual contributor report
+    /// that should not appear in the combined report which may be submitted to the directory.
+    pub fn reset_combined_contributor_report(
+        &mut self,
+        contributor_git_id: String,
+        list_of_commits: &Vec<GitLogEntry>,
+        project_report: &Self,
+    ) {
         debug!("Resetting combined contributor report for {}", contributor_git_id);
         self.report_id = uuid::Uuid::new_v4().to_string();
         self.timestamp = chrono::Utc::now().to_rfc3339();
         self.report_s3_name = String::new();
+        self.is_single_commit = false;
+        self.recent_project_commits = None;
+        self.remote_url_hashes = None;
+        self.log_hash = None;
+        self.last_commit_author = None;
         self.git_ids_included.insert(contributor_git_id);
+
+        // add the list of N recent contributor commits to the project overview and include it into the this combined report
+        let mut project_overview = project_report.get_overview();
+        project_overview.recent_project_commits = Some(
+            list_of_commits
+                .into_iter()
+                .take(list_of_commits.len().min(100))
+                .map(|log_entry| log_entry.sha1[..8].to_string())
+                .collect(),
+        );
+        self.projects_included.insert(project_overview);
     }
 
     /// Removes some sections that make no sense in the combined report.
@@ -384,6 +430,8 @@ impl Report {
             log_hash: None,
             last_commit_author: None,
             recent_project_commits: None,
+            last_contributor_commit_date_iso: None,
+            last_contributor_commit_sha1: None,
         }
     }
 
@@ -512,7 +560,7 @@ impl Report {
         report.recent_project_commits = Some(
             git_log
                 .iter()
-                .take(git_log.len().min(100))
+                .take(git_log.len().min(200))
                 .map(|entry| entry.sha1[..8].to_string())
                 .collect::<Vec<String>>(),
         );

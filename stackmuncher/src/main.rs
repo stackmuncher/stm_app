@@ -1,8 +1,6 @@
 use futures::stream::{FuturesUnordered, StreamExt};
 use path_absolutize::{self, Absolutize};
-use stackmuncher_lib::{
-    code_rules::CodeRules, config::Config, git::get_local_identities, report::Report, utils::hash_str_sha1,
-};
+use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
 use tracing::{debug, info, warn};
 
@@ -72,12 +70,15 @@ async fn main() -> Result<(), ()> {
         report_dir.join([Config::PROJECT_REPORT_FILE_NAME, Config::REPORT_FILE_EXTENSION].concat());
     let cached_project_report = Report::from_disk(&project_report_filename);
 
+    // get and retain a copy of the full git lot to re-use in multiple places
+    let git_log = git::get_log(&config.project_dir, None).await?;
+
     let project_report = match Report::process_project(
         &mut code_rules,
         &config.project_dir,
         &cached_project_report,
         &config.git_remote_url_regex,
-        None,
+        Some(git_log.clone()),
     )
     .await?
     {
@@ -102,7 +103,7 @@ async fn main() -> Result<(), ()> {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
         // get the list of user identities for processing their contributions individually
-        let git_identities = get_local_identities(&config.project_dir).await?;
+        let git_identities = git::get_local_identities(&config.project_dir).await?;
         if git_identities.is_empty() {
             warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
             eprintln!(
@@ -110,6 +111,9 @@ async fn main() -> Result<(), ()> {
         );
             return Err(());
         }
+
+        // prepare a combined list of commit IDs from all known identities
+        let list_of_commits = git::get_contributor_commits_from_log(&git_log, &git_identities);
 
         // prepare a container for async submission jobs
         let mut submission_jobs = FuturesUnordered::new();
@@ -142,10 +146,7 @@ async fn main() -> Result<(), ()> {
             // only process a single contributor of the latest commit if it's a single commit report update
             if project_report.is_single_commit && contributor.git_id != last_commit_author {
                 if let Some(cached_contributor_report) = cached_contributor_report {
-                    debug!(
-                        "Used cached report for contributor {} / single commit",
-                        contributor.git_id
-                    );
+                    debug!("Used cached report for contributor {} / single commit", contributor.git_id);
 
                     // execute multiple submissions concurrently
                     submission_jobs.push(submission::submit_report(
@@ -156,10 +157,7 @@ async fn main() -> Result<(), ()> {
                     contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
                 }
-                debug!(
-                    "Missing cached report for contributor {} / single commit",
-                    contributor.git_id
-                );
+                debug!("Missing cached report for contributor {} / single commit", contributor.git_id);
             }
 
             let contributor_report = project_report
@@ -181,11 +179,7 @@ async fn main() -> Result<(), ()> {
             );
 
             // execute multiple submissions concurrently
-            submission_jobs.push(submission::submit_report(
-                &contributor.git_id,
-                contributor_report.clone(),
-                &config,
-            ));
+            submission_jobs.push(submission::submit_report(&contributor.git_id, contributor_report.clone(), &config));
 
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));
@@ -194,11 +188,12 @@ async fn main() -> Result<(), ()> {
         // combine multiple contributor reports from different identities
         debug!("Combining {} contributor reports", contributor_reports.len());
         if !contributor_reports.is_empty() {
+            // seed the combined report from the 1st contributor report in the list of all contributor reports
             let (mut combined_report, contributor_git_id) = contributor_reports.pop().unwrap();
-            combined_report.reset_combined_contributor_report(contributor_git_id);
+            combined_report.reset_combined_contributor_report(contributor_git_id, &list_of_commits, &project_report);
             for (contributor_report, contributor_git_id) in contributor_reports.into_iter() {
                 // this only adds per-file-tech and does not affect any other part of the report
-                combined_report.merge_contributor_reports(contributor_report, contributor_git_id)
+                combined_report.merge_same_project_contributor_reports(contributor_report, contributor_git_id);
             }
 
             // combine all added per-file-tech into appropriate tech records

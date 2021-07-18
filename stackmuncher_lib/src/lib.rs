@@ -243,10 +243,19 @@ impl Report {
         let project_report = self;
 
         // collect all contributor blobs from the project report
+        let mut last_contributor_commit_sha1 = String::new();
+        let mut last_contributor_commit_date_epoch = 0i64;
+        let mut last_contributor_commit_date_iso = String::new();
         let contributor_blobs = &contributor
             .touched_files
             .iter()
             .map(|file| {
+                // find the latest commit SHA1 and date for this contributor while it's iterating through them all anyway
+                if file.date_epoch > last_contributor_commit_date_epoch {
+                    last_contributor_commit_sha1 = file.commit.clone();
+                    last_contributor_commit_date_epoch = file.date_epoch;
+                    last_contributor_commit_date_iso = file.date_iso.clone();
+                }
                 (
                     file.name.clone(),
                     GitBlob {
@@ -332,6 +341,7 @@ impl Report {
             let commit_blobs = git::populate_blob_sha1(project_dir, commit_blobs, Some(commit_sha1.clone())).await?;
             for (file_name, blob) in commit_blobs {
                 if !blob.sha1.is_empty() {
+                    // store the entire list of blobs for analyzing them later
                     blobs_to_munch.insert(file_name, blob);
                 }
             }
@@ -349,16 +359,13 @@ impl Report {
             .await?;
 
         // copy some meta from the project report
-        report.remote_url_hashes = project_report.remote_url_hashes.clone();
         report.report_commit_sha1 = project_report.report_commit_sha1.clone();
         report.log_hash = project_report.log_hash.clone();
         report.is_single_commit = project_report.is_single_commit;
         report.last_commit_author = project_report.last_commit_author.clone();
         report.git_ids_included.insert(contributor.git_id.clone());
-        report.recent_project_commits = project_report.recent_project_commits.clone();
-        report.date_init = project_report.date_init.clone();
-        report.date_head = project_report.date_head.clone();
-        report.projects_included.insert(project_report.get_overview());
+        report.last_contributor_commit_sha1 = Some(last_contributor_commit_sha1);
+        report.last_contributor_commit_date_iso = Some(last_contributor_commit_date_iso);
 
         Ok(report)
     }

@@ -54,6 +54,14 @@ pub struct ProjectReportOverview {
     /// Total number of contributors to show the size of the team
     pub ppl: usize,
     pub tech: HashSet<TechOverview>,
+    /// A list of hashed remote URLs from the repo. They are used in place of the private project name
+    /// and can be used to match a local project to publicly available projects. If that happens the project name
+    /// is populated automatically by STM on the server side
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_url_hashes: Option<HashSet<String>>,
+    /// The last N commits for matching projects that changed name, remote URL or any other identifying property
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recent_project_commits: Option<Vec<String>>,
 }
 
 impl std::hash::Hash for ProjectReportOverview {
@@ -127,6 +135,8 @@ impl super::report::Report {
             loc,
             libs,
             ppl,
+            remote_url_hashes: self.remote_url_hashes.clone(),
+            recent_project_commits: self.recent_project_commits.clone(),
         }
     }
 }

@@ -108,17 +108,11 @@ pub async fn execute_git_command(
         };
         // ignore errors if they are expected
         if expect_blank_err_msg && std_err.is_empty() {
-            debug!(
-                "Git command returned blank stderr. Status: {}. Command: {:?}",
-                status, cmd
-            );
+            debug!("Git command returned blank stderr. Status: {}. Command: {:?}", status, cmd);
             return Ok(vec![]);
         }
         // the command failed and it was not expected
-        error!(
-            "Git command failed. Status: {}. Stderr: {}. Command: {:?}",
-            status, std_err, cmd
-        );
+        error!("Git command failed. Status: {}. Stderr: {}. Command: {:?}", status, std_err, cmd);
         return Err(());
     }
 
@@ -160,12 +154,9 @@ pub(crate) async fn populate_blob_sha1(
         None => "HEAD".into(),
     };
 
-    let all_objects = execute_git_command(
-        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1.clone()],
-        dir,
-        false,
-    )
-    .await?;
+    let all_objects =
+        execute_git_command(vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1.clone()], dir, false)
+            .await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
 
     trace!("{:?}", blobs);
@@ -218,12 +209,8 @@ pub(crate) async fn get_all_tree_files(dir: &Path, commit_sha1: Option<String>) 
     // use HEAD by default
     let commit_sha1 = commit_sha1.unwrap_or("HEAD".to_owned());
 
-    let all_objects = execute_git_command(
-        vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1],
-        dir,
-        false,
-    )
-    .await?;
+    let all_objects =
+        execute_git_command(vec!["ls-tree".into(), "-r".into(), "--full-tree".into(), commit_sha1], dir, false).await?;
     let all_objects = String::from_utf8_lossy(&all_objects);
 
     let files = all_objects
@@ -288,10 +275,7 @@ pub(crate) async fn get_hashed_remote_urls(dir: &Path, git_remote_url_regex: &Re
 
 /// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.
 /// Merge commits are excluded.
-pub(crate) async fn get_log(
-    repo_dir: &Path,
-    contributor_git_identity: Option<&String>,
-) -> Result<Vec<GitLogEntry>, ()> {
+pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
 
     // prepare the command that may optionally include the author name to limit commits just to that contributor
@@ -414,6 +398,23 @@ pub(crate) async fn get_log(
     Ok(log_entries)
 }
 
+/// Extracts all contributor commits from the full log. `git_identities` should be lowercase.
+pub fn get_contributor_commits_from_log(
+    git_log: &Vec<GitLogEntry>,
+    git_identities: &HashSet<String>,
+) -> Vec<GitLogEntry> {
+    git_log
+        .iter()
+        .filter_map(|entry| {
+            if git_identities.contains(&entry.author_name_email.1.to_lowercase()) {
+                Some(entry.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<GitLogEntry>>()
+}
+
 /// Returns a list of possible git identities from user, author and committer settings.
 /// This function also maintains a list of any past identities in case they change.
 /// E.g. if the user changed `user.email` setting after making a few commits. The previous email
@@ -517,9 +518,6 @@ pub(crate) fn log_entries_to_list_of_blobs(git_log: &Vec<GitLogEntry>) -> ListOf
             }
         }
     }
-    debug!(
-        "list_of_files_with_commits_from_git_log collected {} files from git log",
-        blobs.len()
-    );
+    debug!("list_of_files_with_commits_from_git_log collected {} files from git log", blobs.len());
     blobs
 }
