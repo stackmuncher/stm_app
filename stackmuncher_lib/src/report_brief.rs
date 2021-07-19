@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// A very concise overview of a single Tech record
 /// to show the share of the technology in the project
@@ -102,22 +102,35 @@ impl super::report::Report {
     /// Calculation of `libs` is not very accurate. See comments inside the body.
     pub(crate) fn get_overview(&self) -> ProjectReportOverview {
         // collect all tech data in the overview form
-        let tech = self
-            .tech
-            .iter()
-            .map(|t| t.get_overview())
+        // there may be multiple records for the same tech, e.g. Rust/.rs and Rust/.toml, so they need to be added up
+        let mut tech_overviews: HashMap<String, TechOverview> = HashMap::new();
+        for tech in &self.tech {
+            let tech_to_update_from = tech.get_overview();
+            // update the existing record or add a new one
+            if let Some(tech_to_update) = tech_overviews.get_mut(&tech.language) {
+                tech_to_update.libs += tech_to_update_from.libs;
+                tech_to_update.loc += tech_to_update_from.loc;
+            } else {
+                tech_overviews.insert(tech.language.clone(), tech_to_update_from);
+            }
+        }
+
+        // convert to an easier to use HashSet
+        let tech_overviews = tech_overviews
+            .into_iter()
+            .map(|(_, t)| t)
             .collect::<HashSet<TechOverview>>();
 
         // collect summary
-        let loc = tech.iter().map(|t| t.loc).sum::<usize>();
-        let libs = tech.iter().map(|t| t.libs).sum::<usize>();
+        let loc = tech_overviews.iter().map(|t| t.loc).sum::<usize>();
+        let libs = tech_overviews.iter().map(|t| t.libs).sum::<usize>();
         let ppl = match self.contributor_git_ids.as_ref() {
             None => 0,
             Some(v) => v.len(),
         };
 
         // update percentages
-        let tech = tech
+        let tech = tech_overviews
             .into_iter()
             .map(|mut t| {
                 // avoid division by zero
