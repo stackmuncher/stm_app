@@ -9,9 +9,6 @@ use tracing::{debug, error, info, trace, warn};
 /// It is not enforced by the compiler and is ignored by the IDE.
 pub type FilePath = String;
 
-/// The name of the section and the key for storing additional git identities.
-pub const GIT_CONFIG_IDENTITIES_SECTION: &'static str = "stm.identity";
-
 /// Contains details about a file extracted from GIT
 #[derive(Clone, Debug)]
 pub struct GitBlob {
@@ -399,10 +396,7 @@ pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>)
 }
 
 /// Extracts all contributor commits from the full log. `git_identities` should be lowercase.
-pub fn get_contributor_commits_from_log(
-    git_log: &Vec<GitLogEntry>,
-    git_identities: &HashSet<String>,
-) -> Vec<GitLogEntry> {
+pub fn get_contributor_commits_from_log(git_log: &Vec<GitLogEntry>, git_identities: &Vec<String>) -> Vec<GitLogEntry> {
     git_log
         .iter()
         .filter_map(|entry| {
@@ -416,34 +410,17 @@ pub fn get_contributor_commits_from_log(
 }
 
 /// Returns a list of possible git identities from user, author and committer settings.
-/// This function also maintains a list of any past identities in case they change.
-/// E.g. if the user changed `user.email` setting after making a few commits. The previous email
-/// will be already stored in the additional identities section
 /// The email part of the identity is preferred. The name part is only used if the email is blank.
 /// The values are converted to lower case.
-pub async fn get_local_identities(repo_dir: &Path) -> Result<HashSet<String>, ()> {
+pub async fn get_local_identities(repo_dir: &Path) -> Result<Vec<String>, ()> {
     debug!("Extracting git identities");
 
-    let mut git_identities: HashSet<String> = HashSet::new();
-
-    // get identities stored in GIT_CONFIG_IDENTITIES_SECTION of .gitconfig
-    let git_args = vec![
-        "config".into(),
-        "--get-all".into(),
-        GIT_CONFIG_IDENTITIES_SECTION.into(),
-    ];
-    let git_output = execute_git_command(git_args, repo_dir, true).await?;
-    let git_output = String::from_utf8_lossy(&git_output).to_string();
-    for additional_identity in git_output.lines() {
-        if !additional_identity.is_empty() {
-            trace!("additional: {}", additional_identity);
-            git_identities.insert(additional_identity.trim().to_lowercase());
-        }
-    }
+    let mut git_identities: Vec<String> = Vec::new();
 
     // git supports 3 types of identities
-    // the main one is user, the other 2 will be unused for majoring of cases
-    for var_name in ["author", "committer", "user"].iter() {
+    // the main one is user, the other 2 will be unused for majority of users
+    // they are processed in the order or precedence
+    for var_name in ["user", "author", "committer"].iter() {
         for key in [".email", ".name"].iter() {
             let key = [var_name.to_string(), key.to_string()].concat();
             // we need to check the email first and if that is blank check the name
@@ -456,21 +433,9 @@ pub async fn get_local_identities(repo_dir: &Path) -> Result<HashSet<String>, ()
                 trace!("{}: {}", key, git_output);
                 // normally this identity should already be known from the additional list because it was stored there
                 // during the previous commit and they don't change that often
-                if git_identities.insert(git_output.trim().to_lowercase()) {
-                    // it's a new identity - store it in GIT_CONFIG_IDENTITIES_SECTION of .gitconfig
-                    let git_args = vec![
-                        "config".into(),
-                        "--global".into(),
-                        "--add".into(),
-                        GIT_CONFIG_IDENTITIES_SECTION.into(),
-                        git_output.trim().to_lowercase(),
-                    ];
-                    let _ = execute_git_command(git_args, repo_dir, false).await?;
-                    info!(
-                        "Added new git identity to {}: {}",
-                        GIT_CONFIG_IDENTITIES_SECTION,
-                        git_output.trim().to_lowercase()
-                    );
+                let git_output = git_output.trim().to_lowercase();
+                if !git_identities.contains(&git_output) {
+                    git_identities.push(git_output.trim().to_lowercase())
                 }
                 // it will exit on EMAIL section if the value was found or try NAME section otherwise
                 break;

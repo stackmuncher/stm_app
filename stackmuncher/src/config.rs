@@ -1,6 +1,6 @@
 use path_absolutize::{self, Absolutize};
 use regex::Regex;
-use stackmuncher_lib::{config::Config, git::check_git_version, utils::hash_str_sha1};
+use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
 use std::path::Path;
 use std::process::exit;
 use crate::help;
@@ -8,6 +8,7 @@ use crate::help;
 pub(crate) const CMD_ARGS: &'static str = "Optional CLI params: [--rules path_to_folder_with_alternative_code_rules], \
 [--project path_to_project_to_be_analyzed] defaults to the current directory, \
 [--report path_to_reports_folder] defaults to a platform specific location, \
+[--emails email1,email2,email3] a list of emails for additional contributor to include in the report, \
 [--log error|warn|info|debug|trace] defaults to `error`.";
 
 /// Inits values from ENV vars and the command line arguments
@@ -70,6 +71,7 @@ pub(crate) async fn new_config() -> Config {
         user_name: String::new(),
         repo_name: String::new(),
         git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
+        git_identities: Vec::new(),
     };
 
     // check if there were any arguments passed to override the ENV vars
@@ -90,6 +92,8 @@ pub(crate) async fn new_config() -> Config {
     };
 
     let config = report_dir_check(config);
+
+    let config = git_identity_check(config).await;
 
     config
 }
@@ -242,6 +246,14 @@ fn read_cli_params(mut config: Config) -> Config {
                   
               }
 
+              "--emails" => {
+                let emails = args.peek().expect("--emails requires one or more comma-separated email addresses").to_owned();
+                config.git_identities = emails.split(",").filter_map(|email| {
+                    let email = email.trim().to_lowercase();
+                    if email.is_empty() {None} else {Some(email)}
+                }).collect();
+              }
+
               "--log" => {
                   config.log_level =
                       string_to_log_level(args.peek().expect("--log requires a valid logging level").into())
@@ -383,4 +395,44 @@ fn report_dir_check(mut config: Config) -> Config {
     config.report_dir = Some(report_dir);
 
     config
+}
+
+/// Checks if there are any contributor identities and informs the user how to configure them. Does not exit or panic.
+async fn git_identity_check(mut config: Config)-> Config {
+
+    // ignore the identities in git config if they were provided via CLI args
+    if !config.git_identities.is_empty() {
+        match config.git_identities.len() {
+            1 => println!("Contributor: {}, taken from CLI arg", config.git_identities[0]),
+            _ => println!("Contributors: {}, taken from CLI arg", config.git_identities.join(", ")),
+        }
+        
+        return config;
+    }
+
+    // get the list of user identities for processing their contributions individually as the default option
+    config.git_identities = match get_local_identities(&config.project_dir).await {
+        Ok(v) => {
+
+            match v.len() {
+                1 => println!("Contributor: {}, taken from Git config", v[0]),
+                _ => println!("Contributors: {}, taken from Git config", v.join(", ")),
+            }
+
+            v
+        },
+        Err(_) => {
+            eprintln!(
+            "StackMuncher analyses individual contributions within a repo. The app needs to know which contributions are yours. You can:\n \
+* Configure your local git with `git config --global user.email you@example.com`
+* Add one or more emails as `--emails` argument followed by a comma-separated list of all contributor emails. Put your preferred contact email first.\n \
+Only the full project report will be generated."
+        );
+        return config;
+
+        }
+    };
+
+    config
+
 }

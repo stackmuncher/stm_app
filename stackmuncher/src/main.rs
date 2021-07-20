@@ -102,18 +102,8 @@ async fn main() -> Result<(), ()> {
     if let Some(contributors) = &project_report.contributors {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
-        // get the list of user identities for processing their contributions individually
-        let git_identities = git::get_local_identities(&config.project_dir).await?;
-        if git_identities.is_empty() {
-            warn!("No git identity found. Individual contributions will not be processed. Use `git config --global user.email you@example.com` before the next run.");
-            eprintln!(
-            "Git user details (name/email) are not set in gitconfig. Use `git config --global user.email you@example.com` before the next run."
-        );
-            return Err(());
-        }
-
         // prepare a combined list of commit IDs from all known identities
-        let list_of_commits = git::get_contributor_commits_from_log(&git_log, &git_identities);
+        let list_of_commits = git::get_contributor_commits_from_log(&git_log, &config.git_identities);
 
         // prepare a container for async submission jobs
         let mut submission_jobs = FuturesUnordered::new();
@@ -124,7 +114,10 @@ async fn main() -> Result<(), ()> {
 
         for contributor in contributors {
             // only process known local identities
-            if !git_identities.contains(&contributor.git_id.trim().to_lowercase()) {
+            if !config
+                .git_identities
+                .contains(&contributor.git_id.trim().to_lowercase())
+            {
                 debug!("Contributor {} skipped / unknown identity", contributor.git_id);
                 continue;
             }
@@ -178,9 +171,6 @@ async fn main() -> Result<(), ()> {
                 contributor_instant.elapsed().as_millis()
             );
 
-            // execute multiple submissions concurrently
-            submission_jobs.push(submission::submit_report(&contributor.git_id, contributor_report.clone(), &config));
-
             // push the contributor report into a container to combine later
             contributor_reports.push((contributor_report, contributor.git_id.clone()));
         }
@@ -199,6 +189,13 @@ async fn main() -> Result<(), ()> {
             // combine all added per-file-tech into appropriate tech records
             combined_report.recompute_tech_section();
 
+            // let the submission to the directory run concurrently with saving the file
+            //
+            // TEMPORARY PLUG DO NOT COMMIT !!!
+            //
+            if let Some(current_identity) = config.git_identities.iter().next() {
+                submission_jobs.push(submission::submit_report(current_identity, combined_report.clone(), &config));
+            }
             // save the combined report
             combined_report.save_as_local_file(
                 &report_dir.join(
@@ -211,15 +208,13 @@ async fn main() -> Result<(), ()> {
             );
         }
 
-        // await all submissions
-        loop {
-            match submission_jobs.next().await {
-                Some(_) => {
-                    continue;
-                }
-                None => {
-                    break;
-                }
+        // there should be only a single submission of the combined report
+        match submission_jobs.next().await {
+            Some(_) => {
+                debug!("Combined contributor report submitted");
+            }
+            None => {
+                debug!("No combined contributor report was submitted");
             }
         }
     }

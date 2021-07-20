@@ -11,12 +11,17 @@ pub struct Config {
     pub log_level: tracing::Level,
     /// Absolute or relative path to the project directory with the files to analyze.
     pub project_dir: PathBuf,
-    /// Registered user name (the validity is not enforced at the moment as it's not pushed anywhere)
+    /// GitHub user name (the validity is not enforced at the moment as it's not pushed anywhere)
+    /// Used only for repos downloaded from GitHub
     pub user_name: String,
-    /// Repo name. Must be unique per user. Reports are attached to `user/repo` ID.
+    /// GitHub repo name. Must be unique per user. Reports are attached to `user/repo` ID.
+    /// Used only for repos downloaded from GitHub
     pub repo_name: String,
     /// A compiled regex for extracting remote URLs from `git remote -v` command
     pub git_remote_url_regex: Regex,
+    /// List of contributors to generate reports for. Defaults to Git user, author and committer .email values.
+    /// Can be overridden by CLI params. The first value in the list is the preferred user contact.
+    pub git_identities: Vec<String>,
 }
 
 impl Config {
@@ -59,6 +64,7 @@ impl Config {
             user_name,
             repo_name,
             git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
+            git_identities: Vec::new(),
         }
     }
 
@@ -74,6 +80,7 @@ impl Config {
             user_name: String::new(),
             repo_name: String::new(),
             git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),
+            git_identities: Vec::new(),
         }
     }
 }
