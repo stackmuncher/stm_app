@@ -1,18 +1,100 @@
+use crate::{app_args::AppArgCommands, app_args::AppArgs, help};
 use path_absolutize::{self, Absolutize};
 use regex::Regex;
 use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::exit;
-use crate::help;
 
-pub(crate) const CMD_ARGS: &'static str = "Optional CLI params: [--rules path_to_folder_with_alternative_code_rules], \
-[--project path_to_project_to_be_analyzed] defaults to the current directory, \
-[--report path_to_reports_folder] defaults to a platform specific location, \
-[--emails email1,email2,email3] a list of emails for additional contributor to include in the report, \
-[--log error|warn|info|debug|trace] defaults to `error`.";
+pub(crate) struct AppConfig {
+    pub command: AppArgCommands,
+    pub no_update: bool,
+    pub primary_email: Option<String>,
+    pub public_name: Option<String>,
+    pub public_contact: Option<String>,
+    pub lib_config: Config,
+}
 
-/// Inits values from ENV vars and the command line arguments
-pub(crate) async fn new_config() -> Config {
+impl AppConfig {
+    /// Inits values from ENV vars and the command line arguments
+    pub(crate) async fn new() -> AppConfig {
+        // assume that the project_dir is the current working folder
+        let current_dir = match std::env::current_dir() {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("STACKMUNCHER CONFIG ERROR: Cannot get the name of the current directory due to {}", e);
+                help::emit_usage_msg();
+                exit(1);
+            }
+        };
+
+        // check if GIT is installed
+        // this check will change to using the git supplied as part of STM package
+        if let Err(_e) = check_git_version(&current_dir).await {
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR: Cannot launch Git from {} folder. Is it installed on this machine?",
+                current_dir.to_string_lossy()
+            );
+            help::emit_usage_msg();
+            exit(1);
+        };
+
+        // try to read CLI params provided by the user with defaults where no user params were supplied
+        let app_args = AppArgs::read_params();
+
+        // get config defaults from the environment
+        let mut config = new_config_with_defaults(current_dir).await;
+
+        // replace default config with user values from the CLI
+        if let Some(rules) = app_args.rules {
+            validate_rules_dir(&rules);
+            config.code_rules_dir = rules;
+        };
+
+        if let Some(project) = app_args.project {
+            validate_project_dir(&project);
+            config.project_dir = project;
+        };
+
+        config.report_dir = match app_args.reports {
+            Some(v) => Some(generate_report_dir(&config.project_dir, &v)),
+            None => Some(generate_report_dir(
+                &config.project_dir,
+                config
+                    .report_dir
+                    .as_ref()
+                    .expect("Cannot unwrap config.report_dir. It's a bug."),
+            )),
+        };
+
+        if let Some(log_level) = app_args.log {
+            config.log_level = log_level;
+        };
+
+        if let Some(emails) = app_args.emails {
+            config.git_identities = emails;
+        };
+
+        let primary_email = match app_args.primary_email {
+            Some(v) => Some(v),
+            None => match config.git_identities.len() {
+                0 => None,
+                _ => Some(config.git_identities[0].clone()),
+            },
+        };
+
+        AppConfig {
+            command: app_args.command,
+            no_update: app_args.no_update,
+            primary_email,
+            public_name: app_args.public_name,
+            public_contact: app_args.public_contact,
+            lib_config: config,
+        }
+    }
+}
+
+/// Generate a new Config struct with the default values from the environment.
+pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
@@ -40,10 +122,7 @@ pub(crate) async fn new_config() -> Config {
             }
             Ok(v) => v
                 .parent()
-                .expect(&format!(
-                    "Cannot determine the location of the exe file from: {}",
-                    v.to_string_lossy()
-                ))
+                .expect(&format!("Cannot determine the location of the exe file from: {}", v.to_string_lossy()))
                 .to_path_buf(),
         };
 
@@ -59,60 +138,24 @@ pub(crate) async fn new_config() -> Config {
         unimplemented!("Only Linux and Windows are supported at the moment");
     };
 
-    // assume that the project_dir is the current working folder
-    let project_dir = std::env::current_dir().expect("Cannot access the current directory.");
+    // find out what email addresses are known from Git for processing contributors individually as the default option
+    let git_identities = match get_local_identities(&current_dir).await {
+        Ok(v) => v,
+        Err(_) => Vec::new(),
+    };
 
-    // init the minimal config structure with the default values
     let config = Config {
         log_level,
         code_rules_dir,
         report_dir: Some(report_dir),
-        project_dir,
+        project_dir: current_dir,
         user_name: String::new(),
         repo_name: String::new(),
         git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
-        git_identities: Vec::new(),
+        git_identities,
     };
-
-    // check if there were any arguments passed to override the ENV vars
-    let config = read_cli_params(config);
-
-    rules_dir_check(&config);
-    project_dir_check(&config);
-    
-    // check if GIT is installed
-    // this check will change to using the git supplied as part of STM package
-    if let Err(_e) = check_git_version(&config.project_dir).await {
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR: Cannot launch Git from {} folder. Is it installed on this machine?",
-            config.project_dir.to_string_lossy()
-        );
-       help::emit_usage_msg();
-        exit(1);
-    };
-
-    let config = report_dir_check(config);
-
-    let config = git_identity_check(config).await;
 
     config
-}
-
-/// Converts case insensitive level as String into Enum, defaults to INFO
-fn string_to_log_level(s: String) -> tracing::Level {
-    match s.to_lowercase().as_str() {
-        "trace" => tracing::Level::TRACE,
-        "debug" => tracing::Level::DEBUG,
-        "error" => tracing::Level::ERROR,
-        "warn" => tracing::Level::WARN,
-        "info" => tracing::Level::INFO,
-        _ => {
-            // the user specified something, but is it not a valid value
-            // it may still be better off to complete the job with some extended logging, so defaulting to INFO
-            println!("STACKMUNCHER CONFIG ERROR. Invalid tracing level. Use TRACE, DEBUG, WARN or ERROR. Choosing INFO level.");
-            return tracing::Level::INFO;
-        }
-    }
 }
 
 /// Shortens a potentially long folder name like home_mx_projects_stm_stm_apps_stm_28642a39
@@ -141,147 +184,19 @@ fn trim_canonical_project_name(name: String) -> String {
     name
 }
 
-/// Reads CLI params, validates them and stores in Config structure.
-/// Does process::exit(1) on error + prints error messages
-fn read_cli_params(mut config: Config) -> Config {
-  // check if there were any arguments passed to override the ENV vars
-  let mut args = std::env::args().peekable();
-  loop {
-      if let Some(arg) = args.next() {
-          match arg.to_lowercase().as_str() {
-              "--rules" => {
-                  let code_rules_dir = Path::new(
-                      args.peek()
-                          .expect("`--rules` requires a path to the folder with code rules"),
-                  )
-                  .to_path_buf();
-
-                  // this checks if the rules dir is present, but not its contents
-                  // incomplete, may fall over later
-                  let code_rules_dir = code_rules_dir
-                      .absolutize()
-                      .expect("Cannot convert rules dir path to absolute. Check if it looks valid and try to simplify it.")
-                      .to_path_buf();
-
-                  if !code_rules_dir.is_dir() {
-                      eprintln!(
-                          "STACKMUNCHER CONFIG ERROR: Invalid code rules folder `{}`.",
-                          code_rules_dir.to_string_lossy()
-                      );
-                      help::emit_code_rules_msg();
-                      exit(1);
-                  }
-
-                  // it's a valid path
-                  config.code_rules_dir = code_rules_dir;
-              }
-
-              "--project" => {
-                  let project_dir = Path::new(
-                      args.peek()
-                          .expect("--project requires a path to the root of the project to be analyzed"),
-                  )
-                  .absolutize()
-                  .expect(
-                      "Cannot convert project dir path to absolute path. Check if it looks valid and try to simplify it.",
-                  )
-                  .to_path_buf();
-
-                  // this only tests the presence of the project dir, not .git inside it
-                  // incomplete, may fall over later
-                  if !project_dir.exists() {
-                      eprintln!(
-                          "STACKMUNCHER CONFIG ERROR: Cannot access the project folder at {}",
-                          project_dir.to_string_lossy()
-                      );
-                      help::emit_usage_msg();
-                      exit(1);
-                  }
-
-                  if !project_dir.is_dir() {
-                      eprintln!(
-                          "STACKMUNCHER CONFIG ERROR: The path to project folder is not a folder: {}",
-                          project_dir.to_string_lossy()
-                      );
-                      help::emit_usage_msg();
-                      exit(1);
-                  }
-
-                  // it's a valid path
-                  config.project_dir = project_dir;
-              }
-
-              "--report" => {
-                  let report_dir = 
-                      Path::new(
-                          args.peek()
-                              .expect("--report requires a path to a writable folder for storing StackMuncher reports"),
-                      )
-                      .absolutize()
-                      .expect(
-                          "Cannot convert report dir path to absolute path. Check if it looks valid and try to simplify it.",
-                      )
-                      .to_path_buf();
-
-                  if !report_dir.exists() {
-                          eprintln!(
-                              "STACKMUNCHER CONFIG ERROR: Cannot access the report folder at {}",
-                              report_dir.to_string_lossy()
-                          );
-                         help::emit_report_dir_msg();
-                          exit(1);
-                     }
-
-                  if !report_dir.is_dir() {
-                          eprintln!(
-                              "STACKMUNCHER CONFIG ERROR: The path to report folder is not a folder: {}",
-                              report_dir.to_string_lossy()
-                          );
-                          help::emit_report_dir_msg();
-                          exit(1);
-                      }
-                      
-                      // it's a valid path
-                  config.report_dir = Some(report_dir);
-                  
-              }
-
-              "--emails" => {
-                let emails = args.peek().expect("--emails requires one or more comma-separated email addresses").to_owned();
-                config.git_identities = emails.split(",").filter_map(|email| {
-                    let email = email.trim().to_lowercase();
-                    if email.is_empty() {None} else {Some(email)}
-                }).collect();
-              }
-
-              "--log" => {
-                  config.log_level =
-                      string_to_log_level(args.peek().expect("--log requires a valid logging level").into())
-              }
-              _ => { //do nothing
-              }
-          };
-      } else {
-          break;
-      }
-  }
-
-  config
-}
-
 /// Validates the value for config.code_rules_dir and does process::exit(1) on error.
 /// Prints error messages.
-fn rules_dir_check(config: &Config)  {
+fn validate_rules_dir(rules: &PathBuf) {
     // this checks if the rules dir is present, but not its contents
     // incomplete, may fall over later
-    if !config.code_rules_dir.exists() {
+    if !rules.exists() {
         eprintln!("STACKMUNCHER CONFIG ERROR: Cannot find StackMuncher code parsing rules.");
-       help::emit_code_rules_msg();
+        help::emit_code_rules_msg();
         exit(1);
     }
 
     // check if the sub-folders of stm_rules are present
-    let file_type_dir = config.code_rules_dir.join(Config::RULES_SUBFOLDER_FILE_TYPES);
+    let file_type_dir = rules.join(Config::RULES_SUBFOLDER_FILE_TYPES);
     if !file_type_dir.exists() {
         let file_type_dir = file_type_dir
             .absolutize()
@@ -297,7 +212,7 @@ fn rules_dir_check(config: &Config)  {
     }
 
     // check if the munchers sub-folder is present
-    let muncher_dir = config.code_rules_dir.join(Config::RULES_SUBFOLDER_MUNCHERS);
+    let muncher_dir = rules.join(Config::RULES_SUBFOLDER_MUNCHERS);
     if !muncher_dir.exists() {
         let muncher_dir = muncher_dir
             .absolutize()
@@ -314,40 +229,39 @@ fn rules_dir_check(config: &Config)  {
 }
 
 /// Validates config.project_dir
-fn project_dir_check(config: &Config) {
+fn validate_project_dir(project: &PathBuf) {
     // the project dir at this point is either a tested param from the CLI or the current dir
     // a full-trust app is guaranteed access to the current dir
     // a restricted app would need to test if the dir is actually accessible, but it may fail over even earlier when it tried to get the current dir name
 
     // check if there is .git subfolder in the project dir
-    let git_path = config.project_dir.join(".git");
+    let git_path = project.join(".git");
     if !git_path.is_dir() {
         eprintln!(
             "STACKMUNCHER CONFIG ERROR: No Git repository found in the project folder {}",
-            config.project_dir.to_string_lossy()
+            project.to_string_lossy()
         );
         help::emit_usage_msg();
         exit(1);
     }
 }
 
-/// Validates the value for the reports dir and creates one if needed.
+/// Validates the value for the reports dir, adds the project component to it and creates the directory if needed.
 /// Prints error messages and exits on error.
-fn report_dir_check(mut config: Config) -> Config {
+fn generate_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf {
     // individual project reports are grouped in their own folders - build that path here
     // this can be relative or absolute, which should be converted into absolute in a canonical form as a single folder name
     // e.g. /var/tmp/stackmuncher/reports/home_ubuntu_projects_some_project_name_1_6bdf08b3 were the last part is a canonical project name built
     // out of the absolute project path and its own hash
     // the hash is included in the path for ease of search and matching with the report contents because the report itself does not contain any project or user
     // identifiable info
-    let project_dir = &config.project_dir;
-    let absolute_project_path = if project_dir.is_absolute() {
-        project_dir.to_string_lossy().to_string()
+    let absolute_project_path = if project.is_absolute() {
+        project.to_string_lossy().to_string()
     } else {
         // join the current working folder with the relative path to the project
         std::env::current_dir()
             .expect("Cannot get the current dir. It's a bug.")
-            .join(project_dir)
+            .join(project)
             .to_string_lossy()
             .to_string()
     };
@@ -365,11 +279,7 @@ fn report_dir_check(mut config: Config) -> Config {
     let canonical_project_name = trim_canonical_project_name(canonical_project_name);
 
     // append the project report subfolder name to the reports root folder
-    let report_dir = config
-        .report_dir
-        .as_ref()
-        .expect("Cannot unwrap the report dir. It's a bug.")
-        .join(canonical_project_name);
+    let report_dir = report.join(canonical_project_name);
 
     // check if the project report folder exists or create it if possible
     if !report_dir.is_dir() {
@@ -392,47 +302,5 @@ fn report_dir_check(mut config: Config) -> Config {
     }
 
     // save the project report path in config as String
-    config.report_dir = Some(report_dir);
-
-    config
-}
-
-/// Checks if there are any contributor identities and informs the user how to configure them. Does not exit or panic.
-async fn git_identity_check(mut config: Config)-> Config {
-
-    // ignore the identities in git config if they were provided via CLI args
-    if !config.git_identities.is_empty() {
-        match config.git_identities.len() {
-            1 => println!("Contributor: {}, taken from CLI arg", config.git_identities[0]),
-            _ => println!("Contributors: {}, taken from CLI arg", config.git_identities.join(", ")),
-        }
-        
-        return config;
-    }
-
-    // get the list of user identities for processing their contributions individually as the default option
-    config.git_identities = match get_local_identities(&config.project_dir).await {
-        Ok(v) => {
-
-            match v.len() {
-                1 => println!("Contributor: {}, taken from Git config", v[0]),
-                _ => println!("Contributors: {}, taken from Git config", v.join(", ")),
-            }
-
-            v
-        },
-        Err(_) => {
-            eprintln!(
-            "StackMuncher analyses individual contributions within a repo. The app needs to know which contributions are yours. You can:\n \
-* Configure your local git with `git config --global user.email you@example.com`
-* Add one or more emails as `--emails` argument followed by a comma-separated list of all contributor emails. Put your preferred contact email first.\n \
-Only the full project report will be generated."
-        );
-        return config;
-
-        }
-    };
-
-    config
-
+    report_dir
 }

@@ -1,9 +1,11 @@
+use crate::config::AppConfig;
 use futures::stream::{FuturesUnordered, StreamExt};
 use path_absolutize::{self, Absolutize};
 use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
 use tracing::{debug, info, warn};
 
+mod app_args;
 mod config;
 mod help;
 mod signing;
@@ -12,17 +14,17 @@ mod submission;
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     // get input params
-    let config = config::new_config().await;
+    let config = AppConfig::new().await;
 
     tracing_subscriber::fmt()
-        .with_max_level(config.log_level.clone())
+        .with_max_level(config.lib_config.log_level.clone())
         .with_ansi(false)
         //.without_time()
         .init();
 
     info!(
         "StackMuncher started in {} from {}",
-        config.project_dir.to_string_lossy(),
+        config.lib_config.project_dir.to_string_lossy(),
         std::env::current_exe()
             .expect("Cannot get path to stackmuncher executable. It's a bug.")
             .to_string_lossy()
@@ -31,6 +33,7 @@ async fn main() -> Result<(), ()> {
     info!(
         "Report folder: {}",
         config
+            .lib_config
             .report_dir
             .as_ref()
             .expect("Cannot unwrap config.report_dir. It's a bug.")
@@ -42,6 +45,7 @@ async fn main() -> Result<(), ()> {
     info!(
         "Code rules folder: {}",
         config
+            .lib_config
             .code_rules_dir
             .absolutize()
             .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
@@ -54,11 +58,12 @@ async fn main() -> Result<(), ()> {
     let instant = std::time::Instant::now();
 
     // load code rules
-    let mut code_rules = CodeRules::new(&config.code_rules_dir);
+    let mut code_rules = CodeRules::new(&config.lib_config.code_rules_dir);
 
     // Reports are grouped per project with a canonical project name as the last subfolder
     let report_dir = Path::new(
         config
+            .lib_config
             .report_dir
             .as_ref()
             .expect("Cannot unwrap config.report_dir. It's a bug."),
@@ -71,13 +76,13 @@ async fn main() -> Result<(), ()> {
     let cached_project_report = Report::from_disk(&project_report_filename);
 
     // get and retain a copy of the full git lot to re-use in multiple places
-    let git_log = git::get_log(&config.project_dir, None).await?;
+    let git_log = git::get_log(&config.lib_config.project_dir, None).await?;
 
     let project_report = match Report::process_project(
         &mut code_rules,
-        &config.project_dir,
+        &config.lib_config.project_dir,
         &cached_project_report,
-        &config.git_remote_url_regex,
+        &config.lib_config.git_remote_url_regex,
         Some(git_log.clone()),
     )
     .await?
@@ -86,7 +91,7 @@ async fn main() -> Result<(), ()> {
             // there were no changes since the previous report - it can be reused as-is
             info!("Done in {}ms", instant.elapsed().as_millis());
             // do not print the end user msg if the logging is enabled
-            if config.log_level == tracing::Level::ERROR {
+            if config.lib_config.log_level == tracing::Level::ERROR {
                 println!("StackMuncher: no new commits since the last report.");
             }
             cached_project_report.expect("Cannot unwrap cached report. It's a bug.")
@@ -103,7 +108,7 @@ async fn main() -> Result<(), ()> {
         let last_commit_author = project_report.last_commit_author.as_ref().unwrap().clone();
 
         // prepare a combined list of commit IDs from all known identities
-        let list_of_commits = git::get_contributor_commits_from_log(&git_log, &config.git_identities);
+        let list_of_commits = git::get_contributor_commits_from_log(&git_log, &config.lib_config.git_identities);
 
         // prepare a container for async submission jobs
         let mut submission_jobs = FuturesUnordered::new();
@@ -115,6 +120,7 @@ async fn main() -> Result<(), ()> {
         for contributor in contributors {
             // only process known local identities
             if !config
+                .lib_config
                 .git_identities
                 .contains(&contributor.git_id.trim().to_lowercase())
             {
@@ -145,7 +151,7 @@ async fn main() -> Result<(), ()> {
                     submission_jobs.push(submission::submit_report(
                         &contributor.git_id,
                         cached_contributor_report.clone(),
-                        &config,
+                        &config.lib_config,
                     ));
                     contributor_reports.push((cached_contributor_report, contributor.git_id.clone()));
                     continue;
@@ -156,7 +162,7 @@ async fn main() -> Result<(), ()> {
             let contributor_report = project_report
                 .process_contributor(
                     &mut code_rules,
-                    &config.project_dir,
+                    &config.lib_config.project_dir,
                     &cached_contributor_report,
                     contributor,
                     project_report.tree_files.as_ref(),
@@ -193,8 +199,12 @@ async fn main() -> Result<(), ()> {
             //
             // TEMPORARY PLUG DO NOT COMMIT !!!
             //
-            if let Some(current_identity) = config.git_identities.iter().next() {
-                submission_jobs.push(submission::submit_report(current_identity, combined_report.clone(), &config));
+            if let Some(current_identity) = config.lib_config.git_identities.iter().next() {
+                submission_jobs.push(submission::submit_report(
+                    current_identity,
+                    combined_report.clone(),
+                    &config.lib_config,
+                ));
             }
             // save the combined report
             combined_report.save_as_local_file(
@@ -220,7 +230,7 @@ async fn main() -> Result<(), ()> {
     }
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
     // do not print the end user msg if the logging is enabled
-    if config.log_level == tracing::Level::ERROR {
+    if config.lib_config.log_level == tracing::Level::ERROR {
         println!("StackMuncher: reports saved in {}", report_dir.to_string_lossy());
     }
     Ok(())

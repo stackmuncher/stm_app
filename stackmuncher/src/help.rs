@@ -3,9 +3,8 @@ use stackmuncher_lib::config::Config;
 /// Prints out a standard multi-line message on how to use the app and where to find more info
 pub(crate) fn emit_usage_msg() {
     println!("Launch StackMuncher app from the root folder of your project with a Git repository in .git subfolder.");
-    println!("The app will analyze the Git repo and produce a report.");
+    println!("Add --help for more info");
     println!("");
-    println!("{}", crate::config::CMD_ARGS);
     println!("");
     emit_support_msg();
 }
@@ -66,4 +65,68 @@ pub(crate) fn emit_detailed_output_msg() {
     } else {
         eprintln!("To see detailed output run `stackmuncher --log info` from the project root directory (where .git folder is).");
     }
+}
+
+/// Prints a message about invalid args and exits with code 1.
+pub(crate) fn emit_cli_err_msg() {
+    if cfg!(target_os = "windows") {
+        eprintln!(
+            "Cannot parse the parameters from the command line. Run `stackmuncher.exe --help` for usage details."
+        );
+    } else {
+        eprintln!("Cannot parse the parameters from the command line. Run `stackmuncher --help` for usage details.");
+    }
+}
+
+/// Prints out either Win or nix/Mac Welcome msg.
+pub(crate) fn emit_welcome_msg() {
+    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
+
+    println!("\
+    This app generates technology stack reports for your projects and adds them to your profile on stackmuncher.com, a Global Directory of Software Developers.
+    Use --no_update flag to NOT submit any data to the Directory.
+    
+    YOUR DIRECTORY PROFILE
+    
+        An anonymous profile is created on stackmuncher.com the first time you run this app. You can add more details...
+        * to tell employers who you are: `stackmuncher{exe_suffix} --public_name \"My Full Name or Nickname\" --public_contact \"Email, website, twitter\"`
+        * to become anonymous again: `stackmuncher{exe_suffix} --public_name \"\" --public_contact \"\"`
+    
+    CODE PRIVACY:
+        All code analysis is done locally. Not a single line of code is leaving your machine. Run `stackmuncher view_reports` to see the reports.
+    
+    USAGE:
+        stackmuncher{exe_suffix}                        analyzes the project in the current folder and updates your profile, uses `git config user.email` setting to find your commits
+    
+        stackmuncher{exe_suffix} automate               add a git-commit hook to update your Directory profile automatically
+    
+        stackmuncher{exe_suffix} [command] [OPTIONS]    modify the default behavior of the app
+    
+    
+    OPTIONS:
+        --no_update                                     do not update my Directory profile
+        
+        --primary_email \"me@mydomain.com\"             for Directory notifications, kept private, defaults to the address in `git config user.email` setting
+        
+        --emails \"me@gmail.com,me@other.com\"          list of emails used in your commits, defaults to the address in `git config user.email` setting
+    
+        --public_name \"My Full Name or Nickname\"      name of your profile or leave it blank to remain anonymous, only need to set once
+    
+        --public_contact \"Email, website, twitter\"    contact details in your profile or leave it blank to remove them, only need to set once
+    
+        --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
+    
+        --rules \"path to code analysis rules\"         can be relative or absolute, defaults to platform-specific application folder
+    
+        --reports \"path to reports folder\"            can be relative or absolute, defaults to platform-specific application folder
+    
+        --log error|warn|info|debug|trace               defaults to `error` for least verbose output
+    
+    ADDITIONAL COMMANDS:
+        help, view_reports, make_anon, delete_profile
+    
+    MORE INFO:
+        https://stackmuncher.com/about      about the Directory
+        https://github.com/stackmuncher     source code, issues and more
+    ",exe_suffix=exe_suffix);
 }
