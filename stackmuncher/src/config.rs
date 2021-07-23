@@ -71,7 +71,20 @@ impl AppConfig {
         };
 
         if let Some(emails) = app_args.emails {
+            if emails.is_empty() {
+                println!("Found empty `--emails` CLI param. Will generate a project report only.")
+            }
             config.git_identities = emails;
+        }else {
+            if config.git_identities.is_empty() {
+                println!("This app looks for commits with an email from `git configure user.email` or multiple emails from `--emails` CLI param.");
+                println!("Both are empty. Will generate a project report only.");
+                println!();
+                println!("    1. Add your email with `git configure --global user.email me@gmail.com` to identify your future commits.");
+                println!("    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
+                println!("    3. Use `--emails \"me@gmail.com me@example.com\"` param to include contributions from multiple addresses and ignore git `user.email` setting.");
+                println!();
+            }
         };
 
         let primary_email = match app_args.primary_email {

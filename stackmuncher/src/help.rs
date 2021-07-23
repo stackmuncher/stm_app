@@ -2,17 +2,20 @@ use stackmuncher_lib::config::Config;
 
 /// Prints out a standard multi-line message on how to use the app and where to find more info
 pub(crate) fn emit_usage_msg() {
-    println!("Launch StackMuncher app from the root folder of your project with a Git repository in .git subfolder.");
-    println!("Add --help for more info");
-    println!("");
-    println!("");
+    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    println!();
+    println!(
+        "    Run `stackmuncher{exe_suffix} --help` for detailed usage info.",
+        exe_suffix = exe_suffix
+    );
+    println!();
     emit_support_msg();
 }
 
 /// Prints out a standard multi-line message on where to find more info
 pub(crate) fn emit_support_msg() {
-    println!("Source code and usage instructions: https://github.com/stackmuncher/stm");
-    println!("Bug reports and questions: https://github.com/stackmuncher/stm/issues or mailto:info@stackmuncher.com");
+    println!("Source code: https://github.com/stackmuncher/stm");
+    println!("Support: https://github.com/stackmuncher/stm/issues or info@stackmuncher.com");
 }
 
 /// Prints out info on where the rules are expected
@@ -31,9 +34,10 @@ pub(crate) fn emit_code_rules_msg() {
             Config::RULES_FOLDER_NAME_WIN
         );
     }
-    println!("To specify a different location use `--rules` param followed by a relative or absolute path to the rules folder.");
-    println!("The latest copy of the rules can be downloaded from https://github.com/stackmuncher/stm repo or https://distro.stackmuncher.com/stm_rules.zip");
-    println!("");
+    println!();
+    println!("    To specify a different location use `--rules` param followed by a relative or absolute path to the rules folder.");
+    println!("    The latest copy of the rules can be downloaded from https://github.com/stackmuncher/stm repo or https://distro.stackmuncher.com/stm_rules.zip");
+    println!();
     emit_support_msg();
 }
 
@@ -53,8 +57,9 @@ pub(crate) fn emit_report_dir_msg() {
             Config::REPORT_FOLDER_NAME_WIN
         );
     }
-    println!("To specify a different location use `--report` param followed by a relative or absolute path to the reports folder.");
-    println!("");
+    println!();
+    println!("    To specify a different location use `--report` param followed by a relative or absolute path to the reports folder.");
+    println!();
     emit_support_msg();
 }
 
@@ -83,50 +88,48 @@ pub(crate) fn emit_welcome_msg() {
     let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
 
     println!("\
-    This app generates technology stack reports for your projects and adds them to your profile on stackmuncher.com, a Global Directory of Software Developers.
-    Use --no_update flag to NOT submit any data to the Directory.
+StackMuncher app analyzes your technology stack and showcases it in the Global Directory of Software Developers.
+
+USAGE:
+    stackmuncher{exe_suffix}                        analyze the Git repo in the current folder and create or update your Directory Profile
+    stackmuncher{exe_suffix} automate               add a git-commit hook to update your Directory Profile automatically
+    stackmuncher{exe_suffix} [command] [OPTIONS]    modify the default behavior of this app
     
-    YOUR DIRECTORY PROFILE
+YOUR DIRECTORY PROFILE:
+    An anonymous profile is created in the Directory the first time you run this app.
+    * Tell employers who you are: `stackmuncher{exe_suffix} --public_name \"Name or Nickname\" --public_contact \"Email, website, twitter\"`
+    * Become anonymous again: `stackmuncher{exe_suffix} make_anon`
+    * Skip submitting any data to the Directory: use `--no_update` flag
+
+CODE PRIVACY:
+    All code analysis is done locally. Not a single line of code is leaving your machine. View the source code at https://github.com/stackmuncher.
+
+OPTIONS:
+    --no_update                                   skip updating your Directory Profile
     
-        An anonymous profile is created on stackmuncher.com the first time you run this app. You can add more details...
-        * to tell employers who you are: `stackmuncher{exe_suffix} --public_name \"My Full Name or Nickname\" --public_contact \"Email, website, twitter\"`
-        * to become anonymous again: `stackmuncher{exe_suffix} --public_name \"\" --public_contact \"\"`
+    --primary_email \"me@gmail.com\"                for Directory notifications only, defaults to the address in `git config user.email` setting
     
-    CODE PRIVACY:
-        All code analysis is done locally. Not a single line of code is leaving your machine. Run `stackmuncher view_reports` to see the reports.
-    
-    USAGE:
-        stackmuncher{exe_suffix}                        analyzes the project in the current folder and updates your profile, uses `git config user.email` setting to find your commits
-    
-        stackmuncher{exe_suffix} automate               add a git-commit hook to update your Directory profile automatically
-    
-        stackmuncher{exe_suffix} [command] [OPTIONS]    modify the default behavior of the app
-    
-    
-    OPTIONS:
-        --no_update                                     do not update my Directory profile
-        
-        --primary_email \"me@mydomain.com\"             for Directory notifications, kept private, defaults to the address in `git config user.email` setting
-        
-        --emails \"me@gmail.com,me@other.com\"          list of emails used in your commits, defaults to the address in `git config user.email` setting
-    
-        --public_name \"My Full Name or Nickname\"      name of your profile or leave it blank to remain anonymous, only need to set once
-    
-        --public_contact \"Email, website, twitter\"    contact details in your profile or leave it blank to remove them, only need to set once
-    
-        --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
-    
-        --rules \"path to code analysis rules\"         can be relative or absolute, defaults to platform-specific application folder
-    
-        --reports \"path to reports folder\"            can be relative or absolute, defaults to platform-specific application folder
-    
-        --log error|warn|info|debug|trace               defaults to `error` for least verbose output
-    
-    ADDITIONAL COMMANDS:
-        help, view_reports, make_anon, delete_profile
-    
-    MORE INFO:
-        https://stackmuncher.com/about      about the Directory
-        https://github.com/stackmuncher     source code, issues and more
+    --emails \"me@gmail.com,me@other.com\"          list of emails used in your commits, defaults to the address in `git config user.email` setting
+
+    --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to set it once
+
+    --public_contact \"email, website, twitter\"    visible to anyone, leave it blank to remove, only need to set it once
+
+    --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
+
+    --rules \"path to code analysis rules\"         can be relative or absolute, defaults to the application folder
+
+    --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
+
+    --log error|warn|info|debug|trace             defaults to `error` for least verbose output
+
+    --help                                        display this message
+
+ADDITIONAL COMMANDS:
+    view_reports, make_anon, delete_profile
+
+MORE INFO:
+    https://stackmuncher.com/about      about the Directory
+    https://github.com/stackmuncher     source code, issues and more
     ",exe_suffix=exe_suffix);
 }

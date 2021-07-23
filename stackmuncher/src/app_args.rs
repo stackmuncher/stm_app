@@ -4,16 +4,22 @@ use std::str::FromStr;
 use std::{path::PathBuf, process::exit};
 
 /// List of valid app commands
+#[derive(PartialEq)]
 pub(crate) enum AppArgCommands {
     /// The default value
     Munch,
+    /// Display a detailed usage message
     Help,
+    /// Display the location of the reports folder
     ViewReports,
+    /// Remove name and contact details from the directory making the profile anonymous
     MakeAnon,
+    /// Completely delete the member profile from the directory
     DeleteProfile,
 }
 
-/// A container for user-provided CLI args or their defaults if none was supplied.
+/// A container for user-provided CLI commands and params. The names of the members correspond
+/// to the names of CLI args. E.g. --emails -> emails
 pub(crate) struct AppArgs {
     pub command: AppArgCommands,
     pub no_update: bool,
@@ -52,7 +58,8 @@ impl FromStr for AppArgCommands {
 }
 
 impl AppArgs {
-    /// Read the CLI params and replace the default values in `self`.
+    /// Read the CLI params from the environment and place them in `self`.
+    /// Uses None for omitted params.
     pub(crate) fn read_params() -> Self {
         let mut app_args = AppArgs {
             command: AppArgCommands::Munch,
@@ -67,6 +74,7 @@ impl AppArgs {
             log: None,
         };
 
+        // read the params into a parser
         let mut pargs = pico_args::Arguments::from_env();
 
         // help has a higher priority and should be handled separately
@@ -89,9 +97,19 @@ impl AppArgs {
             }
         };
 
-        app_args.no_update = pargs.contains("--no_update") || pargs.contains("--no-update") || pargs.contains("--noupdate");
+        // check if HELP was requested as a command
+        if app_args.command == AppArgCommands::Help {
+            help::emit_welcome_msg();
+            std::process::exit(0);
+        }
 
-        if let Some(primary_email) = find_arg_value(&mut pargs, vec!["--primary_email", "--primary-email", "--primaryemail"])
+        // --noupdate param with different misspellings
+        app_args.no_update =
+            pargs.contains("--no_update") || pargs.contains("--no-update") || pargs.contains("--noupdate");
+
+        // --primary_email
+        if let Some(primary_email) =
+            find_arg_value(&mut pargs, vec!["--primary_email", "--primary-email", "--primaryemail"])
         {
             app_args.primary_email = Some(primary_email);
         };
@@ -99,6 +117,7 @@ impl AppArgs {
         // emails are a comma-separated list and should be cleaned up from various forms like
         // a@gmail.com,,d@gmail.com,
         // "a@gmail.com d@gmail.com"
+        // can be empty if the user wants the project report only and no contributor reports
         if let Some(emails) = find_arg_value(&mut pargs, vec!["--emails"]) {
             let emails = emails
                 .trim()
@@ -111,10 +130,11 @@ impl AppArgs {
             app_args.emails = Some(emails);
         };
 
+        // --public_name
         if let Some(public_name) = find_arg_value(&mut pargs, vec!["--public_name", "--public-name", "--publicname"]) {
             app_args.public_name = Some(public_name);
         };
-
+        // --public_contact
         if let Some(public_contact) =
             find_arg_value(&mut pargs, vec!["--public_contact", "--public-contact", "--public_contact"])
         {
@@ -198,6 +218,14 @@ impl AppArgs {
             app_args.log = Some(string_to_log_level(log));
         };
 
+        // check for any leftovers or unrecognized params
+        let leftovers = pargs.finish();
+        if !leftovers.is_empty() {
+            eprintln!("STACKMUNCHER CONFIG ERROR: {:?} params are not recognized.", leftovers);
+            help::emit_usage_msg();
+            exit(1);
+        }
+
         app_args
     }
 }
@@ -211,7 +239,10 @@ fn find_arg_value(pargs: &mut pico_args::Arguments, arg_names: Vec<&'static str>
         let value: Option<String> = match pargs.opt_value_from_str(arg_name) {
             Ok(v) => v,
             Err(_) => {
-                eprintln!("STACKMUNCHER CONFIG ERROR: invalid value for `{}`", arg_name);
+                eprintln!(
+                    "STACKMUNCHER CONFIG ERROR: invalid or missing value for `{}`. Add \"\" to reset the value.",
+                    arg_name
+                );
                 help::emit_usage_msg();
                 exit(1);
             }

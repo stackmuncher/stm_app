@@ -92,7 +92,7 @@ async fn main() -> Result<(), ()> {
             info!("Done in {}ms", instant.elapsed().as_millis());
             // do not print the end user msg if the logging is enabled
             if config.lib_config.log_level == tracing::Level::ERROR {
-                println!("StackMuncher: no new commits since the last report.");
+                println!("No new commits since the last run.");
             }
             cached_project_report.expect("Cannot unwrap cached report. It's a bug.")
         }
@@ -102,6 +102,8 @@ async fn main() -> Result<(), ()> {
             v
         }
     };
+
+    info!("Contributor reports requested for: {:?}", config.lib_config.git_identities);
 
     // check if there are multiple contributors and generate individual reports
     if let Some(contributors) = &project_report.contributors {
@@ -196,15 +198,19 @@ async fn main() -> Result<(), ()> {
             combined_report.recompute_tech_section();
 
             // let the submission to the directory run concurrently with saving the file
-            //
-            // TEMPORARY PLUG DO NOT COMMIT !!!
-            //
-            if let Some(current_identity) = config.lib_config.git_identities.iter().next() {
-                submission_jobs.push(submission::submit_report(
-                    current_identity,
-                    combined_report.clone(),
-                    &config.lib_config,
-                ));
+            if config.no_update {
+                if config.lib_config.log_level == tracing::Level::ERROR {
+                    println!("Found `--no_update` flag: profile updates skipped.");
+                }
+                info!("Skipping report submission due to `--no_update` flag.")
+            } else {
+                if let Some(current_identity) = config.lib_config.git_identities.iter().next() {
+                    submission_jobs.push(submission::submit_report(
+                        current_identity,
+                        combined_report.clone(),
+                        &config.lib_config,
+                    ));
+                }
             }
             // save the combined report
             combined_report.save_as_local_file(
@@ -228,10 +234,17 @@ async fn main() -> Result<(), ()> {
             }
         }
     }
+
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
     // do not print the end user msg if the logging is enabled
     if config.lib_config.log_level == tracing::Level::ERROR {
-        println!("StackMuncher: reports saved in {}", report_dir.to_string_lossy());
+        println!(
+            "Stack report location: {}",
+            report_dir
+                .absolutize()
+                .expect("Cannot convert report_dir to absolute path. It's a bug.")
+                .to_string_lossy()
+        );
     }
     Ok(())
 }
