@@ -1,5 +1,6 @@
 /target
 /reports
+.stmkeys
 Cargo.lock
 stm-report.json
 trace*.txt

@@ -11,6 +11,7 @@ pub(crate) struct AppConfig {
     pub primary_email: Option<String>,
     pub public_name: Option<String>,
     pub public_contact: Option<String>,
+    /// Core config from stackmuncher_lib
     pub lib_config: Config,
 }
 
@@ -55,6 +56,10 @@ impl AppConfig {
             config.project_dir = project;
         };
 
+        if let Some(keys) = app_args.keys {
+            config.keys_dir = Some(keys);
+        };
+
         config.report_dir = match app_args.reports {
             Some(v) => Some(generate_report_dir(&config.project_dir, &v)),
             None => Some(generate_report_dir(
@@ -75,15 +80,17 @@ impl AppConfig {
                 println!("Found empty `--emails` CLI param. Will generate a project report only.")
             }
             config.git_identities = emails;
-        }else {
+        } else {
             if config.git_identities.is_empty() {
-                println!("This app looks for commits with an email from `git configure user.email` or multiple emails from `--emails` CLI param.");
-                println!("Both are empty. Will generate a project report only.");
-                println!();
-                println!("    1. Add your email with `git configure --global user.email me@gmail.com` to identify your future commits.");
-                println!("    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
-                println!("    3. Use `--emails \"me@gmail.com me@example.com\"` param to include contributions from multiple addresses and ignore git `user.email` setting.");
-                println!();
+                println!("\
+This app looks for commits with an email from `git configure user.email` or multiple emails from `--emails` CLI param.
+Both are empty. Will generate a project report only.
+
+    1. Add your email with `git configure --global user.email me@gmail.com` to identify your future commits.
+    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.
+    3. Use `--emails \"me@gmail.com me@example.com\"` param to include contributions from multiple addresses and ignore git `user.email` setting.
+
+");
             }
         };
 
@@ -111,16 +118,18 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
-    let (code_rules_dir, report_dir, log_level) = if cfg!(debug_assertions) {
+    let (code_rules_dir, report_dir, keys_dir, log_level) = if cfg!(debug_assertions) {
         (
             Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
+            Path::new(Config::KEYS_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
         (
             Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
+            Path::new(Config::KEYS_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
@@ -145,6 +154,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
         (
             exec_dir.join(Config::RULES_FOLDER_NAME_WIN),
             local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
+            local_appdata_dir.join(Config::KEYS_FOLDER_NAME_WIN),
             tracing::Level::ERROR,
         )
     } else {
@@ -161,6 +171,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
         log_level,
         code_rules_dir,
         report_dir: Some(report_dir),
+        keys_dir: Some(keys_dir),
         project_dir: current_dir,
         user_name: String::new(),
         repo_name: String::new(),

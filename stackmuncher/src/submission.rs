@@ -1,11 +1,12 @@
 use crate::help;
 use crate::signing::ReportSignature;
+use crate::AppConfig;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
 use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
-use stackmuncher_lib::{config::Config, report::Report, tech::Tech};
+use stackmuncher_lib::{report::Report, tech::Tech};
 use std::io::prelude::*;
 use tracing::{debug, info, warn};
 
@@ -23,7 +24,7 @@ const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
 /// Submits the serialized report to STM or some other web service. Includes signing.
 /// May panic if the signing fails (missing keys, can't access keystore).
-pub(crate) async fn submit_report(email: &String, report: Report, config: &Config) {
+pub(crate) async fn submit_report(email: &String, report: Report, config: &AppConfig) {
     // remove any sensitive info from the report
     let report = match pre_submission_cleanup(report) {
         Err(_) => {
@@ -33,7 +34,7 @@ pub(crate) async fn submit_report(email: &String, report: Report, config: &Confi
     };
 
     // sign the report
-    let report_sig = ReportSignature::sign(email, &report, config);
+    let report_sig = ReportSignature::sign(email, &report, &config.lib_config);
 
     // prepare HTTP request which should go without a hitch unless the report or one of the headers is somehow invalid
     let req = Request::builder()
@@ -68,14 +69,8 @@ pub(crate) async fn submit_report(email: &String, report: Report, config: &Confi
     // Concatenate the body stream into a single buffer...
     let buf = match hyper::body::to_bytes(res).await {
         Err(e) => {
-            warn!(
-                "Failed to convert StackMuncher report to bytes due to: {}. It's a bug",
-                e
-            );
-            eprintln!(
-                "Failed to convert StackMuncher report to bytes due to: {}. It's a bug",
-                e
-            );
+            warn!("Failed to convert StackMuncher report to bytes due to: {}. It's a bug", e);
+            eprintln!("Failed to convert StackMuncher report to bytes due to: {}. It's a bug", e);
             help::emit_detailed_output_msg();
             return;
         }

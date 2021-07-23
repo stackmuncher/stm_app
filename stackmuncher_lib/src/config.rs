@@ -11,6 +11,9 @@ pub struct Config {
     pub log_level: tracing::Level,
     /// Absolute or relative path to the project directory with the files to analyze.
     pub project_dir: PathBuf,
+    /// Absolute or relative path to the directory with user private keys for signing messages to STM Inbox.
+    /// Only used by the local app and may be None for server-side processing.
+    pub keys_dir: Option<PathBuf>,
     /// GitHub user name (the validity is not enforced at the moment as it's not pushed anywhere)
     /// Used only for repos downloaded from GitHub
     pub user_name: String,
@@ -32,6 +35,7 @@ impl Config {
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
     pub const GIT_REMOTE_URL_REGEX: &'static str = r#"(?i)\s(http.*)\("#;
+    
     /// The default location of reports on linux. Chosen on the basis of https://www.pathname.com/fhs/
     /// > The /var/tmp directory is made available for programs that require temporary files or directories that are preserved between system reboots.
     /// > Therefore, data stored in/var/tmp is more persistent than data in /tmp.
@@ -39,6 +43,7 @@ impl Config {
     /// This value is to be appended to the value of %LOCALAPPDATA% environment variable
     pub const REPORT_FOLDER_NAME_WIN: &'static str = "stackmuncher\\reports";
     pub const REPORT_FOLDER_NAME_DEBUG: &'static str = "reports";
+
     /// The code analysis rules should live in this folder, but the location of the folder itself
     /// may vary from set up to set up.
     /// The values must agree with what is configured in the deployment packages:
@@ -53,6 +58,13 @@ impl Config {
     /// It is expected to be `stm_rules/munchers/`
     pub const RULES_SUBFOLDER_MUNCHERS: &'static str = "munchers";
 
+    /// The location of user keys for signing STM Inbox messages: `.stmkeys`
+    pub const KEYS_FOLDER_NAME_DEBUG: &'static str = ".stmkeys";
+    /// The location of user keys for signing STM Inbox messages: `/usr/share/stackmuncher/.stmkeys`
+    pub const KEYS_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/.stmkeys";
+    /// This value is to be appended to the folder of the executable
+    pub const KEYS_FOLDER_NAME_WIN: &'static str = ".stmkeys";
+
     /// Returns a minimal version of Self with no validation and default values.
     /// It compiles some regex and should be cached
     pub fn new(code_rules_dir: &Path, user_name: String, repo_name: String) -> Self {
@@ -61,6 +73,7 @@ impl Config {
             code_rules_dir: code_rules_dir.clone().into(),
             report_dir: None,
             project_dir: PathBuf::default(),
+            keys_dir: None,
             user_name,
             repo_name,
             git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
@@ -77,6 +90,7 @@ impl Config {
             code_rules_dir: PathBuf::default(),
             report_dir: None,
             project_dir: PathBuf::default(),
+            keys_dir: None,
             user_name: String::new(),
             repo_name: String::new(),
             git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),

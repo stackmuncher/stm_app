@@ -30,6 +30,7 @@ pub(crate) struct AppArgs {
     pub project: Option<PathBuf>,
     pub rules: Option<PathBuf>,
     pub reports: Option<PathBuf>,
+    pub keys: Option<PathBuf>,
     pub log: Option<tracing::Level>,
 }
 
@@ -71,6 +72,7 @@ impl AppArgs {
             project: None,
             rules: None,
             reports: None,
+            keys: None,
             log: None,
         };
 
@@ -206,6 +208,30 @@ impl AppArgs {
                     eprintln!(
                         "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--reports`. Omit it to use the default location or provide a valid path to where report files should be placed (absolute or relative).",
                         reports
+                    );
+                    help::emit_usage_msg();
+                    exit(1);
+                }
+            }
+        };
+
+        // keys folder
+        if let Some(keys) = find_arg_value(&mut pargs, vec!["--keys"]) {
+            // en empty value doesn't make sense in this context
+            if keys.trim().is_empty() {
+                eprintln!(
+                    "STACKMUNCHER CONFIG ERROR: param `--keys` has no value. Omit it to use the default location or provide a valid path to where your encryption keys should be stored (absolute or relative).",
+                );
+                help::emit_usage_msg();
+                exit(1);
+            }
+
+            match PathBuf::from_str(&keys) {
+                Ok(v) => app_args.keys = Some(v),
+                Err(_) => {
+                    eprintln!(
+                        "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--keys`. Omit it to use the default location or provide a valid path to where your encryption keys should be stored (absolute or relative)",
+                        keys
                     );
                     help::emit_usage_msg();
                     exit(1);

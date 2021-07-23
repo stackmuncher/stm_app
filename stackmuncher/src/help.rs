@@ -121,6 +121,8 @@ OPTIONS:
 
     --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
 
+    --keys \"path to keys folder\"                  can be relative or absolute, defaults to the application folder
+
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
 
     --help                                        display this message

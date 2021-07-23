@@ -32,10 +32,7 @@ impl ReportSignature {
         let normalized_email = email.to_lowercase().trim().to_string();
         // the hash looks like 3xMKTSi8KZiJGG7vqGSaFS7hC9B2EAMDHv7Yp3CSr5LQ
         let normalized_email_hash = hash_str_to_sha256_as_base58(&email);
-        info!(
-            "Report signing. Norm email: {}, hash: {}",
-            normalized_email, normalized_email_hash
-        );
+        info!("Report signing. Norm email: {}, hash: {}", normalized_email, normalized_email_hash);
 
         // get a new or previously generated and stored locally key-pair
         let key_pair = get_key_pair(&normalized_email_hash, &config);
@@ -83,10 +80,7 @@ fn get_key_pair(normalized_email_hash: &String, config: &Config) -> Ed25519KeyPa
             match signature::Ed25519KeyPair::from_pkcs8(generate_and_save_new_pkcs8(&key_file_path).as_ref()) {
                 Err(e) => {
                     // there is not much else can be done
-                    warn!(
-                        "Failed to generate an ED25519 key pair (attempt 2) from pkcs8 bytes due to {}",
-                        e
-                    );
+                    warn!("Failed to generate an ED25519 key pair (attempt 2) from pkcs8 bytes due to {}", e);
                     eprintln!("STACKMUNCHER ERROR: failed to generate an ED25519 key pair");
                     exit(1);
                 }
@@ -132,13 +126,9 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
 fn get_key_file_name(normalized_email_hash: &String, config: &Config) -> PathBuf {
     // check if the keys directory exists
     let keys_dir = config
-        .report_dir
+        .keys_dir
         .as_ref()
-        .expect("Cannot unwrap config.report_dir. It's a bug.")
-        .parent()
-        .expect("Cannot unwrap the root folder for all reports. It's a bug.")
-        .to_path_buf()
-        .join(".keys");
+        .expect("Cannot unwrap config.keys_dir. It's a bug.");
 
     if !keys_dir.exists() {
         if let Err(e) = std::fs::create_dir_all(keys_dir.clone()) {

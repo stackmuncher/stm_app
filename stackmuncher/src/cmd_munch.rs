@@ -149,8 +149,8 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 }
                 info!("Skipping report submission due to `--no_update` flag.")
             } else {
-                if let Some(current_identity) = config.lib_config.git_identities.iter().next() {
-                    submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config.lib_config));
+                if let Some(current_identity) = &config.primary_email {
+                    submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
                 }
             }
             // save the combined report
