@@ -142,15 +142,22 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             // combine all added per-file-tech into appropriate tech records
             combined_report.recompute_tech_section();
 
+            // add any personal details supplied via CLI or taken from the environment
+            combined_report.public_name = config.public_name.clone();
+            combined_report.public_contact = config.public_contact.clone();
+            combined_report.primary_email = config.primary_email.clone();
+
             // let the submission to the directory run concurrently with saving the file
             if config.no_update {
                 if config.lib_config.log_level == tracing::Level::ERROR {
                     println!("Found `--no_update` flag: profile updates skipped.");
                 }
-                info!("Skipping report submission due to `--no_update` flag.")
+                info!("Skipping report submission: `--no_update` flag.")
             } else {
                 if let Some(current_identity) = &config.primary_email {
                     submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
+                } else {
+                    info!("Skipping report submission: no primary_email")
                 }
             }
             // save the combined report

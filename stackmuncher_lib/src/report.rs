@@ -19,6 +19,19 @@ pub struct Report {
     /// The exact timestamp of the report generation in ISO3389 format.
     /// E.g. 2018-12-09T22:29:40+01:00
     pub timestamp: String,
+    /// Member email address for STM notifications. No update is needed if None. Clear if Some("").
+    /// Only used for Inbox reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_email: Option<String>,
+    /// Member's public name. No update is needed if None. Clear if Some("").
+    /// Only used for Inbox reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_name: Option<String>,
+    /// Member's public contact. No update is needed if None. Clear if Some("").
+    /// Can contain any details, up to the member.
+    /// Only used for Inbox reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_contact: Option<String>,
     /// GitHub user name, if known
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub github_user_name: String,
@@ -432,6 +445,9 @@ impl Report {
             recent_project_commits: None,
             last_contributor_commit_date_iso: None,
             last_contributor_commit_sha1: None,
+            primary_email: None,
+            public_contact: None,
+            public_name: None,
         }
     }
 
