@@ -349,6 +349,7 @@ impl Report {
 
     /// Resets report timestamp, contributor, report IDs and other fields from the individual contributor report
     /// that should not appear in the combined report which may be submitted to the directory.
+    /// Adds a list of contributor commits.
     pub fn reset_combined_contributor_report(
         &mut self,
         contributor_git_id: String,

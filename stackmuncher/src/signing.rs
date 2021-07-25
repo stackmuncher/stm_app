@@ -35,7 +35,7 @@ impl ReportSignature {
         info!("Report signing. Norm email: {}, hash: {}", normalized_email, normalized_email_hash);
 
         // get a new or previously generated and stored locally key-pair
-        let key_pair = get_key_pair(&normalized_email_hash, &config);
+        let key_pair = get_key_pair(&config);
         // the public key is extracted from the key-pair (zero cost op)
         let public_key = key_pair.public_key();
 
@@ -57,9 +57,9 @@ impl ReportSignature {
 
 /// Retrieves an existing key-pair from the disk or generates a new one and saves it for future use.
 /// Panics on unrecoverable errors. May panic over file access or some infra issues generating a key in a particular environment.
-fn get_key_pair(normalized_email_hash: &String, config: &Config) -> Ed25519KeyPair {
+fn get_key_pair(config: &Config) -> Ed25519KeyPair {
     // try to get the file from the disk first
-    let key_file_path = get_key_file_name(normalized_email_hash, config);
+    let key_file_path = get_key_file_name(config);
     let pkcs8_bytes = match std::fs::read(key_file_path.clone()) {
         Err(e) => {
             // most likely the file doesn't exist, but it may be corrupt or inaccessible
@@ -123,7 +123,7 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
 }
 
 /// Returns the name of the key file for the normalized_email_hash for consistency.
-fn get_key_file_name(normalized_email_hash: &String, config: &Config) -> PathBuf {
+fn get_key_file_name(config: &Config) -> PathBuf {
     // check if the keys directory exists
     let keys_dir = config
         .keys_dir
@@ -142,6 +142,6 @@ fn get_key_file_name(normalized_email_hash: &String, config: &Config) -> PathBuf
         info!("Created keys folder in {}", keys_dir.to_string_lossy());
     }
 
-    // complete bilding the file name
-    keys_dir.join(normalized_email_hash).with_extension("pki")
+    // complete building the file name
+    keys_dir.join("key.pki")
 }
