@@ -34,7 +34,7 @@ pub(crate) async fn submit_report(email: &String, report: Report, config: &AppCo
     };
 
     // sign the report
-    let report_sig = ReportSignature::sign(email, &report, &config.lib_config);
+    let report_sig = ReportSignature::sign(email, &report, &config.user_key_pair);
 
     // prepare HTTP request which should go without a hitch unless the report or one of the headers is somehow invalid
     let req = Request::builder()
@@ -80,6 +80,9 @@ pub(crate) async fn submit_report(email: &String, report: Report, config: &AppCo
     // a 200 OK body can be empty if everything is OK
     if status.as_u16() == 200 && buf.is_empty() {
         debug!("Empty response body, 200 OK");
+        if config.lib_config.log_level == tracing::Level::ERROR {
+            println!("Directory profile updated.");
+        }
         return;
     }
 

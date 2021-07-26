@@ -11,14 +11,9 @@ mod submission;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
-    // get input params
+    // generate the app config from a combo of default, cached and CLI params
+    // and initialize the logging with either default or user-requested level
     let config = AppConfig::new().await;
-
-    tracing_subscriber::fmt()
-        .with_max_level(config.lib_config.log_level.clone())
-        .with_ansi(false)
-        //.without_time()
-        .init();
 
     info!(
         "StackMuncher started in {} from {}",

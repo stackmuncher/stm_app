@@ -1,10 +1,18 @@
 use crate::{app_args::AppArgCommands, app_args::AppArgs, help};
 use path_absolutize::{self, Absolutize};
 use regex::Regex;
+use ring::signature::Ed25519KeyPair;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use tracing::debug;
 
+/// Name of the file stored in a predefined folder: config.json
+const APP_CONFIG_FILE_NAME: &str = "config.json";
+
+/// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
     pub command: AppArgCommands,
     pub no_update: bool,
@@ -13,11 +21,29 @@ pub(crate) struct AppConfig {
     pub public_contact: Option<String>,
     /// Core config from stackmuncher_lib
     pub lib_config: Config,
+    /// Extracted from the key file stored next to the config file
+    pub user_key_pair: Ed25519KeyPair,
+    /// The full path to the config file.
+    pub config_file_path: PathBuf,
+}
+
+/// A container for storing some config info locally as a file.
+#[derive(Serialize, Deserialize, PartialEq)]
+struct AppConfigCache {
+    pub primary_email: Option<String>,
+    pub public_name: Option<String>,
+    pub public_contact: Option<String>,
+    pub git_identities: Vec<String>,
 }
 
 impl AppConfig {
     /// Inits values from ENV vars and the command line arguments
     pub(crate) async fn new() -> AppConfig {
+        // -------------------------------------------------------------------------------------------------------------
+        // The sequence of the calls is very important. Some of them read or create resources needed in subsequent steps
+        // even if it may not be apparent from the function name. Follow the comments.
+        // -------------------------------------------------------------------------------------------------------------
+
         // assume that the project_dir is the current working folder
         let current_dir = match std::env::current_dir() {
             Ok(v) => v,
@@ -39,12 +65,34 @@ impl AppConfig {
             exit(1);
         };
 
-        // try to read CLI params provided by the user with defaults where no user params were supplied
+        // try to read CLI params provided by the user with defaults where no user params were supplied - may panic
         let app_args = AppArgs::read_params();
 
-        // get config defaults from the environment
-        let mut config = new_config_with_defaults(current_dir).await;
+        // init the subscriber now if the logging level is known from the CLI param
+        if let Some(log_level) = &app_args.log {
+            tracing_subscriber::fmt()
+                .with_max_level(log_level.clone())
+                .with_ansi(false)
+                .init();
+        }
 
+        // get config defaults from the environment - may panic
+        let (mut config, keys_dir) = new_config_with_defaults(current_dir).await;
+
+        // if the logging level was provided in a CLI param then the logging was already initialized
+        if let Some(log_level) = app_args.log {
+            // assign the level, but not no re-initialize
+            // it can be initialized only once in the app's lifetime
+            config.log_level = log_level;
+        } else {
+            // using the default logging level - initialize for the first time
+            tracing_subscriber::fmt()
+                .with_max_level(config.log_level.clone())
+                .with_ansi(false)
+                .init();
+        };
+
+        // rules and project folders are being validated only - not much difference if it's done now or later
         // replace default config with user values from the CLI
         if let Some(rules) = app_args.rules {
             validate_rules_dir(&rules);
@@ -56,13 +104,10 @@ impl AppConfig {
             config.project_dir = project;
         };
 
-        if let Some(keys) = app_args.keys {
-            config.keys_dir = Some(keys);
-        };
-
+        // reports folder may need to be created in the default or specified location
         config.report_dir = match app_args.reports {
-            Some(v) => Some(generate_report_dir(&config.project_dir, &v)),
-            None => Some(generate_report_dir(
+            Some(v) => Some(validate_or_create_report_dir(&config.project_dir, &v)),
+            None => Some(validate_or_create_report_dir(
                 &config.project_dir,
                 config
                     .report_dir
@@ -71,50 +116,94 @@ impl AppConfig {
             )),
         };
 
-        if let Some(log_level) = app_args.log {
-            config.log_level = log_level;
+        // keys folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
+        let keys_dir = if let Some(keys) = app_args.keys { keys } else { keys_dir };
+
+        // get existing or generate new key pair
+        // it will create STMKEYa directory needed for storing the config cache
+        let user_key_pair = crate::signing::get_key_pair(&keys_dir);
+
+        // this step must be done after the keys folder was validated / created
+        // it will check the git identities cached in a local file and merge them with what is in git config at the moment
+        let config_file_path = keys_dir.join(APP_CONFIG_FILE_NAME);
+        let app_config_cache = AppConfigCache::read_from_disk(&config_file_path);
+
+        // primary_email, public_name and public_contact may come from the cache, CLI or git IDs
+        let primary_email = if let Some(prim_email_arg) = app_args.primary_email {
+            if prim_email_arg.is_empty() {
+                // reset the value to NULL if `--primary_email ""`
+                debug!("Resetting primary_email to null");
+                None
+            } else {
+                // some value from the CLI
+                Some(prim_email_arg)
+            }
+        } else if app_config_cache.primary_email.is_some() {
+            app_config_cache.primary_email.clone()
+        } else if !config.git_identities.is_empty() {
+            Some(config.git_identities[0].clone())
+        } else {
+            None
         };
 
-        if let Some(emails) = app_args.emails {
-            if emails.is_empty() {
-                println!("Found empty `--emails` CLI param. Will generate a project report only.")
-            }
-            config.git_identities = emails;
+        let public_name = if app_args.public_name.is_some() {
+            app_args.public_name
+        } else if app_config_cache.public_name.is_some() {
+            app_config_cache.public_name.clone()
         } else {
-            if config.git_identities.is_empty() {
-                println!("\
-This app looks for commits with an email from `git configure user.email` or multiple emails from `--emails` CLI param.
-Both are empty. Will generate a project report only.
+            None
+        };
+
+        let public_contact = if app_args.public_contact.is_some() {
+            app_args.public_contact
+        } else if app_config_cache.public_contact.is_some() {
+            app_config_cache.public_contact.clone()
+        } else {
+            None
+        };
+
+        // merge all known git identities in a single unique list (git config + --emails + cached config)
+        if let Some(git_ids) = app_args.emails {
+            debug!("Adding {} git IDs from CLI", git_ids.len());
+            config.git_identities.extend(git_ids);
+        }
+        config.git_identities.extend(app_config_cache.git_identities.clone());
+        config.git_identities.sort();
+        config.git_identities.dedup();
+        debug!("Valid Git IDs: {}", config.git_identities.len());
+
+        // warn the user if there are no identities to work with
+        if config.git_identities.is_empty() {
+            println!(
+                "\
+Cannot identify which commits are yours without knowing your email address.
 
     1. Add your email with `git configure --global user.email me@gmail.com` to identify your future commits.
     2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.
-    3. Use `--emails \"me@gmail.com me@example.com\"` param to include contributions from multiple addresses and ignore git `user.email` setting.
+    3. Use `--emails \"me@gmail.com,me@example.com\"` param to add more of your emails for this and future runs.
+"
+            );
+        }
 
-");
-            }
-        };
-
-        let primary_email = match app_args.primary_email {
-            Some(v) => Some(v),
-            None => match config.git_identities.len() {
-                0 => None,
-                _ => Some(config.git_identities[0].clone()),
-            },
-        };
-
-        AppConfig {
+        let app_config = AppConfig {
             command: app_args.command,
             no_update: app_args.no_update,
             primary_email,
-            public_name: app_args.public_name,
-            public_contact: app_args.public_contact,
+            public_name,
+            public_contact,
             lib_config: config,
-        }
+            user_key_pair,
+            config_file_path,
+        };
+
+        app_config_cache.save(&app_config);
+
+        app_config
     }
 }
 
-/// Generate a new Config struct with the default values from the environment.
-pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
+/// Generate a new Config struct with the default values from the environment. May panic if the environment is not accessible.
+pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, PathBuf) {
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
@@ -171,7 +260,6 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
         log_level,
         code_rules_dir,
         report_dir: Some(report_dir),
-        keys_dir: Some(keys_dir),
         project_dir: current_dir,
         user_name: String::new(),
         repo_name: String::new(),
@@ -179,7 +267,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> Config {
         git_identities,
     };
 
-    config
+    (config, keys_dir)
 }
 
 /// Shortens a potentially long folder name like home_mx_projects_stm_stm_apps_stm_28642a39
@@ -272,7 +360,7 @@ fn validate_project_dir(project: &PathBuf) {
 
 /// Validates the value for the reports dir, adds the project component to it and creates the directory if needed.
 /// Prints error messages and exits on error.
-fn generate_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf {
+fn validate_or_create_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf {
     // individual project reports are grouped in their own folders - build that path here
     // this can be relative or absolute, which should be converted into absolute in a canonical form as a single folder name
     // e.g. /var/tmp/stackmuncher/reports/home_ubuntu_projects_some_project_name_1_6bdf08b3 were the last part is a canonical project name built
@@ -322,9 +410,111 @@ fn generate_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf {
                 e
             );
         };
-        println!("StackMuncher reports folder: {}", report_dir.to_string_lossy());
     }
 
     // save the project report path in config as String
     report_dir
+}
+
+impl AppConfigCache {
+    /// Reads cached config settings from `.stm_config` folder or returns a blank sruct if no cached config found
+    fn read_from_disk(config_file_path: &PathBuf) -> Self {
+        // create a blank dummy to return in case of a problem
+        let app_config_cache = AppConfigCache {
+            primary_email: None,
+            public_name: None,
+            public_contact: None,
+            git_identities: Vec::new(),
+        };
+
+        // check if the file exists
+        if !config_file_path.exists() {
+            debug!("Config cache file not found");
+            return app_config_cache;
+        }
+
+        // read the contents
+        let cached_file = match std::fs::read(config_file_path.clone()) {
+            Err(e) => {
+                eprintln!(
+                "STACKMUNCHER ERROR: failed to read a cached config file from {}.\n\n    Reason: {}\n\n    Will proceed anyway.",
+                config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                e
+            );
+                return app_config_cache;
+            }
+            Ok(v) => v,
+        };
+
+        // deserialize from JSON
+        let app_config_cache = match serde_json::from_slice::<AppConfigCache>(&cached_file) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!(
+                "STACKMUNCHER ERROR: failed to de-serialize a cached config file from {}.\n\n    Reason: {}\n\n    Did you edit the file manually? It will be overwritten with default values.",
+                config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                e
+            );
+                // return the blank version
+                return app_config_cache;
+            }
+        };
+
+        debug!(
+            "Config cache loaded: {}",
+            config_file_path.absolutize().unwrap_or_default().to_string_lossy()
+        );
+
+        // returns the version with cached contents
+        app_config_cache
+    }
+
+    /// Extracts persistent parts from `AppConfig` and saves them as a file in `.stm_config` folder.
+    /// Does not panic. May print a message on error.
+    fn save(self, app_config: &AppConfig) {
+        // prepare the data to save
+        let app_config_cache = AppConfigCache {
+            primary_email: app_config.primary_email.clone(),
+            public_name: app_config.public_name.clone(),
+            public_contact: app_config.public_contact.clone(),
+            git_identities: app_config.lib_config.git_identities.clone(),
+        };
+
+        // proceed only if there were any changes to the config or if the config file doesn't exist to create a stub the user can edit
+        if app_config_cache == self && app_config.config_file_path.exists() {
+            debug!("No config cache changes");
+            return;
+        }
+
+        // try to serialize and save the config cache
+        match serde_json::to_vec(&app_config_cache) {
+            Ok(app_config_cache) => {
+                if let Err(e) = std::fs::write(app_config.config_file_path.clone(), app_config_cache) {
+                    eprintln!(
+                "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug. Please, report it to https://github.com/stackmuncher/stm.",
+                app_config.config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                e
+            );
+                } else {
+                    debug!(
+                        "Config cache saved in {}",
+                        app_config
+                            .config_file_path
+                            .absolutize()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                    );
+                }
+            }
+            // serialization shouldn't fail
+            Err(e) => {
+                // nothing the user can do about it and it's not fatal, so inform and carry on
+                eprintln!(
+                "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug. Please, report it to https://github.com/stackmuncher/stm.",
+                app_config.config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                e
+            );
+            }
+        }
+    }
 }

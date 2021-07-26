@@ -421,25 +421,23 @@ pub async fn get_local_identities(repo_dir: &Path) -> Result<Vec<String>, ()> {
     // the main one is user, the other 2 will be unused for majority of users
     // they are processed in the order or precedence
     for var_name in ["user", "author", "committer"].iter() {
-        for key in [".email", ".name"].iter() {
-            let key = [var_name.to_string(), key.to_string()].concat();
-            // we need to check the email first and if that is blank check the name
-            let git_args = vec!["config".into(), key.clone()];
-            // git returns an empty error stream if the requested setting does not exist
-            // It's possible there was some other problem. The only way to find out is to check the log.
-            let git_output = execute_git_command(git_args, repo_dir, true).await?;
-            let git_output = String::from_utf8_lossy(&git_output);
-            if !git_output.is_empty() {
-                trace!("{}: {}", key, git_output);
-                // normally this identity should already be known from the additional list because it was stored there
-                // during the previous commit and they don't change that often
-                let git_output = git_output.trim().to_lowercase();
-                if !git_identities.contains(&git_output) {
-                    git_identities.push(git_output.trim().to_lowercase())
-                }
-                // it will exit on EMAIL section if the value was found or try NAME section otherwise
-                break;
+        let key = [var_name.to_string(), ".email".to_string()].concat();
+        // we need to check the email first and if that is blank check the name
+        let git_args = vec!["config".into(), key.clone()];
+        // git returns an empty error stream if the requested setting does not exist
+        // It's possible there was some other problem. The only way to find out is to check the log.
+        let git_output = execute_git_command(git_args, repo_dir, true).await?;
+        let git_output = String::from_utf8_lossy(&git_output);
+        if !git_output.trim().is_empty() {
+            trace!("Git ID value for {}: {}", key, git_output);
+            // normally this identity should already be known from the additional list because it was stored there
+            // during the previous commit and they don't change that often
+            let git_output = git_output.trim().to_lowercase();
+            if !git_identities.contains(&git_output) {
+                git_identities.push(git_output.trim().to_lowercase())
             }
+            // it will exit on EMAIL section if the value was found or try NAME section otherwise
+            break;
         }
     }
 

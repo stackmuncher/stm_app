@@ -109,11 +109,11 @@ OPTIONS:
     
     --primary_email \"me@gmail.com\"                for Directory notifications only, defaults to the address in `git config user.email` setting
     
-    --emails \"me@gmail.com,me@other.com\"          list of emails used in your commits, defaults to the address in `git config user.email` setting
+    --emails \"me@gmail.com,me@google.com\"         a list of all your commit emails, only need to use it once, defaults to `git config user.email`
 
-    --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to set it once
+    --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to use it once
 
-    --public_contact \"email, website, twitter\"    visible to anyone, leave it blank to remove, only need to set it once
+    --public_contact \"email, website, twitter\"    visible to anyone, leave it blank to remove, only need to use it once
 
     --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
 

@@ -55,6 +55,17 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
         }
     };
 
+    // print the location of the reports
+    if config.lib_config.log_level == tracing::Level::ERROR {
+        println!(
+            "Stack report location: {}",
+            report_dir
+                .absolutize()
+                .expect("Cannot convert report_dir to absolute path. It's a bug.")
+                .to_string_lossy()
+        );
+    }
+
     info!("Contributor reports requested for: {:?}", config.lib_config.git_identities);
 
     // check if there are multiple contributors and generate individual reports
@@ -150,13 +161,24 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             // let the submission to the directory run concurrently with saving the file
             if config.no_update {
                 if config.lib_config.log_level == tracing::Level::ERROR {
-                    println!("Found `--no_update` flag: profile updates skipped.");
+                    println!("Directory profile is NOT updated with `--no_update` flag.");
                 }
                 info!("Skipping report submission: `--no_update` flag.")
             } else {
                 if let Some(current_identity) = &config.primary_email {
                     submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
                 } else {
+                    if config.lib_config.log_level == tracing::Level::ERROR {
+                        println!(
+                            "\
+
+Directory profile cannot be updated without knowing your email address.
+
+    Add `--primary_email me@gmail.com` param once to start updating your profile on every run.
+
+"
+                        );
+                    }
                     info!("Skipping report submission: no primary_email")
                 }
             }
@@ -184,15 +206,6 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     }
 
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
-    // do not print the end user msg if the logging is enabled
-    if config.lib_config.log_level == tracing::Level::ERROR {
-        println!(
-            "Stack report location: {}",
-            report_dir
-                .absolutize()
-                .expect("Cannot convert report_dir to absolute path. It's a bug.")
-                .to_string_lossy()
-        );
-    }
+
     Ok(())
 }

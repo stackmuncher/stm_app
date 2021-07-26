@@ -3,7 +3,6 @@ use ring::{
     rand,
     signature::{self, Ed25519KeyPair, KeyPair},
 };
-use stackmuncher_lib::config::Config;
 use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
 use std::{path::PathBuf, process::exit};
 use tracing::{debug, info, warn};
@@ -27,15 +26,13 @@ impl ReportSignature {
     /// Retrieves an existing key from the storage or generates a new one, then signs the payload and returns the signature details.
     /// Keys are stored in *reports/.keys/* folder with the norm hash as the file name. There should be only one key per email.
     /// If no keys are present they are generated and saved on disk.
-    pub(crate) fn sign(email: &String, report_as_bytes: &[u8], config: &Config) -> Self {
+    pub(crate) fn sign(email: &String, report_as_bytes: &[u8], key_pair: &Ed25519KeyPair) -> Self {
         // normalize the email
         let normalized_email = email.to_lowercase().trim().to_string();
         // the hash looks like 3xMKTSi8KZiJGG7vqGSaFS7hC9B2EAMDHv7Yp3CSr5LQ
         let normalized_email_hash = hash_str_to_sha256_as_base58(&email);
         info!("Report signing. Norm email: {}, hash: {}", normalized_email, normalized_email_hash);
 
-        // get a new or previously generated and stored locally key-pair
-        let key_pair = get_key_pair(&config);
         // the public key is extracted from the key-pair (zero cost op)
         let public_key = key_pair.public_key();
 
@@ -57,9 +54,20 @@ impl ReportSignature {
 
 /// Retrieves an existing key-pair from the disk or generates a new one and saves it for future use.
 /// Panics on unrecoverable errors. May panic over file access or some infra issues generating a key in a particular environment.
-fn get_key_pair(config: &Config) -> Ed25519KeyPair {
+pub(crate) fn get_key_pair(keys_dir: &PathBuf) -> Ed25519KeyPair {
+    // the validity of the path and the presence of the folder should be validated during config time
     // try to get the file from the disk first
-    let key_file_path = get_key_file_name(config);
+    let key_file_path = get_key_file_name(keys_dir);
+
+    // does it exist?
+    if !key_file_path.exists() {
+        // this is a bit wasteful - the call returns the key, but it is read in the next statement from disk
+        // did this to keep the flow of the code more or less linear
+        info!("No key file found at {}", key_file_path.to_string_lossy());
+        generate_and_save_new_pkcs8(&key_file_path);
+    }
+
+    // read the contents of the key file
     let pkcs8_bytes = match std::fs::read(key_file_path.clone()) {
         Err(e) => {
             // most likely the file doesn't exist, but it may be corrupt or inaccessible
@@ -123,13 +131,8 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
 }
 
 /// Returns the name of the key file for the normalized_email_hash for consistency.
-fn get_key_file_name(config: &Config) -> PathBuf {
+fn get_key_file_name(keys_dir: &PathBuf) -> PathBuf {
     // check if the keys directory exists
-    let keys_dir = config
-        .keys_dir
-        .as_ref()
-        .expect("Cannot unwrap config.keys_dir. It's a bug.");
-
     if !keys_dir.exists() {
         if let Err(e) = std::fs::create_dir_all(keys_dir.clone()) {
             eprintln!(
