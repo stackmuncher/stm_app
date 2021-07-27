@@ -44,6 +44,9 @@ impl AppConfig {
         // even if it may not be apparent from the function name. Follow the comments.
         // -------------------------------------------------------------------------------------------------------------
 
+        // used in user messages
+        let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
+
         // assume that the project_dir is the current working folder
         let current_dir = match std::env::current_dir() {
             Ok(v) => v,
@@ -132,17 +135,39 @@ impl AppConfig {
         let primary_email = if let Some(prim_email_arg) = app_args.primary_email {
             if prim_email_arg.is_empty() {
                 // reset the value to NULL if `--primary_email ""`
-                debug!("Resetting primary_email to null");
-                None
+                debug!("Resetting primary_email to an empty string");
+                println!("Your primary email address for notifications from the Directory was removed. Your profile will no longer be updated. You can still generate and view stack reports locally.");
+                println!();
+                Some(String::new())
             } else {
-                // some value from the CLI
+                // some new value from the CLI
+                println!(
+                    "{} will be used for notifications about your Directory Profile views and employer interest.",
+                    prim_email_arg
+                );
                 Some(prim_email_arg)
             }
         } else if app_config_cache.primary_email.is_some() {
+            // setting the email from cache - no need to print anything for the user
             app_config_cache.primary_email.clone()
         } else if !config.git_identities.is_empty() {
+            // setting the email from GIT IDs
+            println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",config.git_identities[0]);
+            println!();
+            println!(
+                "    Run `stackmuncher{} --primary_email me@example.com` to set your preferred contact email. It will not be published or shared with anyone.",
+                exe_suffix
+            );
+            println!();
             Some(config.git_identities[0].clone())
         } else {
+            println!("Missing preferred contact email. Your profile will not be updated. You can still generate and view your stack reports locally.");
+            println!();
+            println!(
+                "    Run `stackmuncher{} --primary_email me@example.com` to start updating your Directory profile.",
+                exe_suffix
+            );
+            println!();
             None
         };
 
@@ -178,9 +203,9 @@ impl AppConfig {
                 "\
 Cannot identify which commits are yours without knowing your email address.
 
-    1. Add your email with `git configure --global user.email me@gmail.com` to identify your future commits.
+    1. Add your email with `git configure --global user.email me@example.com` to identify your future commits.
     2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.
-    3. Use `--emails \"me@gmail.com,me@example.com\"` param to add more of your emails for this and future runs.
+    3. Use `--emails \"me@example.com,me@example.com\"` param to add more of your emails for this and future runs.
 "
             );
         }

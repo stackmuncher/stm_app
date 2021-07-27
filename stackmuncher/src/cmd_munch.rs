@@ -161,24 +161,19 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             // let the submission to the directory run concurrently with saving the file
             if config.no_update {
                 if config.lib_config.log_level == tracing::Level::ERROR {
-                    println!("Directory profile is NOT updated with `--no_update` flag.");
+                    println!("Directory Profile update skipped: `--no_update` flag.");
                 }
                 info!("Skipping report submission: `--no_update` flag.")
             } else {
                 if let Some(current_identity) = &config.primary_email {
-                    submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
-                } else {
-                    if config.lib_config.log_level == tracing::Level::ERROR {
-                        println!(
-                            "\
-
-Directory profile cannot be updated without knowing your email address.
-
-    Add `--primary_email me@gmail.com` param once to start updating your profile on every run.
-
-"
-                        );
+                    if current_identity.is_empty() {
+                        info!("Skipping report submission: blank primary_email");
+                        // notify the user there was no profile update
+                        println!("Your Directory Profile was NOT updated: run with `--primary_email me@example.com` once to resume the updates.");
+                    } else {
+                        submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
                     }
+                } else {
                     info!("Skipping report submission: no primary_email")
                 }
             }

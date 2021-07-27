@@ -107,9 +107,9 @@ CODE PRIVACY:
 OPTIONS:
     --no_update                                   skip updating your Directory Profile
     
-    --primary_email \"me@gmail.com\"                for Directory notifications only, defaults to the address in `git config user.email` setting
+    --primary_email \"me@example.com\"              for Directory notifications only, defaults to the address in `git config user.email` setting
     
-    --emails \"me@gmail.com,me@google.com\"         a list of all your commit emails, only need to use it once, defaults to `git config user.email`
+    --emails \"me@example.com,me@google.com\"       a list of all your commit emails, only need to use it once, defaults to `git config user.email`
 
     --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to use it once
 

@@ -117,8 +117,8 @@ impl AppArgs {
         };
 
         // emails are a comma-separated list and should be cleaned up from various forms like
-        // a@gmail.com,,d@gmail.com,
-        // "a@gmail.com d@gmail.com"
+        // a@example.com,,d@example.com,
+        // "a@example.com d@example.com"
         // can be empty if the user wants the project report only and no contributor reports
         if let Some(emails) = find_arg_value(&mut pargs, vec!["--emails"]) {
             let emails = emails
