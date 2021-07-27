@@ -275,8 +275,8 @@ fn find_arg_value(pargs: &mut pico_args::Arguments, arg_names: Vec<&'static str>
         };
 
         // return the first value encountered
-        if value.is_some() {
-            return value;
+        if let Some(v) = value {
+            return Some(v.trim().to_owned());
         }
     }
 

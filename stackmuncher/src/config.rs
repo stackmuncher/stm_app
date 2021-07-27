@@ -171,7 +171,29 @@ impl AppConfig {
             None
         };
 
-        let public_name = if app_args.public_name.is_some() {
+        let public_name = if let Some(pub_name) = &app_args.public_name {
+            if pub_name.is_empty() {
+                // empty public name - make anon
+                println!("Your Directory Profile name was removed. Your profile will be anonymous.");
+                println!();
+                println!(
+                    "    Run `stackmuncher{} --public_name \"My Name or Nickname\"` to make it public.",
+                    exe_suffix
+                );
+                println!();
+            } else {
+                // a new public name was supplied
+                println!(
+                    "Your new Directory Profile name: {}. It is visible to anyone, including search engines.",
+                    pub_name
+                );
+                println!();
+                println!(
+                    "    Run `stackmuncher{} --public_name \"\"` to remove the name and make your profile anonymous.",
+                    exe_suffix
+                );
+                println!();
+            }
             app_args.public_name
         } else if app_config_cache.public_name.is_some() {
             app_config_cache.public_name.clone()
@@ -179,13 +201,47 @@ impl AppConfig {
             None
         };
 
-        let public_contact = if app_args.public_contact.is_some() {
+        let public_contact = if let Some(pub_contact) = &app_args.public_contact {
+            if pub_contact.is_empty() {
+                // no public contact details
+                if primary_email.is_some() && !primary_email.as_ref().unwrap().is_empty() {
+                    println!("Your Directory Profile contact details were removed. Employers will be able to express their interest via Directory notifications sent to {}.", primary_email.as_ref().unwrap());
+                } else {
+                    println!("Your Directory Profile contact details were removed. Since your primary email address is blank as well your profile will be hidden.");
+                }
+
+                println!();
+                println!(
+                    "    Run `stackmuncher{} --public_contact \"Your email, website or any other contact details\"` for employers to contact you directly.",
+                    exe_suffix
+                );
+                println!();
+            } else {
+                // new public contact details
+                println!(
+                    "Your new Directory Profile contact: {}. It is visible to anyone, including search engines.",
+                    pub_contact
+                );
+                println!();
+                println!("    Run `stackmuncher{} --public_contact \"\"` to remove it.", exe_suffix);
+                println!();
+            }
+
             app_args.public_contact
         } else if app_config_cache.public_contact.is_some() {
             app_config_cache.public_contact.clone()
         } else {
             None
         };
+
+        // print a message about multiple git IDs on the first run
+        if config.git_identities.len() > 0 && app_args.emails.is_none() && app_config_cache.git_identities.is_empty() {
+            println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",config.git_identities[0]);
+            println!();
+            println!("    1. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
+            println!("    2. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", exe_suffix);
+            println!();
+        }
 
         // merge all known git identities in a single unique list (git config + --emails + cached config)
         if let Some(git_ids) = app_args.emails {
@@ -199,15 +255,12 @@ impl AppConfig {
 
         // warn the user if there are no identities to work with
         if config.git_identities.is_empty() {
-            println!(
-                "\
-Cannot identify which commits are yours without knowing your email address.
-
-    1. Add your email with `git configure --global user.email me@example.com` to identify your future commits.
-    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.
-    3. Use `--emails \"me@example.com,me@example.com\"` param to add more of your emails for this and future runs.
-"
-            );
+            println!("Cannot identify which commits are yours without knowing your email address.");
+            println!();
+            println!("    1. Add your email with `git configure --global user.email me@example.com` to identify your future commits.");
+            println!("    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
+            println!("    3. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", exe_suffix);
+            println!();
         }
 
         let app_config = AppConfig {
