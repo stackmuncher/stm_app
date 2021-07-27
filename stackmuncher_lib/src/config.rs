@@ -55,13 +55,6 @@ impl Config {
     /// It is expected to be `stm_rules/munchers/`
     pub const RULES_SUBFOLDER_MUNCHERS: &'static str = "munchers";
 
-    /// The location of user keys for signing STM Inbox messages: `.stm_config`
-    pub const KEYS_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
-    /// The location of user keys for signing STM Inbox messages: `/usr/share/stackmuncher/.stm_config`
-    pub const KEYS_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/.stm_config";
-    /// This value is to be appended to the folder of the executable
-    pub const KEYS_FOLDER_NAME_WIN: &'static str = ".stm_config";
-
     /// Returns a minimal version of Self with no validation and default values.
     /// It compiles some regex and should be cached
     pub fn new(code_rules_dir: &Path, user_name: String, repo_name: String) -> Self {

@@ -121,14 +121,14 @@ OPTIONS:
 
     --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
 
-    --keys \"path to keys folder\"                  can be relative or absolute, defaults to the application folder
+    --config \"path to config folder\"              can be relative or absolute, defaults to the application folder
 
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
 
     --help                                        display this message
 
 ADDITIONAL COMMANDS:
-    view_reports, make_anon, delete_profile
+    view_config, make_anon, delete_profile
 
 MORE INFO:
     https://stackmuncher.com/about      about the Directory

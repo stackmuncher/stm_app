@@ -10,8 +10,8 @@ pub(crate) enum AppArgCommands {
     Munch,
     /// Display a detailed usage message
     Help,
-    /// Display the location of the reports folder
-    ViewReports,
+    /// Display details of the current config (folders, git ids)
+    ViewConfig,
     /// Remove name and contact details from the directory making the profile anonymous
     MakeAnon,
     /// Completely delete the member profile from the directory
@@ -30,7 +30,7 @@ pub(crate) struct AppArgs {
     pub project: Option<PathBuf>,
     pub rules: Option<PathBuf>,
     pub reports: Option<PathBuf>,
-    pub keys: Option<PathBuf>,
+    pub config: Option<PathBuf>,
     pub log: Option<tracing::Level>,
 }
 
@@ -42,9 +42,7 @@ impl FromStr for AppArgCommands {
         let command = match command.as_str() {
             "help" => Self::Help,
             "" | "munch" => Self::Munch,
-            "viewreports" | "view-reports" | "view_reports" | "viewreport" | "view-report" | "view_report" => {
-                Self::ViewReports
-            }
+            "viewconfig" | "view-config" | "view_config" | "config" => Self::ViewConfig,
             "makeanon" | "make-anon" | "make_anon" => Self::MakeAnon,
             "deleteprofile" | "delete-profile" | "delete_profile" | "delete" => Self::DeleteProfile,
             _ => {
@@ -72,7 +70,7 @@ impl AppArgs {
             project: None,
             rules: None,
             reports: None,
-            keys: None,
+            config: None,
             log: None,
         };
 
@@ -215,23 +213,23 @@ impl AppArgs {
             }
         };
 
-        // keys folder
-        if let Some(keys) = find_arg_value(&mut pargs, vec!["--keys"]) {
+        // config folder
+        if let Some(config_folder) = find_arg_value(&mut pargs, vec!["--config"]) {
             // en empty value doesn't make sense in this context
-            if keys.trim().is_empty() {
+            if config_folder.trim().is_empty() {
                 eprintln!(
-                    "STACKMUNCHER CONFIG ERROR: param `--keys` has no value. Omit it to use the default location or provide a valid path to where your encryption keys should be stored (absolute or relative).",
+                    "STACKMUNCHER CONFIG ERROR: param `--config` has no value. Omit it to use the default location or provide a valid path to where your encryption keys and config details should be stored (absolute or relative).",
                 );
                 help::emit_usage_msg();
                 exit(1);
             }
 
-            match PathBuf::from_str(&keys) {
-                Ok(v) => app_args.keys = Some(v),
+            match PathBuf::from_str(&config_folder) {
+                Ok(v) => app_args.config = Some(v),
                 Err(_) => {
                     eprintln!(
-                        "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--keys`. Omit it to use the default location or provide a valid path to where your encryption keys should be stored (absolute or relative)",
-                        keys
+                        "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--config`. Omit it to use the default location or provide a valid path to where your encryption keys and config details should be stored (absolute or relative)",
+                        config_folder
                     );
                     help::emit_usage_msg();
                     exit(1);

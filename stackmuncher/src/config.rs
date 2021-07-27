@@ -12,6 +12,13 @@ use tracing::debug;
 /// Name of the file stored in a predefined folder: config.json
 const APP_CONFIG_FILE_NAME: &str = "config.json";
 
+/// The location of user config and keys for signing STM Inbox messages: `.stm_config`
+const CONFIG_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
+/// The location of user config and keys for signing STM Inbox messages: `/usr/share/stackmuncher/.stm_config`
+const CONFIG_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/.stm_config";
+/// This value is to be appended to the folder of the executable
+const CONFIG_FOLDER_NAME_WIN: &'static str = ".stm_config";
+
 /// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
     pub command: AppArgCommands,
@@ -80,7 +87,7 @@ impl AppConfig {
         }
 
         // get config defaults from the environment - may panic
-        let (mut config, keys_dir) = new_config_with_defaults(current_dir).await;
+        let (mut config, config_dir_default) = new_config_with_defaults(current_dir).await;
 
         // if the logging level was provided in a CLI param then the logging was already initialized
         if let Some(log_level) = app_args.log {
@@ -119,16 +126,20 @@ impl AppConfig {
             )),
         };
 
-        // keys folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
-        let keys_dir = if let Some(keys) = app_args.keys { keys } else { keys_dir };
+        // config folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
+        let config_dir = if let Some(conf_dir_from_args) = app_args.config {
+            conf_dir_from_args
+        } else {
+            config_dir_default
+        };
 
         // get existing or generate new key pair
         // it will create STMKEYa directory needed for storing the config cache
-        let user_key_pair = crate::signing::get_key_pair(&keys_dir);
+        let user_key_pair = crate::signing::get_key_pair(&config_dir);
 
-        // this step must be done after the keys folder was validated / created
+        // this step must be done after the config folder was validated / created
         // it will check the git identities cached in a local file and merge them with what is in git config at the moment
-        let config_file_path = keys_dir.join(APP_CONFIG_FILE_NAME);
+        let config_file_path = config_dir.join(APP_CONFIG_FILE_NAME);
         let app_config_cache = AppConfigCache::read_from_disk(&config_file_path);
 
         // primary_email, public_name and public_contact may come from the cache, CLI or git IDs
@@ -285,18 +296,18 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
-    let (code_rules_dir, report_dir, keys_dir, log_level) = if cfg!(debug_assertions) {
+    let (code_rules_dir, report_dir, config_dir, log_level) = if cfg!(debug_assertions) {
         (
             Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
-            Path::new(Config::KEYS_FOLDER_NAME_DEBUG).to_path_buf(),
+            Path::new(CONFIG_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
         (
             Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
-            Path::new(Config::KEYS_FOLDER_NAME_LINUX).to_path_buf(),
+            Path::new(CONFIG_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
@@ -321,7 +332,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         (
             exec_dir.join(Config::RULES_FOLDER_NAME_WIN),
             local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
-            local_appdata_dir.join(Config::KEYS_FOLDER_NAME_WIN),
+            local_appdata_dir.join(CONFIG_FOLDER_NAME_WIN),
             tracing::Level::ERROR,
         )
     } else {
@@ -345,7 +356,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         git_identities,
     };
 
-    (config, keys_dir)
+    (config, config_dir)
 }
 
 /// Shortens a potentially long folder name like home_mx_projects_stm_stm_apps_stm_28642a39
