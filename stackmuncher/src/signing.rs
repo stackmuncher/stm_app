@@ -16,6 +16,7 @@ pub(crate) struct ReportSignature {
     /// An SH256 hash of the email field in Base58 format.
     pub normalized_email_hash: String,
     /// Base58-encoded public key from the same key-pair.
+    /// E.g. `9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK`
     pub public_key: String,
     /// A base58 encoded signature of the payload
     /// E.g. `21kPtQj3qB6qdimLuBf8aWpnKhD7L6m57N5qpEoUZqYPDn7Ag2DgJFNX5yZXbs3T117fXA66UppanUtVuuhL3uvw`

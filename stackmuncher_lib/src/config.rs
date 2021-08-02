@@ -1,4 +1,3 @@
-use regex::Regex;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -17,8 +16,6 @@ pub struct Config {
     /// GitHub repo name. Must be unique per user. Reports are attached to `user/repo` ID.
     /// Used only for repos downloaded from GitHub
     pub repo_name: String,
-    /// A compiled regex for extracting remote URLs from `git remote -v` command
-    pub git_remote_url_regex: Regex,
     /// List of contributors to generate reports for. Defaults to Git user, author and committer .email values.
     /// Can be overridden by CLI params. The first value in the list is the preferred user contact.
     pub git_identities: Vec<String>,
@@ -31,7 +28,6 @@ impl Config {
     pub const COMBINED_CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report";
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
-    pub const GIT_REMOTE_URL_REGEX: &'static str = r#"(?i)\s(http.*)\("#;
 
     /// The default location of reports on linux. Chosen on the basis of https://www.pathname.com/fhs/
     /// > The /var/tmp directory is made available for programs that require temporary files or directories that are preserved between system reboots.
@@ -65,7 +61,6 @@ impl Config {
             project_dir: PathBuf::default(),
             user_name,
             repo_name,
-            git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
             git_identities: Vec::new(),
         }
     }
@@ -81,7 +76,6 @@ impl Config {
             project_dir: PathBuf::default(),
             user_name: String::new(),
             repo_name: String::new(),
-            git_remote_url_regex: Regex::new(r#"(?i)\s(http.*)\("#).unwrap(),
             git_identities: Vec::new(),
         }
     }

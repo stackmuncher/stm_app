@@ -1,6 +1,5 @@
 use contributor::Contributor;
 use git::{log_entries_to_list_of_blobs, GitBlob, GitLogEntry, ListOfBlobs};
-use regex::Regex;
 use report::Report;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -33,7 +32,6 @@ impl Report {
         code_rules: &mut code_rules::CodeRules,
         project_dir: &Path,
         old_report: &Option<report::Report>,
-        git_remote_url_regex: &Regex,
         git_log: Option<Vec<GitLogEntry>>,
     ) -> Result<Option<report::Report>, ()> {
         let report = report::Report::new();
@@ -67,9 +65,7 @@ impl Report {
             .collect::<ListOfBlobs>();
 
         let report = report.set_single_commit_flag(&git_log, &old_report);
-        let report = report
-            .add_commits_history(project_dir, git_remote_url_regex, git_log)
-            .await;
+        let report = report.add_commits_history(git_log).await;
 
         // check if there were any contents or muncher changes since the last commit
         // this is the cheapest check we can do to determine if there were an changes that need to be reprocessed

@@ -1,10 +1,8 @@
-use super::git::get_hashed_remote_urls;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::Tech;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
 use chrono;
 use path_absolutize::{self, Absolutize};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashSet;
@@ -86,11 +84,6 @@ pub struct Report {
     pub unprocessed_file_names: HashSet<String>,
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub unknown_file_types: HashSet<KeywordCounter>,
-    /// A list of hashed remote URLs from the repo. They are used in place of the private project name
-    /// and can be used to match a local project to publicly available projects. If that happens the project name
-    /// is populated automatically by STM on the server side
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub remote_url_hashes: Option<HashSet<String>>,
     /// S3 keys of the reports from `report_s3_name` merged into a combined user or org report
     /// This attribute was depricated in favour of projects_included, but has to be in use until
     /// https://github.com/stackmuncher/stm-html/issues/8 is resolved.
@@ -112,6 +105,7 @@ pub struct Report {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tree_files: Option<HashSet<String>>,
     /// The last N commits for matching projects that changed name, remote URL or any other identifying property
+    /// The commits are shortened and joined with their EPOCHs in a single string. E.g. `e29d17e6_1627380297`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recent_project_commits: Option<Vec<String>>,
 }
@@ -362,18 +356,16 @@ impl Report {
         self.report_s3_name = String::new();
         self.is_single_commit = false;
         self.recent_project_commits = None;
-        self.remote_url_hashes = None;
         self.log_hash = None;
         self.last_commit_author = None;
         self.git_ids_included.insert(contributor_git_id);
 
         // add the list of N recent contributor commits to the project overview and include it into the this combined report
         let mut project_overview = project_report.get_overview();
-        project_overview.recent_project_commits = Some(
+        project_overview.commits = Some(
             list_of_commits
                 .into_iter()
-                .take(list_of_commits.len().min(100))
-                .map(|log_entry| log_entry.sha1[..8].to_string())
+                .map(|log_entry| log_entry.join_commit_with_ts())
                 .collect(),
         );
         self.projects_included.insert(project_overview);
@@ -383,7 +375,6 @@ impl Report {
     pub fn reset_combined_dev_report(&mut self) {
         self.contributors = None;
         self.tree_files = None;
-        self.remote_url_hashes = None;
         self.report_commit_sha1 = None;
         self.last_commit_author = None;
         self.log_hash = None;
@@ -428,7 +419,6 @@ impl Report {
             unknown_file_types: HashSet::new(),
             github_user_name: String::new(),
             github_repo_name: String::new(),
-            remote_url_hashes: None,
             report_s3_name: String::new(),
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included: HashSet::new(),
@@ -540,12 +530,7 @@ impl Report {
 
     /// Adds details about the commit history to the report: head, init, contributors, collaborators, log hash, and remote URLs.
     /// Does not panic (exits early) if `git rev-list` command fails.
-    pub(crate) async fn add_commits_history(
-        self,
-        repo_dir: &Path,
-        git_remote_url_regex: &Regex,
-        git_log: Vec<GitLogEntry>,
-    ) -> Self {
+    pub(crate) async fn add_commits_history(self, git_log: Vec<GitLogEntry>) -> Self {
         let mut report = self;
         debug!("Adding commit history");
 
@@ -577,8 +562,8 @@ impl Report {
         report.recent_project_commits = Some(
             git_log
                 .iter()
-                .take(git_log.len().min(200))
-                .map(|entry| entry.sha1[..8].to_string())
+                .take(git_log.len().min(500))
+                .map(|log_entry| log_entry.join_commit_with_ts())
                 .collect::<Vec<String>>(),
         );
 
@@ -595,18 +580,6 @@ impl Report {
                 .collect::<HashSet<String>>(),
         );
 
-        // get the list of remote hashes for matching projects without exposing their names
-        report.remote_url_hashes = match get_hashed_remote_urls(repo_dir, git_remote_url_regex).await {
-            Err(_) => {
-                error!("Failed to hash remote URLs");
-                None
-            }
-            Ok(v) => {
-                debug!("Hashed {} remote URLs", v.len());
-                Some(v)
-            }
-        };
-
         report
     }
 
@@ -617,7 +590,6 @@ impl Report {
         report.contributors = old_report.contributors.clone();
         report.date_head = old_report.date_head.clone();
         report.date_init = old_report.date_init.clone();
-        report.remote_url_hashes = old_report.remote_url_hashes.clone();
         info!("Copied commit info from the old report");
 
         report

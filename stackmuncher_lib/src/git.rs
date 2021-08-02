@@ -1,5 +1,3 @@
-use crate::utils;
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use tokio::process::Command;
@@ -63,6 +61,14 @@ impl GitLogEntry {
             author_name_email: (String::new(), String::new()),
             files: HashSet::new(),
         }
+    }
+
+    /// Returns a concatenated commit hash with the timestamp as a string.
+    /// E.g. `e29d17e6_1627380297`. The commit hash is shortened to 8 characters.
+    pub(crate) fn join_commit_with_ts(&self) -> String {
+        [&self.sha1[..8], "_", self.date_epoch.to_string().as_str()]
+            .concat()
+            .to_owned()
     }
 }
 
@@ -231,43 +237,6 @@ pub(crate) async fn get_blob_contents(dir: &Path, blob_sha1: &String) -> Result<
     let blob_contents = execute_git_command(vec!["cat-file".into(), "-p".into(), blob_sha1.into()], dir, false).await?;
 
     Ok(blob_contents)
-}
-
-/// Returns a list of hashes for all remote URLs for inclusion in the report instead of the URLs themselves for privacy.
-/// E.g., `base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)` will get only `https://github.com/awslabs/aws-lambda-rust-runtime.git`
-/// hashed as `&str`. The type must match exactly for the hash to be the same. See https://github.com/rust-lang/rust/issues/27108.
-pub(crate) async fn get_hashed_remote_urls(dir: &Path, git_remote_url_regex: &Regex) -> Result<HashSet<String>, ()> {
-    // get the list of remotes, which may look like this
-    /*
-        base    https://github.com/awslabs/aws-lambda-rust-runtime.git (fetch)
-        base    https://github.com/awslabs/aws-lambda-rust-runtime.git (push)
-        origin  https://github.com/rimutaka/aws-lambda-rust-runtime.git (fetch)
-        origin  https://github.com/rimutaka/aws-lambda-rust-runtime.git (push)
-        test    http://local host (fetch)
-        test    http://local host (push)
-    */
-    let all_remotes = execute_git_command(vec!["remote".into(), "-v".into()], dir, false).await?;
-    let all_remotes = String::from_utf8_lossy(&all_remotes);
-
-    debug!("Found {} remotes", all_remotes.lines().count());
-
-    Ok(all_remotes
-        .lines()
-        .filter_map(|line| {
-            trace!("Remote: {}", line);
-            if let Some(captures) = git_remote_url_regex.captures(&line) {
-                trace!("Captures: {}", captures.len());
-                if captures.len() == 2 {
-                    Some(utils::hash_str_sha1(captures[1].trim_end_matches("(").trim()))
-                } else {
-                    None
-                }
-            } else {
-                warn!("No remotes found");
-                None
-            }
-        })
-        .collect::<HashSet<String>>())
 }
 
 /// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.

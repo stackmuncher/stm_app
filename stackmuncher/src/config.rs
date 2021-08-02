@@ -352,7 +352,6 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         project_dir: current_dir,
         user_name: String::new(),
         repo_name: String::new(),
-        git_remote_url_regex: Regex::new(Config::GIT_REMOTE_URL_REGEX).unwrap(),
         git_identities,
     };
 

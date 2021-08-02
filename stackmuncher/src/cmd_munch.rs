@@ -34,7 +34,6 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
         &mut code_rules,
         &config.lib_config.project_dir,
         &cached_project_report,
-        &config.lib_config.git_remote_url_regex,
         Some(git_log.clone()),
     )
     .await?
