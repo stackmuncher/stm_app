@@ -63,6 +63,11 @@ pub struct Report {
     /// E.g. 2018-12-09T22:29:40+01:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_contributor_commit_date_iso: Option<String>,
+    /// An EPOCH formatted date of the last commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
+    /// E.g. 1627176058
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_contributor_commit_date_epoch: Option<String>,
     /// The date of the first commit
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
@@ -325,6 +330,7 @@ impl Report {
                     contributor_git_id, commit_date_iso, self.last_contributor_commit_date_iso
                 );
                 self.last_contributor_commit_date_iso = Some(commit_date_iso);
+                self.last_contributor_commit_date_epoch = other_report.last_contributor_commit_date_epoch;
                 self.last_contributor_commit_sha1 = other_report.last_contributor_commit_sha1;
                 self.report_commit_sha1 = other_report.report_commit_sha1;
             }
@@ -435,6 +441,7 @@ impl Report {
             last_commit_author: None,
             recent_project_commits: None,
             last_contributor_commit_date_iso: None,
+            last_contributor_commit_date_epoch: None,
             last_contributor_commit_sha1: None,
             primary_email: None,
             public_contact: None,
