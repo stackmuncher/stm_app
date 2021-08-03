@@ -170,7 +170,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                         // notify the user there was no profile update
                         println!("Your Directory Profile was NOT updated: run with `--primary_email me@example.com` once to resume the updates.");
                     } else {
-                        submission_jobs.push(submit_report(current_identity, combined_report.clone(), &config));
+                        submission_jobs.push(submit_report(combined_report.clone(), &config));
                     }
                 } else {
                     info!("Skipping report submission: no primary_email")

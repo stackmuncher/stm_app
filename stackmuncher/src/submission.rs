@@ -24,7 +24,7 @@ const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
 /// Submits the serialized report to STM or some other web service. Includes signing.
 /// May panic if the signing fails (missing keys, can't access keystore).
-pub(crate) async fn submit_report(email: &String, report: Report, config: &AppConfig) {
+pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     // remove any sensitive info from the report
     let report = match pre_submission_cleanup(report) {
         Err(_) => {
@@ -34,7 +34,7 @@ pub(crate) async fn submit_report(email: &String, report: Report, config: &AppCo
     };
 
     // sign the report
-    let report_sig = ReportSignature::sign(email, &report, &config.user_key_pair);
+    let report_sig = ReportSignature::sign(&report, &config.user_key_pair);
 
     // prepare HTTP request which should go without a hitch unless the report or one of the headers is somehow invalid
     let req = Request::builder()

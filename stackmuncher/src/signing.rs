@@ -3,18 +3,11 @@ use ring::{
     rand,
     signature::{self, Ed25519KeyPair, KeyPair},
 };
-use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
 use std::{path::PathBuf, process::exit};
 use tracing::{debug, info, warn};
 
 /// The core sruct for storing the user pub key and signing payloads.
 pub(crate) struct ReportSignature {
-    /// The contributor email the report belongs to. The key is selected / generated based on this field.
-    /// The value is normalized for hashing (lowercase, surrounding whitespace is removed).
-    /// The email is not validated, so technically this can be any random string of characters.
-    pub normalized_email: String,
-    /// An SH256 hash of the email field in Base58 format.
-    pub normalized_email_hash: String,
     /// Base58-encoded public key from the same key-pair.
     /// E.g. `9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK`
     pub public_key: String,
@@ -27,13 +20,7 @@ impl ReportSignature {
     /// Retrieves an existing key from the storage or generates a new one, then signs the payload and returns the signature details.
     /// Keys are stored in *reports/.keys/* folder with the norm hash as the file name. There should be only one key per email.
     /// If no keys are present they are generated and saved on disk.
-    pub(crate) fn sign(email: &String, report_as_bytes: &[u8], key_pair: &Ed25519KeyPair) -> Self {
-        // normalize the email
-        let normalized_email = email.to_lowercase().trim().to_string();
-        // the hash looks like 3xMKTSi8KZiJGG7vqGSaFS7hC9B2EAMDHv7Yp3CSr5LQ
-        let normalized_email_hash = hash_str_to_sha256_as_base58(&email);
-        info!("Report signing. Norm email: {}, hash: {}", normalized_email, normalized_email_hash);
-
+    pub(crate) fn sign(report_as_bytes: &[u8], key_pair: &Ed25519KeyPair) -> Self {
         // the public key is extracted from the key-pair (zero cost op)
         let public_key = key_pair.public_key();
 
@@ -44,12 +31,7 @@ impl ReportSignature {
         let public_key = bs58::encode(public_key).into_string();
         debug!("Pub: {}, Sig: {}", public_key, signature);
 
-        Self {
-            normalized_email,
-            normalized_email_hash,
-            public_key,
-            signature,
-        }
+        Self { public_key, signature }
     }
 }
 
