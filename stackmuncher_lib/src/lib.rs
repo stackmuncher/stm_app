@@ -362,6 +362,7 @@ impl Report {
         report.git_ids_included.insert(contributor.git_id.clone());
         report.last_contributor_commit_sha1 = Some(last_contributor_commit_sha1);
         report.last_contributor_commit_date_iso = Some(last_contributor_commit_date_iso);
+        report.last_contributor_commit_date_epoch = Some(last_contributor_commit_date_epoch);
 
         Ok(report)
     }

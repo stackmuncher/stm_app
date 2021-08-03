@@ -67,7 +67,7 @@ pub struct Report {
     /// Used in contributor reports only and is blank in project reports.
     /// E.g. 1627176058
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_contributor_commit_date_epoch: Option<String>,
+    pub last_contributor_commit_date_epoch: Option<i64>,
     /// The date of the first commit
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
