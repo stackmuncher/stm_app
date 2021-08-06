@@ -241,7 +241,7 @@ impl Report {
         // collect all contributor blobs from the project report
         let mut last_contributor_commit_sha1 = String::new();
         let mut last_contributor_commit_date_epoch = 0i64;
-        let mut last_contributor_commit_date_iso = String::new();
+        let mut last_contributor_commit_date_iso: Option<String> = None;
         let contributor_blobs = &contributor
             .touched_files
             .iter()
@@ -250,7 +250,7 @@ impl Report {
                 if file.date_epoch > last_contributor_commit_date_epoch {
                     last_contributor_commit_sha1 = file.commit.clone();
                     last_contributor_commit_date_epoch = file.date_epoch;
-                    last_contributor_commit_date_iso = file.date_iso.clone();
+                    last_contributor_commit_date_iso = Some(file.date_iso.clone());
                 }
                 (
                     file.name.clone(),
@@ -361,7 +361,7 @@ impl Report {
         report.last_commit_author = project_report.last_commit_author.clone();
         report.git_ids_included.insert(contributor.git_id.clone());
         report.last_contributor_commit_sha1 = Some(last_contributor_commit_sha1);
-        report.last_contributor_commit_date_iso = Some(last_contributor_commit_date_iso);
+        report.last_contributor_commit_date_iso = last_contributor_commit_date_iso;
         report.last_contributor_commit_date_epoch = Some(last_contributor_commit_date_epoch);
 
         Ok(report)
