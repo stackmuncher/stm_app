@@ -115,7 +115,8 @@ pub async fn execute_git_command(
             return Ok(vec![]);
         }
         // the command failed and it was not expected
-        error!("Git command failed. Status: {}. Stderr: {}. Command: {:?}", status, std_err, cmd);
+        // keep the logging level at warn because it fails on trivial errors like an empty repo
+        warn!("Git command failed. Status: {}. Stderr: {}. Command: {:?}", status, std_err, cmd);
         return Err(());
     }
 

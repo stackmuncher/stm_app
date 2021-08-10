@@ -25,7 +25,7 @@ const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 /// Submits the serialized report to STM or some other web service. Includes signing.
 /// May panic if the signing fails (missing keys, can't access keystore).
 pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
-    // remove any sensitive info from the report
+    // remove any sensitive info from the report and gzip it
     let report = match pre_submission_cleanup(report) {
         Err(_) => {
             return;
