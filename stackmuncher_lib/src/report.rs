@@ -1,4 +1,5 @@
 use super::kwc::{KeywordCounter, KeywordCounterSet};
+use super::report_brief::ProjectReportOverview;
 use super::tech::Tech;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
 use chrono;
@@ -397,6 +398,7 @@ impl Report {
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
     /// * per_file_tech
     /// * contributor.touched_files
+    /// * lists of commits
     pub fn abridge(self) -> Self {
         let mut report = self;
 
@@ -410,7 +412,16 @@ impl Report {
             }
         };
 
+        // commits can be a very long list - they are indexed elsewhere
         report.recent_project_commits = None;
+        report.projects_included = report
+            .projects_included
+            .into_iter()
+            .map(|mut pro| {
+                pro.commits = None;
+                pro
+            })
+            .collect::<HashSet<ProjectReportOverview>>();
 
         report
     }
