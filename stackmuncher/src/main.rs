@@ -97,9 +97,9 @@ fn view_config(config: AppConfig) {
     );
     println!();
     println!("    Primary email: {}", config.primary_email.as_ref().unwrap_or(&"not set".to_owned()));
+    println!("    Commit emails: {}", config.lib_config.git_identities.join(", "));
     println!();
-    println!("    Public name: {}", config.public_name.as_ref().unwrap_or(&"not set".to_owned()));
-    println!();
+    println!("    Public name:    {}", config.public_name.as_ref().unwrap_or(&"not set".to_owned()));
     println!("    Public contact: {}", config.public_contact.as_ref().unwrap_or(&"not set".to_owned()));
     println!();
     println!(
@@ -113,7 +113,6 @@ fn view_config(config: AppConfig) {
             .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
             .to_string_lossy()
     );
-    println!();
     println!(
         "    Code analysis rules: {}",
         config
@@ -123,8 +122,6 @@ fn view_config(config: AppConfig) {
             .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
             .to_string_lossy()
     );
-    println!();
-    println!("    Commit emails: {}", config.lib_config.git_identities.join(", "));
     println!();
     println!("Edit the config file manually as needed. The file is read anew on every run.");
 }
