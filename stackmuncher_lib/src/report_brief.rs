@@ -35,16 +35,35 @@ impl PartialEq for TechOverview {
 /// to avoid loading the full project report every time the combined report is looked at.
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct ProjectReportOverview {
-    /// E.g. `save-golds`
-    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
+    /// A human-readable project name. It should not be used as an ID.
+    #[serde(default = "String::new")]
     pub project_name: String,
-    /// E.g. `644/save-golds.report`
-    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
-    pub report_s3_key: String,
-    /// The date of the first commit, e.g. 2020-08-26T14:15:46+01:00
+    /// `owner_id` + `project_id` are used to identify which project the overview belongs to.
+    /// There should be just one project included in a contributor or a combined contributor report.
+    /// Each combined report is submitted to STM server and is further combined with reports for other projects from the same dev there.
+    /// Values are set on the server. Values set on the client are ignored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_id: Option<String>,
+    /// `owner_id` + `project_id` are used to identify which project the overview belongs to.
+    /// The value is an internal STM server project ID derived from commit hashes.
+    /// E.g. `KxnFH4mTcfEQ73umbt6e1Y`.
+    /// Values are set on the server. Values set on the client are ignored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// GitHub user name, if known.
+    /// Values are set on the server. Values set on the client are ignored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github_user_name: Option<String>,
+    /// A GitHub name of the project, if known. GitHub project names do not include the user name.
+    /// E.g. `https://github.com/awslabs/aws-lambda-rust-runtime.git` would have project name as `aws-lambda-rust-runtime`.
+    /// Values are set on the server. Values set on the client are ignored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github_repo_name: Option<String>,
+    /// The date of the first project or contributor commit, e.g. 2020-08-26T14:15:46+01:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
-    /// The date of the current HEAD, e.g. 2021-06-30T22:06:42+01:00
+    /// The date of the current HEAD for project or the latest contributor commit,
+    /// e.g. 2021-06-30T22:06:42+01:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
     /// Lines Of Code (excludes blank lines) to show the size of the project
@@ -65,14 +84,32 @@ impl std::hash::Hash for ProjectReportOverview {
     where
         H: std::hash::Hasher,
     {
-        state.write(self.report_s3_key.as_bytes());
+        // what will happen if all of them are NONE?
+        if let Some(v) = &self.owner_id {
+            state.write(v.as_bytes());
+        }
+        if let Some(v) = &self.project_id {
+            state.write(v.as_bytes());
+        }
+        if let Some(v) = &self.github_user_name {
+            state.write(v.as_bytes());
+        }
+        if let Some(v) = &self.github_repo_name {
+            state.write(v.as_bytes());
+        }
         state.finish();
     }
 }
 
 impl PartialEq for ProjectReportOverview {
     fn eq(&self, other: &Self) -> bool {
-        self.report_s3_key == other.report_s3_key
+        // the priority matching is for owner/project, if they are set, otherwise match on github ids
+        // it will equate if they are all None
+        (self.owner_id.is_some()
+            && self.project_id.is_some()
+            && self.owner_id == other.owner_id
+            && self.project_id == other.project_id)
+            || (self.github_user_name == other.github_user_name && self.github_repo_name == other.github_repo_name)
     }
 }
 
@@ -94,7 +131,7 @@ impl super::tech::Tech {
 }
 
 impl super::report::Report {
-    /// Returns an abridged version of Self in the form of TechBrief.
+    /// Returns an abridged version of Self in the form of ProjectReportOverview.
     /// Calculation of `libs` is not very accurate. See comments inside the body.
     pub(crate) fn get_overview(&self) -> ProjectReportOverview {
         // collect all tech data in the overview form
@@ -136,8 +173,11 @@ impl super::report::Report {
             .collect::<HashSet<TechOverview>>();
 
         ProjectReportOverview {
-            project_name: self.github_repo_name.clone(),
-            report_s3_key: self.report_s3_name.clone(),
+            project_name: self.date_init.clone().unwrap_or_else(|| "No name".to_owned()),
+            project_id: self.project_id.clone(),
+            owner_id: self.owner_id.clone(),
+            github_repo_name: self.github_repo_name.clone(),
+            github_user_name: self.github_user_name.clone(),
             tech,
             date_init: self.date_init.clone(),
             date_head: self.date_head.clone(),

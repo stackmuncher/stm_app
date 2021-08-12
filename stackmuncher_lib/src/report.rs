@@ -32,19 +32,27 @@ pub struct Report {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub public_contact: Option<String>,
     /// GitHub user name, if known
-    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
-    pub github_user_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github_user_name: Option<String>,
     /// A public name of the project, if known. GitHub project names do not include the user name.
     /// E.g. `https://github.com/awslabs/aws-lambda-rust-runtime.git` would be `aws-lambda-rust-runtime`.
-    #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
-    pub github_repo_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub github_repo_name: Option<String>,
+    /// A unique identifier of the dev on STM server, if known.
+    /// Populated by the server upon report submission and is None otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_id: Option<String>,
+    //// A unique identifier of the dev on STM server, if known.
+    /// Populated by the server upon report submission and is None otherwise.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
     /// A UUID of the report
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_id: String,
     /// A unique name containing user name and project name when stored in S3, e.g. `rimutaka/stackmuncher.report`
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_s3_name: String,
-    /// The commit used to generate the report
+    /// The very last commit at the time of the report generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub report_commit_sha1: Option<String>,
     /// A SHA1 hash of all commit SHA1s to determine changes by looking at the log
@@ -69,6 +77,20 @@ pub struct Report {
     /// E.g. 1627176058
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_contributor_commit_date_epoch: Option<i64>,
+    /// SHA1 of the first commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_contributor_commit_sha1: Option<String>,
+    /// An ISO formatted date of the first commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
+    /// E.g. 2018-12-09T22:29:40+01:00
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_contributor_commit_date_iso: Option<String>,
+    /// An EPOCH formatted date of the first commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
+    /// E.g. 1627176058
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_contributor_commit_date_epoch: Option<i64>,
     /// The date of the first commit
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
@@ -96,11 +118,11 @@ pub struct Report {
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub reports_included: HashSet<String>,
     // Brief details about the projects included into a combined user or org report.
-    /// Blank for individual project reports. Needed to display project details on the combined report page
+    /// Blank for individual project reports. It is only needed by STM server to display project details on the combined report page
     /// without going to the individual project reports.
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub projects_included: HashSet<super::report_brief::ProjectReportOverview>,
-    /// A list of GIT identities for the contributor included in the report.
+    /// A list of GIT identities for the contributors included in the report.
     /// Used only in combined contributor reports
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub git_ids_included: HashSet<String>,
@@ -136,6 +158,7 @@ impl Report {
         let mut other_report = other_report;
 
         // prepare an overview of the project being merged into the combined report
+        // before `other_report` gets pulled to pieces by the merge
         let project_report = other_report.get_overview();
 
         // update keyword summaries and muncher name in all tech records
@@ -153,8 +176,9 @@ impl Report {
 
         // the very first report is added with minimal changes
         if merge_into.is_none() {
-            info!("Adding 1st report");
+            info!("Adding 1st report (master)");
             other_report.unprocessed_file_names.clear();
+            other_report.projects_included.clear();
             merge_into = Some(other_report);
         } else {
             // additional reports are merged
@@ -362,20 +386,32 @@ impl Report {
         self.timestamp = chrono::Utc::now().to_rfc3339();
         self.report_s3_name = String::new();
         self.is_single_commit = false;
-        self.recent_project_commits = None;
         self.log_hash = None;
         self.last_commit_author = None;
         self.git_ids_included.insert(contributor_git_id);
+        self.date_head = project_report.date_head.clone();
+        self.date_init = project_report.date_init.clone();
+
+        // the latest contributor commit is the first one in the list of commits
+        if let Some(latest_log_entry) = list_of_commits.iter().next() {
+            self.last_contributor_commit_sha1 = Some(latest_log_entry.sha1.clone());
+            self.last_contributor_commit_date_iso = Some(latest_log_entry.date.clone());
+            self.last_contributor_commit_date_epoch = Some(latest_log_entry.date_epoch.clone());
+        } else {
+            warn!("Missing last contributor commit info.");
+            self.last_contributor_commit_sha1 = None;
+            self.last_contributor_commit_date_iso = None;
+            self.last_contributor_commit_date_epoch = None;
+        };
 
         // add the list of N recent contributor commits to the project overview and include it into the this combined report
-        let mut project_overview = project_report.get_overview();
-        project_overview.commits = Some(
+        self.recent_project_commits = Some(
             list_of_commits
-                .into_iter()
+                .iter()
+                .take(list_of_commits.len().min(500))
                 .map(|log_entry| log_entry.join_commit_with_ts())
                 .collect(),
         );
-        self.projects_included.insert(project_overview);
     }
 
     /// Removes some sections that make no sense in the combined report.
@@ -388,8 +424,8 @@ impl Report {
         self.unprocessed_file_names.clear();
         self.per_file_tech.clear();
 
-        self.github_repo_name = String::new();
-        self.github_user_name = String::new();
+        self.github_repo_name = None;
+        self.github_user_name = None;
         self.report_id = String::new();
         self.report_s3_name = String::new();
         self.timestamp = chrono::Utc::now().to_rfc3339();
@@ -434,8 +470,8 @@ impl Report {
             timestamp: chrono::Utc::now().to_rfc3339(),
             unprocessed_file_names: HashSet::new(),
             unknown_file_types: HashSet::new(),
-            github_user_name: String::new(),
-            github_repo_name: String::new(),
+            github_user_name: None,
+            github_repo_name: None,
             report_s3_name: String::new(),
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included: HashSet::new(),
@@ -457,6 +493,11 @@ impl Report {
             primary_email: None,
             public_contact: None,
             public_name: None,
+            first_contributor_commit_sha1: None,
+            first_contributor_commit_date_iso: None,
+            first_contributor_commit_date_epoch: None,
+            owner_id: None,
+            project_id: None,
         }
     }
 

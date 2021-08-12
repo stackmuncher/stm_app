@@ -1,6 +1,7 @@
 use crate::help;
 use crate::signing::ReportSignature;
 use crate::AppConfig;
+use chrono::{self, Timelike};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use hyper::{Client, Request};
@@ -132,8 +133,55 @@ pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
         report.per_file_tech.insert(x);
     }
 
-    // this may be email of someone else
+    // this may be an email address of someone else
     report.last_commit_author = None;
+    // someone's else commit hash can be used for matching across devs
+    report.report_commit_sha1 = None;
+
+    // reset time component of the project head and init commit timestamps to prevent cross-developer project matching
+    if let Some(date_head) = &report.date_head {
+        match chrono::DateTime::parse_from_rfc3339(date_head) {
+            Err(e) => {
+                warn!("Invalid HEAD commit date: {} ({}). Expected RFC3339 format.", date_head, e);
+                report.date_head = None;
+            }
+            Ok(v) => {
+                report.date_head = Some(
+                    v.with_nanosecond(0)
+                        .unwrap_or_else(|| v)
+                        .with_second(0)
+                        .unwrap_or_else(|| v)
+                        .with_minute(0)
+                        .unwrap_or_else(|| v)
+                        .with_hour(0)
+                        .unwrap_or_else(|| v)
+                        .to_rfc3339(),
+                );
+            }
+        }
+    }
+
+    if let Some(date_init) = &report.date_init {
+        match chrono::DateTime::parse_from_rfc3339(date_init) {
+            Err(e) => {
+                warn!("Invalid INIT commit date: {} ({}). Expected RFC3339 format.", date_init, e);
+                report.date_init = None;
+            }
+            Ok(v) => {
+                report.date_init = Some(
+                    v.with_nanosecond(0)
+                        .unwrap_or_else(|| v)
+                        .with_second(0)
+                        .unwrap_or_else(|| v)
+                        .with_minute(0)
+                        .unwrap_or_else(|| v)
+                        .with_hour(0)
+                        .unwrap_or_else(|| v)
+                        .to_rfc3339(),
+                );
+            }
+        }
+    }
 
     // serialize the report into bytes
     let report = match serde_json::to_vec(&report) {
