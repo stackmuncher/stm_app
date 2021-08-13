@@ -1,3 +1,4 @@
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -173,7 +174,7 @@ impl super::report::Report {
             .collect::<HashSet<TechOverview>>();
 
         ProjectReportOverview {
-            project_name: self.date_init.clone().unwrap_or_else(|| "No name".to_owned()),
+            project_name: project_name_from_date(&self.date_init),
             project_id: self.project_id.clone(),
             owner_id: self.owner_id.clone(),
             github_repo_name: self.github_repo_name.clone(),
@@ -188,3 +189,68 @@ impl super::report::Report {
         }
     }
 }
+
+/// Converts an ISO3339 date into a project name using colours and animal names.
+/// Returns a random timestamp-based name if the input is invalid.
+fn project_name_from_date(date: &Option<String>) -> String {
+    if let Some(date) = date {
+        if let Ok(date) = DateTime::parse_from_rfc3339(date) {
+            let day = DAYS[date.day() as usize];
+            let month = MONTHS[date.month() as usize];
+            let year = &date.year().to_string();
+
+            return [day, month, year].join("_");
+        }
+    }
+
+    // backup option for invalid input
+    let date = Utc::now();
+
+    [
+        "project ",
+        &date.year().to_string()[2..],
+        "_",
+        date.second().to_string().as_str(),
+        date.minute().to_string().as_str(),
+    ]
+    .concat()
+}
+
+const MONTHS: [&str; 12] = [
+    "black", "silver", "gray", "white", "maroon", "red", "purple", "crimson", "green", "yellow", "blue", "beige",
+];
+
+const DAYS: [&str; 32] = [
+    "leopard",
+    "rhino",
+    "orangutan",
+    "gorilla",
+    "turtle",
+    "shark",
+    "tiger",
+    "kakapo",
+    "elephant",
+    "bison",
+    "whale",
+    "tuna",
+    "turtle",
+    "iguana",
+    "butterfly",
+    "plover",
+    "frog",
+    "bear",
+    "panda",
+    "lion",
+    "seal",
+    "kakapo",
+    "kingfisher",
+    "magpie",
+    "warbler",
+    "starling",
+    "finch",
+    "woodpecker",
+    "cuckoo",
+    "condor",
+    "lark",
+    "eagle",
+];

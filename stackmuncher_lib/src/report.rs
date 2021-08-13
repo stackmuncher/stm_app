@@ -97,7 +97,8 @@ pub struct Report {
     /// The date of the current HEAD
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
-    /// List of names or emails of contributors (authors and committers) from `contributors` section.
+    /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
+    /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributor_git_ids: Option<HashSet<String>>,
     /// Combined summary per technology, e.g. Rust, C# or CSS
@@ -226,7 +227,7 @@ impl Report {
 
             // only contributor IDs are getting merged
             if let Some(contributor_git_ids) = other_report.contributor_git_ids {
-                // this should not happen often, but check just in case if there is a hashset
+                // this should not happen often, but check just in case if there is no hashset
                 if merge_into_inner.contributor_git_ids.is_none() {
                     warn!("Missing contributor ids in the master report");
                     merge_into_inner.contributor_git_ids = Some(HashSet::new());
@@ -239,7 +240,10 @@ impl Report {
                         .insert(contributor_git_id);
                 }
             } else {
-                warn!("Missing contributors in the other report");
+                // contributor_git_ids are None in contributor reports - only display a warning for GitHub projects
+                if other_report.git_ids_included.is_empty() {
+                    info!("Missing contributor list in other_report");
+                }
             };
         }
 
