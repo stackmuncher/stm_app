@@ -1,7 +1,7 @@
 use crate::help;
 use crate::signing::ReportSignature;
 use crate::AppConfig;
-use chrono::{self, Timelike};
+use chrono;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use hyper::{Client, Request};
@@ -146,17 +146,7 @@ pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
                 report.date_head = None;
             }
             Ok(v) => {
-                report.date_head = Some(
-                    v.with_nanosecond(0)
-                        .unwrap_or_else(|| v)
-                        .with_second(0)
-                        .unwrap_or_else(|| v)
-                        .with_minute(0)
-                        .unwrap_or_else(|| v)
-                        .with_hour(0)
-                        .unwrap_or_else(|| v)
-                        .to_rfc3339(),
-                );
+                report.date_head = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
             }
         }
     }
@@ -168,17 +158,7 @@ pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
                 report.date_init = None;
             }
             Ok(v) => {
-                report.date_init = Some(
-                    v.with_nanosecond(0)
-                        .unwrap_or_else(|| v)
-                        .with_second(0)
-                        .unwrap_or_else(|| v)
-                        .with_minute(0)
-                        .unwrap_or_else(|| v)
-                        .with_hour(0)
-                        .unwrap_or_else(|| v)
-                        .to_rfc3339(),
-                );
+                report.date_init = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
             }
         }
     }

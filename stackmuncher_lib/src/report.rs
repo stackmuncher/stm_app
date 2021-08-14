@@ -245,6 +245,13 @@ impl Report {
                     info!("Missing contributor list in other_report");
                 }
             };
+
+            // copy the dev identity if the other report is newer by its timestamp
+            if other_report.timestamp > merge_into_inner.timestamp {
+                merge_into_inner.primary_email = other_report.primary_email;
+                merge_into_inner.public_name = other_report.public_name;
+                merge_into_inner.public_contact = other_report.public_contact;
+            }
         }
 
         // add the project overview from the project being added to the list of projects in the combined report
