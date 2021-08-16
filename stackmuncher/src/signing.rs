@@ -33,6 +33,16 @@ impl ReportSignature {
 
         Self { public_key, signature }
     }
+
+    /// Retrieves an existing key from the storage or generates a new one, then signs the payload and returns the signature details.
+    /// Keys are stored in *reports/.keys/* folder with the norm hash as the file name. There should be only one key per email.
+    /// If no keys are present they are generated and saved on disk.
+    pub(crate) fn get_public_key(key_pair: &Ed25519KeyPair) -> String {
+        // the public key is extracted from the key-pair (zero cost op)
+        let public_key = key_pair.public_key();
+
+        bs58::encode(public_key).into_string()
+    }
 }
 
 /// Retrieves an existing key-pair from the disk or generates a new one and saves it for future use.

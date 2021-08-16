@@ -65,7 +65,11 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     };
 
     let status = res.status();
-    info!("stm_inbox response arrived. Status: {}", status);
+    info!(
+        "stm_inbox response arrived. Status: {}. URL: https://stackmuncher.com/?dev={}",
+        status,
+        report_sig.public_key.clone()
+    );
 
     // Concatenate the body stream into a single buffer...
     let buf = match hyper::body::to_bytes(res).await {
@@ -82,7 +86,7 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     if status.as_u16() == 200 && buf.is_empty() {
         debug!("Empty response body, 200 OK");
         if config.lib_config.log_level == tracing::Level::ERROR {
-            println!("Directory profile updated.");
+            println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key.clone());
         }
         return;
     }

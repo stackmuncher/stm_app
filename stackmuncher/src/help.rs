@@ -1,3 +1,5 @@
+use crate::config::AppConfig;
+use crate::signing::ReportSignature;
 use stackmuncher_lib::config::Config;
 
 /// Prints out a standard multi-line message on how to use the app and where to find more info
@@ -84,8 +86,9 @@ pub(crate) fn emit_cli_err_msg() {
 }
 
 /// Prints out either Win or nix/Mac Welcome msg.
-pub(crate) fn emit_welcome_msg() {
+pub(crate) fn emit_welcome_msg(config: AppConfig) {
     let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
 
     println!("\
 StackMuncher app analyzes your technology stack and showcases it in the Global Directory of Software Developers.
@@ -95,36 +98,33 @@ USAGE:
     stackmuncher{exe_suffix} automate               add a git-commit hook to update your Directory Profile automatically
     stackmuncher{exe_suffix} [command] [OPTIONS]    modify the default behavior of this app
     
-YOUR DIRECTORY PROFILE:
-    An anonymous profile is created in the Directory the first time you run this app.
-    * Tell employers who you are: `stackmuncher{exe_suffix} --public_name \"Name or Nickname\" --public_contact \"Email, website, twitter\"`
-    * Become anonymous again: `stackmuncher{exe_suffix} make_anon`
-    * Skip submitting any data to the Directory: use `--no_update` flag
+YOUR DIRECTORY PROFILE: 
+
+    https://stackmuncher.com/?dev={pub_key}
+
+    An anonymous profile is created in the Directory the first time you run this app. You can ...
+    * tell employers who you are: `stackmuncher{exe_suffix} --public_name \"Name or Nickname\" --public_contact \"Email, website, twitter\"`
+    * become anonymous again: `stackmuncher{exe_suffix} make_anon`
+    * skip submitting any data to the Directory: use `--no_update` flag
 
 CODE PRIVACY:
     All code analysis is done locally. Not a single line of code is leaving your machine. View the source code at https://github.com/stackmuncher.
 
 OPTIONS:
-    --no_update                                   skip updating your Directory Profile
-    
-    --primary_email \"me@example.com\"              for Directory notifications only, defaults to the address in `git config user.email` setting
-    
     --emails \"me@example.com,me@google.com\"       a list of all your commit emails, only need to use it once, defaults to `git config user.email`
 
+    --primary_email \"me@example.com\"              for Directory notifications only, defaults to the address in `git config user.email` setting
     --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to use it once
-
     --public_contact \"email, website, twitter\"    visible to anyone, leave it blank to remove, only need to use it once
 
     --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
 
     --rules \"path to code analysis rules\"         can be relative or absolute, defaults to the application folder
-
     --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
-
     --config \"path to config folder\"              can be relative or absolute, defaults to the application folder
 
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
-
+    --no_update                                   skip updating your Directory Profile
     --help                                        display this message
 
 ADDITIONAL COMMANDS:
@@ -133,5 +133,5 @@ ADDITIONAL COMMANDS:
 MORE INFO:
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
-    ",exe_suffix=exe_suffix);
+    ",exe_suffix=exe_suffix, pub_key=pub_key);
 }

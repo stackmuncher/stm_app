@@ -57,7 +57,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     // print the location of the reports
     if config.lib_config.log_level == tracing::Level::ERROR {
         println!(
-            "Stack report location: {}",
+            "   Stack report:         {}",
             report_dir
                 .absolutize()
                 .expect("Cannot convert report_dir to absolute path. It's a bug.")

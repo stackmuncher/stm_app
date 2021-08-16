@@ -77,12 +77,6 @@ impl AppArgs {
         // read the params into a parser
         let mut pargs = pico_args::Arguments::from_env();
 
-        // help has a higher priority and should be handled separately
-        if pargs.contains(["-h", "--help"]) {
-            help::emit_welcome_msg();
-            std::process::exit(0);
-        }
-
         // process sub-command
         match pargs.subcommand() {
             Ok(v) => {
@@ -97,10 +91,9 @@ impl AppArgs {
             }
         };
 
-        // check if HELP was requested as a command
-        if app_args.command == AppArgCommands::Help {
-            help::emit_welcome_msg();
-            std::process::exit(0);
+        // help has a higher priority and should be handled separately
+        if pargs.contains(["-h", "--help"]) {
+            app_args.command = AppArgCommands::Help;
         }
 
         // --noupdate param with different misspellings

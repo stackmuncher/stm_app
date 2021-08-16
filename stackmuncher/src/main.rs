@@ -1,4 +1,5 @@
 use crate::config::AppConfig;
+use crate::signing::ReportSignature;
 use path_absolutize::{self, Absolutize};
 use tracing::info;
 
@@ -61,9 +62,8 @@ async fn main() -> Result<(), ()> {
         app_args::AppArgCommands::ViewConfig => {
             view_config(config);
         }
-        _ => {
-            eprintln!("STACKMUNCHER ERROR: This command has not been implemented yet.");
-            unimplemented!();
+        app_args::AppArgCommands::Help => {
+            help::emit_welcome_msg(config);
         }
     };
 
@@ -87,41 +87,46 @@ fn make_anon() {
 
 /// A temporary stub for `view_config` command.
 fn view_config(config: AppConfig) {
-    println!(
-        "Configuration file: {}",
-        config
-            .config_file_path
-            .absolutize()
-            .expect("Cannot convert config.config_file_path to absolute path. It's a bug.")
-            .to_string_lossy()
-    );
+    // prepare values needed in println!() macros to prevent line wrapping in the code
+    let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
+    let reports = config
+        .lib_config
+        .report_dir
+        .as_ref()
+        .expect("config.report_dir is not set. It's a bug.")
+        .absolutize()
+        .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
+        .to_string_lossy()
+        .to_string();
+    let rules = config
+        .lib_config
+        .code_rules_dir
+        .absolutize()
+        .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
+        .to_string_lossy()
+        .to_string();
+    let pub_contact = config
+        .public_contact
+        .as_ref()
+        .unwrap_or(&"not set".to_owned())
+        .to_string();
+    let config_file = config
+        .config_file_path
+        .absolutize()
+        .expect("Cannot convert config.config_file_path to absolute path. It's a bug.")
+        .to_string_lossy()
+        .to_string();
+
     println!();
     println!("    Primary email: {}", config.primary_email.as_ref().unwrap_or(&"not set".to_owned()));
     println!("    Commit emails: {}", config.lib_config.git_identities.join(", "));
     println!();
-    println!("    Public name:    {}", config.public_name.as_ref().unwrap_or(&"not set".to_owned()));
-    println!("    Public contact: {}", config.public_contact.as_ref().unwrap_or(&"not set".to_owned()));
+    println!("    Public name:       {}", config.public_name.as_ref().unwrap_or(&"not set".to_owned()));
+    println!("    Public contact:    {}", pub_contact);
+    println!("    Directory profile: https://stackmuncher.com/?dev={}", pub_key);
     println!();
-    println!(
-        "    Local stack reports: {}",
-        config
-            .lib_config
-            .report_dir
-            .as_ref()
-            .expect("config.report_dir is not set. It's a bug.")
-            .absolutize()
-            .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
-            .to_string_lossy()
-    );
-    println!(
-        "    Code analysis rules: {}",
-        config
-            .lib_config
-            .code_rules_dir
-            .absolutize()
-            .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
-            .to_string_lossy()
-    );
+    println!("    Local stack reports: {}", reports);
+    println!("    Code analysis rules: {}", rules);
+    println!("    Config file: {}", config_file);
     println!();
-    println!("Edit the config file manually as needed. The file is read anew on every run.");
 }
