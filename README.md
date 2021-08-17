@@ -1,116 +1,99 @@
-# StackMuncher Library and Client App
+# Technology Stack Analyzer for Global Directory of Software Developers
 
-StackMuncher is a language-agnostic code analysis tool that answers one question: 
+StackMuncher App is a static code analysis tool that answers one question: 
 > What is my stack and how well do I know it?
 
-This library and a CLI app run on demand or as a GIT hook to analyse the committed code and produce a report with contributor metrics.
+The app analyses local Git repositories and uploads a technology stack report to stackmuncher.com for inclusion into the developer's profile.
 
-The code analysis is un-opinionated. It does not impose any rules, passes a judgement or benchmarks one contributor against the other. Its function is limited to fact collection:
-* programming languages used
-* language keywords and features
-* libraries and dependencies used
-* number of lines of code and their types (comments, white space, docs, code)
-
-## Installation
-
-StackMuncher is a single executable file written in Rust. Its only external dependencies are `git` and JSON files with stack analysis templates.
-
-Run StackMuncher client app from the root of your project with a child `.git` folder.
-The app will access the contents of the repository and save its stack analysis reports in temporary folder.
-
-## Ubuntu
-
-```shell
-curl -SsL https://distro.stackmuncher.com/ubuntu/KEY.gpg | sudo apt-key add -
-sudo curl -SsL -o /etc/apt/sources.list.d/stackmuncher.list https://distro.stackmuncher.com/ubuntu/stackmuncher.list
-sudo apt update
-sudo apt install stackmuncher
-```
-
-To uninstall everything run:
-```shell
-sudo apt remove stackmuncher
-sudo apt-key del AC98A3AC
-sudo rm /etc/apt/sources.list.d/stackmuncher.list
-```
-
-## Windows
-
-Download and run the installer from https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller or use this PowerShell command:
-
-```powershell
-Add-AppxPackage "https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller" -AppInstallerFile
-```
-
-To uninstall everything run this PowerShell command: `Get-AppxPackage |  Where-Object { $_.Name -like "*stackmuncher*" } | Remove-AppxPackage`
-
-See [distro](distro) section for more detailed installation instructions and troubleshooting.
-
-### Keep stack reports up to date
-
-The best way to run StackMuncher client app is via a global [post-commit](https://git-scm.com/docs/githooks#_post_commit) Git hook to update your stack reports automatically every time you make a new commit.
-
-This script downloads StackMuncher from GitHub and configures it as a global post-commit hook for all your repositories. Pick and choose what lines to run if you already have post-commit hooks configured:
-
-```bash
-git config --global init.templatedir '~/.git-templates'
-mkdir -p ~/.git-templates/hooks
-echo "stackmuncher" >> ~/.git-templates/hooks/post-commit
-chmod a+x ~/.git-templates/hooks/post-commit
-```
-
-#### Enabling hooks in individual repositories
-
-* **new and cloned repositories**: no action needed, the hook will be installed from `~/.git-templates` folder on creation
-* **existing repositories WITH NO post-commit hooks**: run `git init` inside existing repositories to enable the hook
-* **existing repositories WITH OTHER post-commit hooks**: manually edit `.git/hooks/post-commit` file to add `stackmuncher` line, probably at the very end to protect your workflow if the app crashes
-
-Running StackMuncher as a post-commit hook is reasonably safe. Even if the app crashes it will not affect the commit or delay your workflow by more than a few milliseconds. It may take up to a few seconds on the very first run with large repositories.
-
-### Manual run
-
-You can run StackMuncher on any repository at any time. It is completely idempotent and will generate reports using the current state of the repository.
-
-This script downloads StackMuncher from GitHub and add it to PATH in .bashrc
-
-```bash
-wget https://github.com/users/rimutaka/packages/some-pkg-id -o /usr/bin/stackmuncher
-chmod a+x /usr/bin/stackmuncher
-echo -e 'export PATH="/usr/bin/stackmuncher:$PATH"' >> ~/.bashrc
-```
-
-### CLI parameters
-
-* `--rules [code_rules_dir]` or use `STACK_MUNCHER_CODERULES_DIR` env var: instructs the app where to look for language rules files. The default location is `/usr/bin/stackmuncher/assets` folder.
-* `--project [project_path]`: instructs the app to process the project from the specified directory. The default project location is the current working directory.
-
-Running `stackmuncher` without any parameters will use defaults and is the most common scenario.
-
-## Report types
-
-The app produces a number of different report types. They are all stored in `.git/stm-reports` folder and re-used internally for incremental processing of commits. Removing the reports will force full reprocessing on the repo.
-
-### Project report
-
-The project report contains project stats and some contributor info. It only includes files from the current tree.
-
-### Contributor reports
-
-Contributor reports are generated per contributor to isolate the work of each person. They are run on all files touched by the contributor using the latest contributor commit of that file. E.g. you fixed a bug in `src/utils.rs` 3 years ago and have not touched that file since. The app will use the file as it was committed by you then.
-
-### Contributor identity
-
-It is possible that the same person made commits under different `user.name` / `user.email` identities. They can be automatically reconciled by adding the identities to `stm.identity` custom setting in GIT config:
-
-```bash
-git config --global --add stm.identity me@example.com
-```
-
-Re-run the line above multiple times to add more than one identity. The app will track identity changes after the install and add them to the list automatically. Only identities that were used before the install need to be added manually.
-
-The app creates one report per identity and `contributor_report.json` for all known identities.
 
 ## Privacy
 
-1. The app accesses the contents of the repository, not the working folder. If your secrets were committed to the repo there is a tiny chance they may leak into the report, e.g. as a keyword or a name of a library.
-2. The code extracted from the repo is analysed in memory and discarded. It is not copied, cached, saved in temp files or submitted anywhere.
+1. All code analysis is done locally. Not a single line of code is leaving your machine.
+2. All identifying and sensitive information like file or private library names is stripped.
+3. Your developer profile is completely anonymous unless you add your name and contact details.
+
+## Examples
+
+* anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+* public profile: https://stackmuncher.com/rimutaka
+* sample report (local copy): ...
+* sample report (stripped down): ...
+
+## Quick start
+
+We are testing an alpha release and the only way to run this app for now is to compile it from the source.
+
+1. **Install Rust compiler**: https://www.rust-lang.org/tools/install
+2. **Clone this repo**: `git clone https://github.com/stackmuncher/stm_app.git`
+3. **Generate a report**: run `cargo run -- --project "path_to_any_of_your_local_projects"` from `stm_app` folder.
+
+The app will access `.git` folder inside `path_to_any_of_your_local_projects` and create an anonymous profile with your first report on stackmuncher.com. Add `--noupdate` flag to generate a report without creating a profile or submitting any data to stackmuncher.com.
+
+##  Adding more projects to your profile
+
+1. Build the app: run `cargo build --release` from `stm_app` folder.
+2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable
+3. Add a global [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
+
+    ```bash
+    git config --global init.templatedir '~/.git-templates'
+    mkdir -p ~/.git-templates/hooks
+    echo "stackmuncher >> ~/.stm.log" >> ~/.git-templates/hooks/post-commit
+    chmod a+x ~/.git-templates/hooks/post-commit
+    ```
+4. Run `git init` on your existing repos to add the hook from the template. Any new repos or clones will get the hook added by default.
+
+Git will invoke the app every time you make a commit to a repo with the post-commit hook to generate a report, log its progress in `~/.stm.log` and update your profile. Alternatively, you can skip adding the Git hook and run `stackmuncher` from the root of any of your projects.
+
+## Detailed usage instructions
+
+Running `stackmuncher` without any additional params generates a report for the project in the current working directory and updates your developer profile.
+
+Anonymous profiles are identified by a public key from the key-pair generated by the app on the first run. E.g. https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+The key is located in the app's config folder and can be copied to another machine to connect to the same developer profile. Run `stackmuncher view_config` to see the exact location of the config folder.
+
+### Additional options
+
+Some settings are cached in a local config file and only need to be set once. You can set, change or unset them via CLI params or by editing the config file manually.
+
+#### Processing settings
+
+* `--emails "me@example.com,me@google.com"` : a list of your email addresses using in commits to include the report. Defaults to `git config user.email`. Set once.
+* `--project "path_to_project_to_be_analyzed"`: an optional relative or absolute path to the project/repo to generate a report for, defaults to the current working directory.
+* `--no_update`: tells the app to generate a report, save it locally, but not upload anything to the Directory.
+
+#### Profile settings
+
+* `--primary_email "me@example.com"`: an email address for Directory notifications. Defaults to `git config user.email`. Set once. This setting is optional. No reports are submitted to the directory if this value is unset.
+* `--public_name "My Full Name or Nickname"`: an optional public name of your Directory Profile. It is visible to anyone, including search engines. Leave it blank to remain anonymous. Set once.
+* `--public_contact "email, website, twitter"`: optional contact details for your Directory Profile. It is visible to anyone, including search engines. Set once.
+
+#### Debugging settings
+
+* `--log error|warn|info|debug|trace`: the log is written to _stdout_ and _stderror_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it.
+* `--rules "path to code analysis rules"`: a path to an alternative location of code analysis rules. The path can be relative or absolute. Defaults to the application folder.
+* `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to the application folder.
+* `--config "path to config folder"`: a path to an alternative location of the config folder. The path can be relative or absolute. Defaults to the application folder.
+
+* `--help`: display usage info
+
+ADDITIONAL COMMANDS:
+* `view_config`: displays the contents of the config file and its location. The config file can be edited manually or copied to another machine together with the key file to connect to the same Developer Profile.
+
+
+## Limitations
+
+The current version of the app is at alpha-stage and should be used for testing purposes only. 
+
+1. Only a small number of computer languages are recognized.
+2. There is no guarantee a profile will come up in a search via the front-end.
+3. Profiles can be accessed via `/?dev=...` links only.
+4. The app may include private library names in the report - do not use it on sensitive projects.
+5. The only way to delete a profile is to email info@stackmuncher.com.
+6. Your Github profile may be included in the Directory, but it cannot be linked to your private profile.
+7. It may take up to 2 minutes for a profile to be updated after a report submission.
+
+
+## Bug reports and contributions
+
+File an issue via https://github.com/stackmuncher/stm_app/issues or email the maintainer on info@stackmuncher.com.

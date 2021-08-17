@@ -94,3 +94,41 @@ This is an outline of the manual set up. Most of it can be scripted later.
 * More on MSIX auto-update: https://techcommunity.microsoft.com/t5/windows-dev-appconsult/handling-application-updates-with-app-installer-and-msix-in/ba-p/355389
 * MSIX manual packaging https://docs.microsoft.com/en-us/windows/msix/package/manual-packaging-root
 * MSIX install with PS: https://docs.microsoft.com/en-us/powershell/module/appx/add-appxpackage?view=windowsserver2019-ps#parameters
+
+----
+_This section was copied from the root README file._
+
+# Installation instructions
+
+StackMuncher is a single executable file written in Rust. Its only external dependencies are `git` and JSON files with stack analysis templates.
+
+Run StackMuncher client app from the root of your project with a child `.git` folder.
+The app will access the contents of the repository and save its stack analysis reports in temporary folder.
+
+## Ubuntu
+
+```shell
+curl -SsL https://distro.stackmuncher.com/ubuntu/KEY.gpg | sudo apt-key add -
+sudo curl -SsL -o /etc/apt/sources.list.d/stackmuncher.list https://distro.stackmuncher.com/ubuntu/stackmuncher.list
+sudo apt update
+sudo apt install stackmuncher
+```
+
+To uninstall everything run:
+```shell
+sudo apt remove stackmuncher
+sudo apt-key del AC98A3AC
+sudo rm /etc/apt/sources.list.d/stackmuncher.list
+```
+
+## Windows
+
+Download and run the installer from https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller or use this PowerShell command:
+
+```powershell
+Add-AppxPackage "https://distro.stackmuncher.com/msix/stackmuncher_x64.appinstaller" -AppInstallerFile
+```
+
+To uninstall everything run this PowerShell command: `Get-AppxPackage |  Where-Object { $_.Name -like "*stackmuncher*" } | Remove-AppxPackage`
+
+See [distro](distro) section for more detailed installation instructions and troubleshooting.
