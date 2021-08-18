@@ -125,10 +125,18 @@ pub(crate) fn pre_submission_cleanup(report: Report, config: &AppConfig) -> Resu
     // expensive, but probably unavoidable given that the original report will still be used at the point of call
     let mut report = report.clone();
 
+    // generate a salt that is unique to the user, consistent across submissions, but is only known to the user
+    let salt =
+        ReportSignature::sign(ReportSignature::get_public_key(&config.user_key_pair).as_bytes(), &config.user_key_pair);
+    let salt = salt.signature.as_str();
+
     // clean up per_file_tech section
     let per_file_tech = report.per_file_tech.drain().collect::<Vec<Tech>>();
     for mut x in per_file_tech {
-        x.file_name = Some(hash_str_to_sha256_as_base58(&x.file_name.unwrap_or_default()));
+        // use a signed public key as the salt to make the file name hash consistent across submissions by the same user
+        // making it very hard to match them across different users
+        // it would be computationally prohibitive to try and find a match,
+        x.file_name = Some(hash_str_to_sha256_as_base58(&[salt, x.file_name.unwrap_or_default().as_str()].concat()));
         x.keywords.clear();
         x.pkgs.clear();
         x.pkgs_kw = None;

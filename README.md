@@ -148,6 +148,7 @@ _The current version of the app is at alpha-stage and should be used for testing
 5. The only way to delete a profile is to email info@stackmuncher.com.
 6. Your Github profile may already be included in the Directory, but it cannot be linked to your private profile.
 7. It may take up to 2 minutes for a profile to be updated after a report submission.
+8. Very large reports (over 50MB) are likely to be rejected.
 
 ## Troubleshooting
 
