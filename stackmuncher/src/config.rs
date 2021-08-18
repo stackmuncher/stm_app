@@ -108,12 +108,22 @@ impl AppConfig {
         if let Some(rules) = app_args.rules {
             validate_rules_dir(&rules);
             config.code_rules_dir = rules;
+        } else {
+            // validate the default value
+            validate_rules_dir(&config.code_rules_dir);
         };
 
-        if let Some(project) = app_args.project {
-            // expand ~/somepath on Linux to /home/user/...
-            let project = tilde_expand(project);
-            config.project_dir = validate_project_dir(project);
+        // check the project folder for existence and if it has .git in it
+        config.project_dir = match app_args.project {
+            Some(project) => {
+                // expand ~/somepath on Linux to /home/user/...
+                let project = tilde_expand(project);
+                validate_project_dir(project)
+            }
+            None => {
+                // validate the default value
+                validate_project_dir(config.project_dir)
+            }
         };
 
         // reports folder may need to be created in the default or specified location
@@ -300,10 +310,39 @@ impl AppConfig {
 
 /// Generate a new Config struct with the default values from the environment. May panic if the environment is not accessible.
 pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, PathBuf) {
+    // check if the app was compiled for release, but is still sitting in target/release/ folder
+    let exec_dir = match std::env::current_exe() {
+        Err(e) => {
+            // in theory, this should never happen
+            panic!(
+                "No current exe path: {}. This is a bug. The app should at least see the path to its own executable.",
+                e
+            );
+        }
+        Ok(v) => v
+            .parent()
+            .expect(&format!("Cannot determine the location of the exe file from: {}", v.to_string_lossy()))
+            .to_path_buf(),
+    };
+    let is_local_release = exec_dir.ends_with("target/release") || exec_dir.ends_with("target\\release");
+
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
-    let (code_rules_dir, report_dir, config_dir, log_level) = if cfg!(debug_assertions) {
+    let (code_rules_dir, report_dir, config_dir, log_level) = if is_local_release {
+        // this branch activates when the app is called directly from `stm_app/target/release` folder, but all the config files are 2 levels up
+        // go 2 steps up in the hierarchy to get to the root of stm_app project
+        let mut exec_dir = exec_dir;
+        exec_dir.pop();
+        exec_dir.pop();
+        (
+            exec_dir.join(Config::RULES_FOLDER_NAME_DEBUG),
+            exec_dir.join(Config::REPORT_FOLDER_NAME_DEBUG),
+            exec_dir.join(CONFIG_FOLDER_NAME_DEBUG),
+            tracing::Level::ERROR,
+        )
+    } else if cfg!(debug_assertions) {
+        // this branch activates when run as `cargo run`
         (
             Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
@@ -318,21 +357,6 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
             tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
-        // the easiest way to store the rules on Win is next to the executable
-        let exec_dir = match std::env::current_exe() {
-            Err(e) => {
-                // in theory, this should never happen
-                panic!(
-                    "No current exe path: {}. This is a bug. The app should at least see the path to its own executable.",
-                    e
-                );
-            }
-            Ok(v) => v
-                .parent()
-                .expect(&format!("Cannot determine the location of the exe file from: {}", v.to_string_lossy()))
-                .to_path_buf(),
-        };
-
         // apps should store their data in the user profile and the exact location is obtained via an env var
         let local_appdata_dir = std::env::var("LOCALAPPDATA").expect("%LOCALAPPDATA% env variable not found");
         let local_appdata_dir = Path::new(&local_appdata_dir);
@@ -451,11 +475,12 @@ fn validate_project_dir(project: PathBuf) -> PathBuf {
     let git_path = project.join(".git");
     if !git_path.is_dir() {
         eprintln!("STACKMUNCHER CONFIG ERROR: No Git repository found in {}", git_path.to_string_lossy());
+        eprintln!("    Try running the app from the root of a project with a .git subfolder.");
         help::emit_usage_msg();
         exit(1);
     }
 
-    git_path
+    project
 }
 
 /// Validates the value for the reports dir, adds the project component to it and creates the directory if needed.

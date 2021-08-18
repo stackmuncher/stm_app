@@ -17,7 +17,7 @@ async fn main() -> Result<(), ()> {
     let config = AppConfig::new().await;
 
     info!(
-        "StackMuncher started in {} from {}",
+        "Analyzing {} from {}",
         config.lib_config.project_dir.to_string_lossy(),
         std::env::current_exe()
             .expect("Cannot get path to stackmuncher executable. It's a bug.")
