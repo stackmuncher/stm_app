@@ -7,7 +7,7 @@ use flate2::Compression;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
 use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
-use stackmuncher_lib::{report::Report, tech::Tech};
+use stackmuncher_lib::{config::Config, report::Report, tech::Tech};
 use std::io::prelude::*;
 use tracing::{debug, info, warn};
 
@@ -27,7 +27,7 @@ const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 /// May panic if the signing fails (missing keys, can't access keystore).
 pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     // remove any sensitive info from the report and gzip it
-    let report = match pre_submission_cleanup(report) {
+    let report = match pre_submission_cleanup(report, &config) {
         Err(_) => {
             return;
         }
@@ -117,7 +117,7 @@ fn log_http_body(body_bytes: &hyper::body::Bytes) {
 /// Removes or replaces any sensitive info from the report for submission to stackmuncher.com.
 /// Gzips the sanitized report and returns the raw bytes.
 /// Returns a sanitized report as bytes ready to be sent out
-pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
+pub(crate) fn pre_submission_cleanup(report: Report, config: &AppConfig) -> Result<Vec<u8>, ()> {
     // this function should be replaced with a macro
     // see https://github.com/stackmuncher/stm/issues/12
 
@@ -166,6 +166,24 @@ pub(crate) fn pre_submission_cleanup(report: Report) -> Result<Vec<u8>, ()> {
             }
         }
     }
+
+    // save the submitted report for inspection by the user
+    let report_dir = std::path::Path::new(
+        config
+            .lib_config
+            .report_dir
+            .as_ref()
+            .expect("Cannot unwrap config.report_dir. It's a bug."),
+    );
+    report.save_as_local_file(
+        &report_dir.join(
+            [
+                Config::CONTRIBUTOR_REPORT_SUBMITTED_FILE_NAME,
+                Config::REPORT_FILE_EXTENSION,
+            ]
+            .concat(),
+        ),
+    );
 
     // serialize the report into bytes
     let report = match serde_json::to_vec(&report) {

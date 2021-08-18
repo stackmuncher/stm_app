@@ -176,11 +176,11 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                     info!("Skipping report submission: no primary_email")
                 }
             }
-            // save the combined report
+            // save the combine report for inspection by the user
             combined_report.save_as_local_file(
                 &report_dir.join(
                     [
-                        Config::COMBINED_CONTRIBUTOR_REPORT_FILE_NAME,
+                        Config::CONTRIBUTOR_REPORT_COMBINED_FILE_NAME,
                         Config::REPORT_FILE_EXTENSION,
                     ]
                     .concat(),

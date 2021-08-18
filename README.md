@@ -161,9 +161,10 @@ We want to hear about as many issues users run into as possible. Copy-paste the 
 #### If the app did something, but no report was submitted:
 
 * look through the log it printed for clues
-* run `stackmuncher view_config` and check the output in `reports` folder - there should be at least 3 files:
+* run `stackmuncher view_config` and check the output in `reports` folder - there should be at least 4 files:
     * **project_report.json**: includes all contributors 
-    * **contributor_report.json**: a combined report for authors/committers from Git's `user.email` setting and from `--emails` param
+    * **combined_report.json**: a combined report for authors/committers from Git's `user.email` setting and from `--emails` param
+    * **submitted_report.json**: a sanitized version of the combined report exactly as it was submitted to the Directory
     * **contributor_xxxxxxxx.json**: cached reports for individual contributors
 
 ## Bug reports and contributions

@@ -24,8 +24,9 @@ pub struct Config {
 impl Config {
     pub const PROJECT_REPORT_FILE_NAME: &'static str = "project_report";
     /// The prefix of the file name followed by the contributor SHA1 hash.
-    pub const CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report_";
-    pub const COMBINED_CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_report";
+    pub const CONTRIBUTOR_REPORT_FILE_NAME: &'static str = "contributor_";
+    pub const CONTRIBUTOR_REPORT_COMBINED_FILE_NAME: &'static str = "combined_report";
+    pub const CONTRIBUTOR_REPORT_SUBMITTED_FILE_NAME: &'static str = "submitted_report";
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
 
