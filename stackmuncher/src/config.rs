@@ -7,6 +7,7 @@ use serde_json;
 use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::str::FromStr;
 use tracing::debug;
 
 /// Name of the file stored in a predefined folder: config.json
@@ -110,13 +111,19 @@ impl AppConfig {
         };
 
         if let Some(project) = app_args.project {
-            validate_project_dir(&project);
-            config.project_dir = project;
+            // expand ~/somepath on Linux to /home/user/...
+            let project = tilde_expand(project);
+            config.project_dir = validate_project_dir(project);
         };
 
         // reports folder may need to be created in the default or specified location
         config.report_dir = match app_args.reports {
-            Some(v) => Some(validate_or_create_report_dir(&config.project_dir, &v)),
+            Some(v) => {
+                // expand ~/somepath on Linux to /home/user/...
+                let v = tilde_expand(v);
+
+                Some(validate_or_create_report_dir(&config.project_dir, &v))
+            }
             None => Some(validate_or_create_report_dir(
                 &config.project_dir,
                 config
@@ -128,7 +135,8 @@ impl AppConfig {
 
         // config folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
         let config_dir = if let Some(conf_dir_from_args) = app_args.config {
-            conf_dir_from_args
+            // expand ~/somepath on Linux to /home/user/...
+            tilde_expand(conf_dir_from_args)
         } else {
             config_dir_default
         };
@@ -163,8 +171,8 @@ impl AppConfig {
             app_config_cache.primary_email.clone()
         } else if !config.git_identities.is_empty() {
             // setting the email from GIT IDs
-            println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",config.git_identities[0]);
             println!();
+            println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",config.git_identities[0]);
             println!(
                 "    Run `stackmuncher{} --primary_email me@example.com` to set your preferred contact email. It will not be published or shared with anyone.",
                 exe_suffix
@@ -248,7 +256,6 @@ impl AppConfig {
         // print a message about multiple git IDs on the first run
         if config.git_identities.len() > 0 && app_args.emails.is_none() && app_config_cache.git_identities.is_empty() {
             println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",config.git_identities[0]);
-            println!();
             println!("    1. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
             println!("    2. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", exe_suffix);
             println!();
@@ -428,22 +435,27 @@ fn validate_rules_dir(rules: &PathBuf) {
     }
 }
 
-/// Validates config.project_dir
-fn validate_project_dir(project: &PathBuf) {
+/// Returns a validated config.project_dir or exits with an error message
+fn validate_project_dir(project: PathBuf) -> PathBuf {
     // the project dir at this point is either a tested param from the CLI or the current dir
     // a full-trust app is guaranteed access to the current dir
     // a restricted app would need to test if the dir is actually accessible, but it may fail over even earlier when it tried to get the current dir name
 
-    // check if there is .git subfolder in the project dir
-    let git_path = project.join(".git");
-    if !git_path.is_dir() {
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR: No Git repository found in the project folder {}",
-            project.to_string_lossy()
-        );
+    if !project.is_dir() {
+        eprintln!("STACKMUNCHER CONFIG ERROR: invalid project folder {}", project.to_string_lossy());
         help::emit_usage_msg();
         exit(1);
     }
+
+    // check if there is .git subfolder in the project dir
+    let git_path = project.join(".git");
+    if !git_path.is_dir() {
+        eprintln!("STACKMUNCHER CONFIG ERROR: No Git repository found in {}", git_path.to_string_lossy());
+        help::emit_usage_msg();
+        exit(1);
+    }
+
+    git_path
 }
 
 /// Validates the value for the reports dir, adds the project component to it and creates the directory if needed.
@@ -605,4 +617,54 @@ impl AppConfigCache {
             }
         }
     }
+}
+
+/// Replaces `~` in Linux paths with the full path to the home directory.
+/// E.g. `~/rust/stm_app` -> `/home/ubuntu/rust/stm_app`
+fn tilde_expand(path: PathBuf) -> PathBuf {
+    // check if there is a ~ at all
+    if !path.starts_with("~") {
+        return path;
+    }
+
+    // is there a home directory?
+    let home_dir = match std::env::var("HOME") {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("STACKMUNCHER CONFIG ERROR: Cannot get the name of HOME directory due to {}", e);
+            eprintln!();
+            eprintln!("     Try replacing ~ with an absolute path.");
+            eprintln!();
+            help::emit_usage_msg();
+            exit(1);
+        }
+    };
+
+    debug!("Home dir: {}", home_dir);
+
+    let home_dir = match PathBuf::from_str(&home_dir) {
+        Err(_) => {
+            eprintln!("STACKMUNCHER CONFIG ERROR: $HOME has invalid home directory path: {}", home_dir);
+            eprintln!();
+            eprintln!("     Try replacing ~ with an absolute path.");
+            eprintln!();
+            help::emit_usage_msg();
+            exit(1);
+        }
+        Ok(v) => {
+            if path.starts_with("~/") {
+                v.join(&path.to_string_lossy()[2..])
+            } else {
+                eprintln!("STACKMUNCHER CONFIG ERROR: cannot expand ~ shortcut");
+                eprintln!();
+                eprintln!("     Try replacing ~ with an absolute path.");
+                eprintln!();
+                help::emit_usage_msg();
+                exit(1);
+            }
+        }
+    };
+
+    debug!("Expanded {} -> {}", path.to_string_lossy(), home_dir.to_string_lossy());
+    home_dir
 }
