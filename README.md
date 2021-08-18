@@ -1,16 +1,15 @@
-# Technology Stack Analyzer for Global Directory of Software Developers
+# Profile Builder for Global Directory of Software Developers
 
-StackMuncher App is a static code analysis tool that answers one question: 
-> What is my stack and how well do I know it?
+#### StackMuncher app analyses local Git repositories and creates a profile on https://stackmuncher.com, a Global Directory of Software Developers.
 
-The app analyses local Git repositories and uploads a technology stack report to https://stackmuncher.com for inclusion into the developer's profile.
+The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills find you. 
 
 
 ## Privacy
 
 1. All code analysis is done locally. Not a single line of code is leaving your machine.
 2. All identifying and sensitive information like file or private library names is stripped.
-3. Your developer profile is completely anonymous unless you add your name and contact details.
+3. Your developer profile is completely anonymous unless you add your name and contact details to it.
 
 ## Examples
 
@@ -21,9 +20,9 @@ The app analyses local Git repositories and uploads a technology stack report to
 
 ## Quick start
 
-We are testing an alpha release and the only way to run this app for now is to compile it from the source in Rust.
+_We are testing an alpha release and the only way to run this app for now is to compile it from the source in Rust._
 
-Assuming that you have Git and a [Rust toolchain](https://www.rust-lang.org/tools/install) installed and configured, just clone and run the app:
+Assuming that you have Git and a [Rust toolchain](https://www.rust-lang.org/tools/install) installed, just clone and run the app:
 
 ```bash
 git clone https://github.com/stackmuncher/stm_app.git
@@ -33,7 +32,7 @@ cargo run -- --project "path_to_any_of_your_local_projects"
 
 The app will access `.git` folder inside `path_to_any_of_your_local_projects` directory and create an anonymous profile with your first report on _stackmuncher.com_. Add `--noupdate` flag to generate a report without creating a profile or submitting any data to the Directory. Look at the log printed by the app for details.
 
-The **default config** of the app assumes that it is run on a development machine from the root folder of some repository the developer made commits to. See Troubleshooting section at the end of this document.
+The **default config** of the app assumes that it is run on a development machine from the root folder of a repository you made commits to.
 
 #### Example
 
@@ -49,11 +48,11 @@ I made commits to `~/rust/quickxml_to_serde` project recently and want to test S
 
 ## Adding more commit emails
 
-We often commit to the same repo using different `user.email` Git setting. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.
+We often commit to the same repo using different `user.email` Git setting. Run `git shortlog -s -e --all` to check if you made commits under any other email addresses.
 
 #### Example
 
-Find out what other email addresses were used in commits to `quickxml_to_serde` repo:
+Find out what email addresses were used in commits to `quickxml_to_serde` repo:
 
 ```shell
 ~/rust/stm_app$ cd ~/rust/quickxml_to_serde/
@@ -81,7 +80,7 @@ _mx_ and _rimutaka_ are the same person. Add both emails to StackMuncher config 
     Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
     Config file: /home/ubuntu/rust/stm_app/.stm_config/config.json
 ```
-The app added two emails from `--emails` param to its config and printed its full config info (`view_config` command). 
+The app stored two emails from `--emails` param in its config file and printed its full config info (`view_config` command). From now on it will look for commits from these two email addresses.
 
 
 ##  Adding more projects to your profile
@@ -98,7 +97,9 @@ The app added two emails from `--emails` param to its config and printed its ful
     ```
 4. Run `git init` on your existing repos to add the hook from the template. Any new repos or clones will get the hook added by default.
 
-Git will invoke the app every time you make a commit to a repo with the post-commit hook to generate a report, log its progress in `~/.stm.log` and update your profile. Alternatively, you can skip adding the Git hook and run `stackmuncher` from the root of any of your projects.
+Git will invoke the app every time you make a commit to a repo with the post-commit hook to generate a report, log its progress in `~/.stm.log` and update your Directory Profile.
+
+You can skip adding the Git hook and run `stackmuncher` from the root of any of your projects. No additional params are required.
 
 ## Detailed usage instructions
 
@@ -125,7 +126,7 @@ Some settings are cached in a local config file and only need to be set once. Yo
 
 #### Debugging settings
 
-* `--log error|warn|info|debug|trace`: the log is written to _stdout_ and _stderror_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it.
+* `--log error|warn|info|debug|trace`: the log is written to _stdout_ and _stderror_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it. E.g. `stackmuncher --log debug >> ~/stm_trace.log`
 * `--rules "path to code analysis rules"`: a path to an alternative location of code analysis rules. The path can be relative or absolute. Defaults to the application folder.
 * `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to the application folder.
 * `--config "path to config folder"`: a path to an alternative location of the config folder. The path can be relative or absolute. Defaults to the application folder.
@@ -138,19 +139,19 @@ Some settings are cached in a local config file and only need to be set once. Yo
 
 ## Limitations
 
-The current version of the app is at alpha-stage and should be used for testing purposes only. 
+_The current version of the app is at alpha-stage and should be used for testing purposes only. _
 
 1. Only a small number of computer languages are recognized.
 2. There is no guarantee a profile will come up in a search via the front-end.
 3. Profiles can be accessed via `/?dev=...` links only.
 4. The app may include private library names in the report - do not use it on sensitive projects.
 5. The only way to delete a profile is to email info@stackmuncher.com.
-6. Your Github profile may be included in the Directory, but it cannot be linked to your private profile.
+6. Your Github profile may already be included in the Directory, but it cannot be linked to your private profile.
 7. It may take up to 2 minutes for a profile to be updated after a report submission.
 
 ## Troubleshooting
 
-We want to hear about as many issues users run into as possible. Copy-paste the log and error messages printed by the app into https://github.com/stackmuncher/stm_app/issues/new/choose
+We want to hear about as many issues users run into as possible. Copy-paste the log and error messages printed by the app into https://github.com/stackmuncher/stm_app/issues/new/choose and let us help you.
 
 #### Pre-requisites:
 
