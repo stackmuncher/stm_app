@@ -94,6 +94,8 @@ impl AppArgs {
         // help has a higher priority and should be handled separately
         if pargs.contains(["-h", "--help"]) {
             app_args.command = AppArgCommands::Help;
+        } else if pargs.contains("--view_config") || pargs.contains("--viewconfig") {
+            app_args.command = AppArgCommands::ViewConfig;
         }
 
         // --noupdate param with different misspellings
