@@ -103,45 +103,49 @@ impl AppConfig {
                 .init();
         };
 
-        // rules and project folders are being validated only - not much difference if it's done now or later
-        // replace default config with user values from the CLI
-        if let Some(rules) = app_args.rules {
-            validate_rules_dir(&rules);
-            config.code_rules_dir = rules;
-        } else {
-            // validate the default value
-            validate_rules_dir(&config.code_rules_dir);
-        };
-
-        // check the project folder for existence and if it has .git in it
-        config.project_dir = match app_args.project {
-            Some(project) => {
-                // expand ~/somepath on Linux to /home/user/...
-                let project = tilde_expand(project);
-                validate_project_dir(project)
-            }
-            None => {
+        // only validate project, rules and report if code analysis is to be done
+        // config should be validated regardless because nothing functions without it
+        if app_args.command == AppArgCommands::Munch {
+            // rules and project folders are being validated only - not much difference if it's done now or later
+            // replace default config with user values from the CLI
+            if let Some(rules) = app_args.rules {
+                validate_rules_dir(&rules);
+                config.code_rules_dir = rules;
+            } else {
                 // validate the default value
-                validate_project_dir(config.project_dir)
-            }
-        };
+                validate_rules_dir(&config.code_rules_dir);
+            };
 
-        // reports folder may need to be created in the default or specified location
-        config.report_dir = match app_args.reports {
-            Some(v) => {
-                // expand ~/somepath on Linux to /home/user/...
-                let v = tilde_expand(v);
+            // check the project folder for existence and if it has .git in it
+            config.project_dir = match app_args.project {
+                Some(project) => {
+                    // expand ~/somepath on Linux to /home/user/...
+                    let project = tilde_expand(project);
+                    validate_project_dir(project)
+                }
+                None => {
+                    // validate the default value
+                    validate_project_dir(config.project_dir)
+                }
+            };
 
-                Some(validate_or_create_report_dir(&config.project_dir, &v))
-            }
-            None => Some(validate_or_create_report_dir(
-                &config.project_dir,
-                config
-                    .report_dir
-                    .as_ref()
-                    .expect("Cannot unwrap config.report_dir. It's a bug."),
-            )),
-        };
+            // reports folder may need to be created in the default or specified location
+            config.report_dir = match app_args.reports {
+                Some(v) => {
+                    // expand ~/somepath on Linux to /home/user/...
+                    let v = tilde_expand(v);
+
+                    Some(validate_or_create_report_dir(&config.project_dir, &v))
+                }
+                None => Some(validate_or_create_report_dir(
+                    &config.project_dir,
+                    config
+                        .report_dir
+                        .as_ref()
+                        .expect("Cannot unwrap config.report_dir. It's a bug."),
+                )),
+            };
+        }
 
         // config folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
         let config_dir = if let Some(conf_dir_from_args) = app_args.config {

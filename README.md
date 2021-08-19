@@ -1,9 +1,8 @@
 # Profile Builder for Global Directory of Software Developers
 
-#### StackMuncher app analyses local Git repositories and creates a profile on https://stackmuncher.com, a Global Directory of Software Developers.
+#### StackMuncher app helps developers find work that matches their skills and interests. It analyzes your commits in your local Git repositories and builds a profile in the [Global Directory of Software Developers](https://stackmuncher.com).
 
-The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills find you. 
-
+The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills to find you. 
 
 ## Privacy
 
@@ -15,12 +14,11 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
 
 * anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 * public profile: https://stackmuncher.com/rimutaka
-* sample report (local copy): ...
-* sample report (stripped down): ...
+* sample report: ...
 
 ## Quick start
 
-_We are testing an alpha release and the only way to run this app for now is to compile it from the source in Rust._
+_This is an alpha release and the only way to run this app is to compile it from the source in Rust._
 
 Assuming that you have Git and a [Rust toolchain](https://www.rust-lang.org/tools/install) installed, just clone and run the app:
 
@@ -30,7 +28,7 @@ cd stm_app
 cargo run -- --project "path_to_any_of_your_local_projects"
 ```
 
-The app will access `.git` folder inside `path_to_any_of_your_local_projects` directory and create an anonymous profile with your first report on _stackmuncher.com_. Add `--noupdate` flag to generate a report without creating a profile or submitting any data to the Directory. Look at the log printed by the app for details.
+The app will access `.git` folder inside `path_to_any_of_your_local_projects` directory and create an anonymous profile with your first report on _stackmuncher.com_. Add `--noupdate` flag to generate a report without creating a profile or submitting any data to the Directory. Look at the log printed by the app for details to examine the prepared report.
 
 The **default config** of the app assumes that it is run on a development machine from the root folder of a repository you made commits to.
 
@@ -55,7 +53,6 @@ We often commit to the same repo using different `user.email` Git setting. Run `
 Find out what email addresses were used in commits to `quickxml_to_serde` repo:
 
 ```shell
-~/rust/stm_app$ cd ~/rust/quickxml_to_serde/
 ~/rust/quickxml_to_serde$ git shortlog -s -e --all
      8  Alec Troemel <...>
      5  Marius Rumpf <...>
@@ -64,7 +61,7 @@ Find out what email addresses were used in commits to `quickxml_to_serde` repo:
     31  rimutaka <rimutaka@onebro.me>
 
 ```
-_mx_ and _rimutaka_ are the same person. Add both emails to StackMuncher config using `--email` parameter:
+_mx_ and _rimutaka_ are the same person. Let's add both emails to StackMuncher config using `--email` parameter:
 
 ```shell
 ~/rust/stm_app$ cargo run -- view_config --emails "max@onebro.me, rimutaka@onebro.me"
@@ -80,22 +77,26 @@ _mx_ and _rimutaka_ are the same person. Add both emails to StackMuncher config 
     Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
     Config file: /home/ubuntu/rust/stm_app/.stm_config/config.json
 ```
-The app stored two emails from `--emails` param in its config file and printed its full config info (`view_config` command). From now on it will look for commits from these two email addresses.
+The app stored two emails from `--emails` param in its config file and printed its full config info (`view_config` command). From now on it will look for commits from _max@onebro.me_ and _rimutaka@onebro.me_.
 
 
 ##  Adding more projects to your profile
 
-1. Build the app: run `cargo build --release` from `stm_app` folder.
-2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable
+Adding more of your projects to your Directory Profile builds a more complete picture of your skills. StackMuncher can be configured to keep your profile current as you write and commit more code:
+
+1. Build the app with `cargo build --release` from `stm_app` folder.
+2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable. E.g. `echo 'export PATH="$HOME/rust/stm_app/target/release:$PATH"' >> ~/.profile`
 3. Add a global [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
 
     ```bash
     git config --global init.templatedir '~/.git-templates'
     mkdir -p ~/.git-templates/hooks
-    echo "stackmuncher >> ~/.stm.log" >> ~/.git-templates/hooks/post-commit
+    echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> ~/.git-templates/hooks/post-commit
     chmod a+x ~/.git-templates/hooks/post-commit
     ```
-4. Run `git init` on your existing repos to add the hook from the template. Any new repos or clones will get the hook added by default.
+4. Run `git init` on your existing repos to add the hook from the template. 
+    * Any new repos or clones will get the hook added by default.
+    * Repos with an existing `hooks/post-commit` file need `stackmuncher --log info 2>&1 >> ~/.stm.log` to be inserted manually.
 
 Git will invoke the app every time you make a commit to a repo with the post-commit hook to generate a report, log its progress in `~/.stm.log` and update your Directory Profile.
 
@@ -106,11 +107,11 @@ You can skip adding the Git hook and run `stackmuncher` from the root of any of 
 Running `stackmuncher` without any additional params generates a report for the project in the current working directory and updates your developer profile.
 
 Anonymous profiles are identified by a public key from the key-pair generated by the app on the first run. E.g. https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
-The key is located in the app's config folder and can be copied to another machine to connect to the same developer profile. Run `stackmuncher view_config` to see the exact location of the config folder.
+The key is located in the app's config folder and can be copied to another machine to connect to the same developer profile. Run `stackmuncher view_config` command to see the exact location of the config folder.
 
 ### Additional options
 
-Some settings are cached in a local config file and only need to be set once. You can set, change or unset them via CLI params or by editing the config file manually.
+Some of the app's settings are cached in a local config file and only need to be set once. You can set, change or unset them via CLI params or by editing the config file directly.
 
 #### Processing settings
 
@@ -118,15 +119,39 @@ Some settings are cached in a local config file and only need to be set once. Yo
 * `--project "path_to_project_to_be_analyzed"`: an optional relative or absolute path to the project/repo to generate a report for, defaults to the current working directory.
 * `--no_update`: tells the app to generate a report, save it locally, but not upload anything to the Directory.
 
+Example:
+```shell
+~$ stackmuncher --project "~/rust/stm_server" --emails "max@onebro.me, rimutaka@onebro.me" --no_update
+
+   Stack report:         /home/ubuntu/rust/stm_app/reports/home_ubuntu_rust_stm_server_a8ff58d9
+   Directory Profile update skipped: `--no_update` flag.
+```
+
 #### Profile settings
 
 * `--primary_email "me@example.com"`: an email address for Directory notifications. Defaults to `git config user.email`. Set once. This setting is optional. No reports are submitted to the directory if this value is unset.
 * `--public_name "My Full Name or Nickname"`: an optional public name of your Directory Profile. It is visible to anyone, including search engines. Leave it blank to remain anonymous. Set once.
 * `--public_contact "email, website, twitter"`: optional contact details for your Directory Profile. It is visible to anyone, including search engines. Set once.
 
-#### Debugging settings
+Example:
+```shell
+~$ stackmuncher view_config --primary_email "max@onebro.me" --public_name "rimutaka" --public_contact "info@stackmuncher.com or https://rimutaka.me"
 
-* `--log error|warn|info|debug|trace`: the log is written to _stdout_ and _stderror_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it. E.g. `stackmuncher --log debug >> ~/stm_trace.log`
+    Primary email: max@onebro.me
+    Commit emails: max@onebro.me, rimutaka@onebro.me
+
+    Public name:       rimutaka
+    Public contact:    info@stackmuncher.com or https://rimutaka.me
+    Directory profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+
+    Local stack reports: /home/ubuntu/rust/stm_app/reports
+    Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
+    Config file: /home/ubuntu/rust/stm_app/.stm_config/config.json
+```
+
+#### Debug settings
+
+* `--log error|warn|info|debug|trace`: the log is written to _stdout_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it. E.g. `stackmuncher --log debug >> ~/stm_trace.log`
 * `--rules "path to code analysis rules"`: a path to an alternative location of code analysis rules. The path can be relative or absolute. Defaults to the application folder.
 * `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to the application folder.
 * `--config "path to config folder"`: a path to an alternative location of the config folder. The path can be relative or absolute. Defaults to the application folder.
@@ -139,16 +164,15 @@ Some settings are cached in a local config file and only need to be set once. Yo
 
 ## Limitations
 
-_The current version of the app is at alpha-stage and should be used for testing purposes only. _
+_The current version of the app is at alpha-stage and should be used for testing purposes only._
 
 1. Only a small number of computer languages are recognized.
-2. There is no guarantee a profile will come up in a search via the front-end.
-3. Profiles can be accessed via `/?dev=...` links only.
-4. The app may include private library names in the report - do not use it on sensitive projects.
-5. The only way to delete a profile is to email info@stackmuncher.com.
-6. Your Github profile may already be included in the Directory, but it cannot be linked to your private profile.
-7. It may take up to 2 minutes for a profile to be updated after a report submission.
-8. Very large reports (over 50MB) are likely to be rejected.
+2. Profiles can be accessed via `/?dev=...` links only.
+3. The app may include private library names in the report - do not use it on commercially-sensitive projects.
+4. The only way to delete a profile is to email info@stackmuncher.com.
+5. Your Github profile may already be included in the Directory, but it cannot be linked to your private profile.
+6. It may take up to 2 minutes for a profile to be created/updated after a report submission.
+7. Very large reports (over 50MB) are likely to be rejected.
 
 ## Troubleshooting
 
@@ -163,10 +187,10 @@ We want to hear about as many issues users run into as possible. Copy-paste the 
 
 * look through the log it printed for clues
 * run `stackmuncher view_config` and check the output in `reports` folder - there should be at least 4 files:
-    * **project_report.json**: includes all contributors 
-    * **combined_report.json**: a combined report for authors/committers from Git's `user.email` setting and from `--emails` param
-    * **submitted_report.json**: a sanitized version of the combined report exactly as it was submitted to the Directory
-    * **contributor_xxxxxxxx.json**: cached reports for individual contributors
+    * _project_report.json_: includes all contributors 
+    * _combined_report.json_: a combined report for authors/committers from Git's `user.email` setting and from `--emails` param
+    * _submitted_report.json_: a sanitized version of the combined report exactly as it was submitted to the Directory
+    * _contributor_xxxxxxxx.json_: cached reports for individual contributors
 
 ## Bug reports and contributions
 

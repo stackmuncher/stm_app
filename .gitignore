@@ -5,6 +5,7 @@ Cargo.lock
 stm-report.json
 trace*.txt
 *report*.json
+!samples/*report*.json
 *.deb
 *.msix
 *.pfx
