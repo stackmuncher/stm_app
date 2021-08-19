@@ -1,6 +1,6 @@
 # Profile Builder for Global Directory of Software Developers
 
-#### StackMuncher app helps developers find work that matches their skills and interests. It analyzes your commits in your local Git repositories and builds a profile in the [Global Directory of Software Developers](https://stackmuncher.com).
+#### StackMuncher app helps developers find work that matches their skills and interests. It analyzes their commits in their local Git repositories and builds a profile in the [Global Directory of Software Developers](https://stackmuncher.com).
 
 The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills to find you. 
 
