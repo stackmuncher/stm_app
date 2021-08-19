@@ -1,6 +1,6 @@
-# Profile Builder for Global Directory of Software Developers
+# Software Developer Profile Builder
 
-#### StackMuncher app helps developers find work that matches their skills and interests. It analyzes their commits in their local Git repositories and builds a profile in the [Global Directory of Software Developers](https://stackmuncher.com).
+#### StackMuncher app helps developers find work that matches their skills and interests. It analyzes their commits in their local Git repositories and builds a profile in the [Open Directory of Software Developers](https://stackmuncher.com).
 
 The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills to find you. 
 
@@ -14,7 +14,7 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
 
 * anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 * public profile: https://stackmuncher.com/rimutaka
-* sample report: ...
+* sample report: [samples/submitted_report.json](samples/submitted_report.json)
 
 ## Quick start
 
@@ -86,10 +86,10 @@ Adding more of your projects to your Directory Profile builds a more complete pi
 
 1. Build the app with `cargo build --release` from `stm_app` folder.
 2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable. E.g. `echo 'export PATH="$HOME/rust/stm_app/target/release:$PATH"' >> ~/.profile`
-3. Add a global [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
+3. Add a Open [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
 
     ```bash
-    git config --global init.templatedir '~/.git-templates'
+    git config --Open init.templatedir '~/.git-templates'
     mkdir -p ~/.git-templates/hooks
     echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> ~/.git-templates/hooks/post-commit
     chmod a+x ~/.git-templates/hooks/post-commit
