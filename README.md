@@ -85,7 +85,7 @@ The app stored two emails from `--emails` param in its config file and printed i
 Adding more of your projects to your Directory Profile builds a more complete picture of your skills. StackMuncher can be configured to keep your profile current as you write and commit more code:
 
 1. Build the app with `cargo build --release` from `stm_app` folder.
-2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable. E.g. `echo 'export PATH="$HOME/rust/stm_app/target/release:$PATH"' >> ~/.profile`
+2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable. E.g. `echo 'export PATH="$HOME/rust/stm_app/target/release:$PATH"' >> ~/.profile` + log off/on or restart.
 3. Check if you have Git hooks already configured: `git config --get-all init.templatedir`
    * _the query returned a value_ - edit your post-commit templates manually
    * _the query returned nothing_ - add a [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
