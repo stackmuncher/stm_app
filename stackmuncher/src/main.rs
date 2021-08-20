@@ -79,10 +79,9 @@ fn delete_profile() {
 
 /// A temporary stub for `make_anon` command.
 fn make_anon() {
-    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
     println!("MAKE ANON: not implemented yet.");
     println!();
-    println!("    Run `stackmuncher{} --public_name \"\" --public_contact \"\"` to remove your public details and make your profile anonymous.", exe_suffix);
+    println!("    Run `stackmuncher{} --public_name \"\" --public_contact \"\"` to remove your public details and make your profile anonymous.", std::env::consts::EXE_SUFFIX);
 }
 
 /// A temporary stub for `view_config` command.

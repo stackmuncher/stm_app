@@ -1,10 +1,12 @@
+use crate::help;
 use bs58;
+use path_absolutize::Absolutize;
 use ring::{
     rand,
     signature::{self, Ed25519KeyPair, KeyPair},
 };
 use std::{path::PathBuf, process::exit};
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// The core sruct for storing the user pub key and signing payloads.
 pub(crate) struct ReportSignature {
@@ -51,12 +53,17 @@ pub(crate) fn get_key_pair(keys_dir: &PathBuf) -> Ed25519KeyPair {
     // the validity of the path and the presence of the folder should be validated during config time
     // try to get the file from the disk first
     let key_file_path = get_key_file_name(keys_dir);
+    let key_file_path_str = key_file_path
+        .absolutize()
+        .expect(&format!("Cannot convert {} to absolute path.", key_file_path.to_string_lossy()))
+        .to_string_lossy()
+        .to_string();
 
     // does it exist?
     if !key_file_path.exists() {
         // this is a bit wasteful - the call returns the key, but it is read in the next statement from disk
         // did this to keep the flow of the code more or less linear
-        info!("No key file found at {}", key_file_path.to_string_lossy());
+        info!("No key file found at {}", key_file_path_str);
         generate_and_save_new_pkcs8(&key_file_path);
     }
 
@@ -64,29 +71,31 @@ pub(crate) fn get_key_pair(keys_dir: &PathBuf) -> Ed25519KeyPair {
     let pkcs8_bytes = match std::fs::read(key_file_path.clone()) {
         Err(e) => {
             // most likely the file doesn't exist, but it may be corrupt or inaccessible
-            warn!("Cannot read key file {} due to {}", key_file_path.to_string_lossy(), e);
+            warn!("Cannot read key file {} due to {}", key_file_path_str, e);
             generate_and_save_new_pkcs8(&key_file_path)
         }
         Ok(v) => {
-            debug!("Key read from: {}", key_file_path.to_string_lossy());
+            debug!("Key read from: {}", key_file_path_str);
             v
+        }
+    };
+
+    // decode the bs58-encoded key
+    let pkcs8_bytes = match bs58::decode(pkcs8_bytes).into_vec() {
+        Ok(v) => v,
+        Err(e) => {
+            error!("Failed to decode {} from base58 due to {}", key_file_path_str, e);
+            help::emit_key_err_msg(&key_file_path_str);
+            exit(1);
         }
     };
 
     // extract the key pair from the contents of the key file
     let key_pair = match signature::Ed25519KeyPair::from_pkcs8(pkcs8_bytes.as_ref()) {
         Err(e) => {
-            warn!("Failed to generate an ED25519 key pair from pkcs8 bytes due to {}", e);
-            // try again - if the file is corrupt it may be easier to regenerate it
-            match signature::Ed25519KeyPair::from_pkcs8(generate_and_save_new_pkcs8(&key_file_path).as_ref()) {
-                Err(e) => {
-                    // there is not much else can be done
-                    warn!("Failed to generate an ED25519 key pair (attempt 2) from pkcs8 bytes due to {}", e);
-                    eprintln!("STACKMUNCHER ERROR: failed to generate an ED25519 key pair");
-                    exit(1);
-                }
-                Ok(v) => v,
-            }
+            warn!("Invalid key-pair in {} due to {}", key_file_path_str, e);
+            help::emit_key_err_msg(&key_file_path_str);
+            exit(1);
         }
         Ok(v) => v,
     };
@@ -107,8 +116,11 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
         Ok(v) => v,
     };
 
+    // convert raw bytes into base58 to make easier to copy between machines
+    let contents = bs58::encode(pkcs8.as_ref()).into_vec();
+
     // try to save it on disk
-    if let Err(e) = std::fs::write(key_file_name.clone(), pkcs8.as_ref()) {
+    if let Err(e) = std::fs::write(key_file_name.clone(), contents) {
         eprintln!(
             "STACKMUNCHER ERROR: failed to save the key file in {}. Reason: {}",
             key_file_name.to_string_lossy(),
@@ -117,7 +129,7 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
         exit(1);
     }
 
-    info!("Key saved to: {}", key_file_name.to_string_lossy());
+    info!("A new key saved to: {}", key_file_name.to_string_lossy());
 
     // return the bytes of the key
     pkcs8.as_ref().to_vec()
@@ -139,5 +151,5 @@ fn get_key_file_name(keys_dir: &PathBuf) -> PathBuf {
     }
 
     // complete building the file name
-    keys_dir.join("key.pki")
+    keys_dir.join("key.txt")
 }

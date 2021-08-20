@@ -4,11 +4,10 @@ use stackmuncher_lib::config::Config;
 
 /// Prints out a standard multi-line message on how to use the app and where to find more info
 pub(crate) fn emit_usage_msg() {
-    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
     println!();
     println!(
         "    Run `stackmuncher{exe_suffix} --help` for detailed usage info.",
-        exe_suffix = exe_suffix
+        exe_suffix = std::env::consts::EXE_SUFFIX
     );
     println!();
     emit_support_msg();
@@ -85,9 +84,22 @@ pub(crate) fn emit_cli_err_msg() {
     }
 }
 
+/// Prints a message about an invalid private key.
+pub(crate) fn emit_key_err_msg(key_file_path: &str) {
+    eprintln!();
+    eprintln!("    1. Did you manually copied the contents of `key.txt`? It is invalid. Try again.");
+    eprintln!();
+    eprintln!(
+        "    2. If you didn't edit {} you can delete it and the app will generate a new one.",
+        key_file_path
+    );
+    eprintln!("    The side effect of that is that the app will also create a new Developer Profile for you.");
+    eprintln!("    If you think you lost your original key, just delete the file and contact us on info@stackmuncher.com to link your existing Developer Profile to the new key.");
+    eprintln!("    We apologize for not automating this step yet.");
+    eprintln!();
+}
 /// Prints out either Win or nix/Mac Welcome msg.
 pub(crate) fn emit_welcome_msg(config: AppConfig) {
-    let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
     let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
 
     println!("\
@@ -133,5 +145,5 @@ ADDITIONAL COMMANDS:
 MORE INFO:
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
-    ",exe_suffix=exe_suffix, pub_key=pub_key);
+    ",exe_suffix=std::env::consts::EXE_SUFFIX, pub_key=pub_key);
 }

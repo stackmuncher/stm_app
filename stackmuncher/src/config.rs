@@ -5,6 +5,7 @@ use ring::signature::Ed25519KeyPair;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
+use std::env::consts::EXE_SUFFIX;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
@@ -51,9 +52,6 @@ impl AppConfig {
         // The sequence of the calls is very important. Some of them read or create resources needed in subsequent steps
         // even if it may not be apparent from the function name. Follow the comments.
         // -------------------------------------------------------------------------------------------------------------
-
-        // used in user messages
-        let exe_suffix = if cfg!(target_os = "windows") { ".exe" } else { "" };
 
         // assume that the project_dir is the current working folder
         let current_dir = match std::env::current_dir() {
@@ -189,7 +187,7 @@ impl AppConfig {
             println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",config.git_identities[0]);
             println!(
                 "    Run `stackmuncher{} --primary_email me@example.com` to set your preferred contact email. It will not be published or shared with anyone.",
-                exe_suffix
+                EXE_SUFFIX
             );
             println!();
             Some(config.git_identities[0].clone())
@@ -198,7 +196,7 @@ impl AppConfig {
             println!();
             println!(
                 "    Run `stackmuncher{} --primary_email me@example.com` to start updating your Directory profile.",
-                exe_suffix
+                EXE_SUFFIX
             );
             println!();
             None
@@ -211,7 +209,7 @@ impl AppConfig {
                 println!();
                 println!(
                     "    Run `stackmuncher{} --public_name \"My Name or Nickname\"` to make it public.",
-                    exe_suffix
+                    EXE_SUFFIX
                 );
                 println!();
             } else {
@@ -223,7 +221,7 @@ impl AppConfig {
                 println!();
                 println!(
                     "    Run `stackmuncher{} --public_name \"\"` to remove the name and make your profile anonymous.",
-                    exe_suffix
+                    EXE_SUFFIX
                 );
                 println!();
             }
@@ -246,7 +244,7 @@ impl AppConfig {
                 println!();
                 println!(
                     "    Run `stackmuncher{} --public_contact \"Your email, website or any other contact details\"` for employers to contact you directly.",
-                    exe_suffix
+                    EXE_SUFFIX
                 );
                 println!();
             } else {
@@ -256,7 +254,7 @@ impl AppConfig {
                     pub_contact
                 );
                 println!();
-                println!("    Run `stackmuncher{} --public_contact \"\"` to remove it.", exe_suffix);
+                println!("    Run `stackmuncher{} --public_contact \"\"` to remove it.", EXE_SUFFIX);
                 println!();
             }
 
@@ -271,7 +269,7 @@ impl AppConfig {
         if config.git_identities.len() > 0 && app_args.emails.is_none() && app_config_cache.git_identities.is_empty() {
             println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",config.git_identities[0]);
             println!("    1. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
-            println!("    2. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", exe_suffix);
+            println!("    2. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", EXE_SUFFIX);
             println!();
         }
 
@@ -291,7 +289,7 @@ impl AppConfig {
             println!();
             println!("    1. Add your email with `git configure --global user.email me@example.com` to identify your future commits.");
             println!("    2. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
-            println!("    3. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", exe_suffix);
+            println!("    3. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", EXE_SUFFIX);
             println!();
         }
 
