@@ -86,17 +86,18 @@ Adding more of your projects to your Directory Profile builds a more complete pi
 
 1. Build the app with `cargo build --release` from `stm_app` folder.
 2. Add the full absolute path of `stm_app/target/release` folder to `PATH` environment variable. E.g. `echo 'export PATH="$HOME/rust/stm_app/target/release:$PATH"' >> ~/.profile`
-3. Add a Open [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
-
+3. Check if you have Git hooks already configured: `git config --get-all init.templatedir`
+   * _the query returned a value_ - edit your post-commit templates manually
+   * _the query returned nothing_ - add a [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
     ```bash
-    git config --Open init.templatedir '~/.git-templates'
+    git config --global --add init.templatedir '~/.git-templates'
     mkdir -p ~/.git-templates/hooks
     echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> ~/.git-templates/hooks/post-commit
     chmod a+x ~/.git-templates/hooks/post-commit
     ```
 4. Run `git init` on your existing repos to add the hook from the template. 
     * Any new repos or clones will get the hook added by default.
-    * Repos with an existing `hooks/post-commit` file need `stackmuncher --log info 2>&1 >> ~/.stm.log` to be inserted manually.
+    * Repos with an existing `hooks/post-commit` file can have the hook added with `echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> .git/hooks/post-commit`. Run it from the root of the project folder.
 
 Git will invoke the app every time you make a commit to a repo with the post-commit hook to generate a report, log its progress in `~/.stm.log` and update your Directory Profile.
 
@@ -160,7 +161,6 @@ Example:
 
 #### Additional commands
 * `view_config`: displays the contents of the config file and its location. The config file can be edited manually or copied to another machine together with the key file to connect to the same Developer Profile.
-
 
 ## Limitations
 
