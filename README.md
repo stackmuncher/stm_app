@@ -162,6 +162,14 @@ Example:
 #### Additional commands
 * `view_config`: displays the contents of the config file and its location. The config file can be edited manually or copied to another machine together with the key file to connect to the same Developer Profile.
 
+## Using StackMuncher app on multiple machines
+
+1. Clone this repo onto a 2nd machine
+2. Run `cargo run -- view_config` to bootstrap the app
+3. Copy-paste the contents of `.stm_config/config.json` and `.stm_config/key.txt` from the 1st to the 2nd machine
+
+The 2nd machine will be connected to the same Developer Profile as the first one for as long as they share the same _key.txt_ file. If you loose the key file the app will generate a new one and create a new Developer Profile. Contact us on info@stackmuncher.com to merge the old profile into the new one.
+
 ## Limitations
 
 _The current version of the app is at alpha-stage and should be used for testing purposes only._
