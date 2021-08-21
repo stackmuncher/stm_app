@@ -50,13 +50,13 @@ We often commit to the same repo using different `user.email` Git setting. Run `
 
 #### Example
 
-Find out what email addresses were used in commits to `quickxml_to_serde` repo:
+Find out what email addresses were used in commits to `xml_to_serde` repo:
 
 ```shell
-~/rust/quickxml_to_serde$ git shortlog -s -e --all
-     8  Alec Troemel <...>
-     5  Marius Rumpf <...>
-     3  alec troemel <...>
+~/rust/xml_to_serde$ git shortlog -s -e --all
+     8  Alex Trump <...>
+     5  Martin Crump <...>
+     3  alex trump <...>
      1  mx <max@onebro.me>
     31  rimutaka <rimutaka@onebro.me>
 
