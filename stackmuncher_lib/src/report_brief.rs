@@ -1,6 +1,7 @@
-use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use tracing::warn;
 
 /// A very concise overview of a single Tech record
 /// to show the share of the technology in the project
@@ -190,67 +191,40 @@ impl super::report::Report {
     }
 }
 
-/// Converts an ISO3339 date into a project name using colours and animal names.
+/// Converts an ISO3339 date into a project name using numbers based on the repo init date.
 /// Returns a random timestamp-based name if the input is invalid.
 fn project_name_from_date(date: &Option<String>) -> String {
-    if let Some(date) = date {
-        if let Ok(date) = DateTime::parse_from_rfc3339(date) {
-            let day = DAYS[date.day() as usize];
-            let month = MONTHS[date.month() as usize];
-            let year = &date.year().to_string();
+    // try to convert the data from the report into a valid UTC struct
+    // fall back to Utc::now if it fails at any of the steps
+    let date = match date {
+        None => Utc::now(),
+        Some(d) => {
+            let date = match DateTime::parse_from_rfc3339(d) {
+                Ok(d) => d.with_timezone(&Utc),
+                Err(e) => {
+                    warn!("Invalid project date: {} with {}", d, e);
+                    Utc::now()
+                }
+            };
 
-            return [day, month, year].join("_");
+            date
         }
-    }
+    };
 
-    // backup option for invalid input
-    let date = Utc::now();
-
+    // the name is structured to make it look more or less random to an outsider and vaguely recognizable to the owner
+    // E.g. `Private project #0821bb`, `Private project #3420s`
     [
-        "project ",
+        "Private project #",
+        // pad 1-digi weeks with a leading 0
+        if date.iso_week().week() < 10 { "0" } else { "" },
+        date.iso_week().week().to_string().as_str(),
         &date.year().to_string()[2..],
-        "_",
-        date.second().to_string().as_str(),
-        date.minute().to_string().as_str(),
+        DAYS_AS_LETTERS[date.day() as usize - 1],
     ]
     .concat()
 }
 
-const MONTHS: [&str; 12] = [
-    "black", "silver", "gray", "white", "maroon", "red", "purple", "crimson", "green", "yellow", "blue", "beige",
-];
-
-const DAYS: [&str; 32] = [
-    "leopard",
-    "rhino",
-    "orangutan",
-    "gorilla",
-    "turtle",
-    "shark",
-    "tiger",
-    "kakapo",
-    "elephant",
-    "bison",
-    "whale",
-    "tuna",
-    "turtle",
-    "iguana",
-    "butterfly",
-    "plover",
-    "frog",
-    "bear",
-    "panda",
-    "lion",
-    "seal",
-    "kakapo",
-    "kingfisher",
-    "magpie",
-    "warbler",
-    "starling",
-    "finch",
-    "woodpecker",
-    "cuckoo",
-    "condor",
-    "lark",
-    "eagle",
+const DAYS_AS_LETTERS: [&str; 31] = [
+    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
+    "x", "y", "z", "aa", "bb", "cc", "dd", "xx",
 ];
