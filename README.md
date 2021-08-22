@@ -10,13 +10,13 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
   - [Quick start](#quick-start)
   - [Adding more commit emails](#adding-more-commit-emails)
   - [Adding more projects to your profile](#adding-more-projects-to-your-profile)
+  - [Using StackMuncher app on multiple machines](#using-stackmuncher-app-on-multiple-machines)
   - [Detailed usage instructions](#detailed-usage-instructions)
     - [Additional options](#additional-options)
       - [Processing settings](#processing-settings)
       - [Profile settings](#profile-settings)
       - [Debug settings](#debug-settings)
       - [Additional commands](#additional-commands)
-  - [Using StackMuncher app on multiple machines](#using-stackmuncher-app-on-multiple-machines)
   - [Limitations](#limitations)
   - [Troubleshooting](#troubleshooting)
   - [Bug reports and contributions](#bug-reports-and-contributions)
@@ -122,6 +122,14 @@ Git will invoke the app every time you make a commit to a repo with the post-com
 
 You can skip adding the Git hook and run `stackmuncher` from the root of any of your projects. No additional params are required.
 
+## Using StackMuncher app on multiple machines
+
+1. Clone this repo onto a 2nd machine
+2. Run `cargo run -- view_config` to bootstrap the app
+3. Copy-paste the contents of `.stm_config/config.json` and `.stm_config/key.txt` from the 1st to the 2nd machine
+
+The 2nd machine will be connected to the same Developer Profile as the first one for as long as they share the same _key.txt_ file. If you loose the key file the app will generate a new one and create a new Developer Profile. Contact us on info@stackmuncher.com to merge the old profile into the new one.
+
 ## Detailed usage instructions
 
 Running `stackmuncher` without any additional params generates a report for the project in the current working directory and updates your developer profile.
@@ -180,14 +188,6 @@ Example:
 
 #### Additional commands
 * `view_config`: displays the contents of the config file and its location. The config file can be edited manually or copied to another machine together with the key file to connect to the same Developer Profile.
-
-## Using StackMuncher app on multiple machines
-
-1. Clone this repo onto a 2nd machine
-2. Run `cargo run -- view_config` to bootstrap the app
-3. Copy-paste the contents of `.stm_config/config.json` and `.stm_config/key.txt` from the 1st to the 2nd machine
-
-The 2nd machine will be connected to the same Developer Profile as the first one for as long as they share the same _key.txt_ file. If you loose the key file the app will generate a new one and create a new Developer Profile. Contact us on info@stackmuncher.com to merge the old profile into the new one.
 
 ## Limitations
 
