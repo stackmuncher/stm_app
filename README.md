@@ -7,14 +7,16 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
 ## Privacy
 
 1. All code analysis is done locally. Not a single line of code is leaving your machine.
-2. All identifying and sensitive information like file or private library names is stripped.
+2. All identifying and sensitive information such as file, project or private library names is stripped.
 3. Your developer profile is completely anonymous unless you add your name and contact details to it.
+
+The app creates a sample stack report on the first run over a project without submitting it (dryrun). You can review the report before continuing.
 
 ## Examples
 
 * anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 * public profile: https://stackmuncher.com/rimutaka
-* sample report: [samples/submitted_report.json](samples/submitted_report.json)
+* sample report: [samples/submission.json](samples/submission.json)
 
 ## Quick start
 
