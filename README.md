@@ -4,6 +4,23 @@
 
 The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills to find you. 
 
+## Table of Contents 
+
+  - [Privacy](#privacy)
+  - [Quick start](#quick-start)
+  - [Adding more commit emails](#adding-more-commit-emails)
+  - [Adding more projects to your profile](#adding-more-projects-to-your-profile)
+  - [Detailed usage instructions](#detailed-usage-instructions)
+    - [Additional options](#additional-options)
+      - [Processing settings](#processing-settings)
+      - [Profile settings](#profile-settings)
+      - [Debug settings](#debug-settings)
+      - [Additional commands](#additional-commands)
+  - [Using StackMuncher app on multiple machines](#using-stackmuncher-app-on-multiple-machines)
+  - [Limitations](#limitations)
+  - [Troubleshooting](#troubleshooting)
+  - [Bug reports and contributions](#bug-reports-and-contributions)
+
 ## Privacy
 
 1. All code analysis is done locally. Not a single line of code is leaving your machine.
@@ -12,7 +29,7 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
 
 The app creates a sample stack report on the first run over a project without submitting it (dryrun). You can review the report before continuing.
 
-## Examples
+**Examples**
 
 * anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 * public profile: https://stackmuncher.com/rimutaka
@@ -34,7 +51,7 @@ The app will access `.git` folder inside `path_to_any_of_your_local_projects` di
 
 The **default config** of the app assumes that it is run on a development machine from the root folder of a repository you made commits to.
 
-#### Example
+**Example**
 
 I made commits to `~/rust/quickxml_to_serde` project recently and want to test StackMuncher app on it:
 ```shell
@@ -50,7 +67,7 @@ I made commits to `~/rust/quickxml_to_serde` project recently and want to test S
 
 We often commit to the same repo using different `user.email` Git setting. Run `git shortlog -s -e --all` to check if you made commits under any other email addresses.
 
-#### Example
+**Example**
 
 Find out what email addresses were used in commits to `xml_to_serde` repo:
 
@@ -188,12 +205,12 @@ _The current version of the app is at alpha-stage and should be used for testing
 
 We want to hear about as many issues users run into as possible. Copy-paste the log and error messages printed by the app into https://github.com/stackmuncher/stm_app/issues/new/choose and let us help you.
 
-#### Pre-requisites:
+**Pre-requisites:**
 
 * Git is installed and its `user.email` setting was configured
 * the project to be analyzed has commits from the same author/committer as in `user.email` setting
 
-#### If the app did something, but no report was submitted:
+**If the app did something, but no report was submitted:**
 
 * look through the log it printed for clues
 * run `stackmuncher view_config` and check the output in `reports` folder - there should be at least 4 files:
