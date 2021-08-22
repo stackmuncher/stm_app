@@ -47,7 +47,7 @@ cd stm_app
 cargo run -- --project "path_to_any_of_your_local_projects"
 ```
 
-The app will access `.git` folder inside `path_to_any_of_your_local_projects` directory and create an anonymous profile with your first report on _stackmuncher.com_. Add `--noupdate` flag to generate a report without creating a profile or submitting any data to the Directory. Look at the log printed by the app for details to examine the prepared report.
+The app will access `.git` folder inside `path_to_any_of_your_local_projects` directory and create an anonymous profile with your first report on _stackmuncher.com_. Add `--dryrun` flag to generate a report without creating a profile or submitting any data to the Directory. Look at the log printed by the app for details to examine the prepared report.
 
 The **default config** of the app assumes that it is run on a development machine from the root folder of a repository you made commits to.
 
