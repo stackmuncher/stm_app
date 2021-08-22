@@ -45,6 +45,12 @@ impl ReportSignature {
 
         bs58::encode(public_key).into_string()
     }
+
+    /// Generates a string that is unique to the user, consistent across submissions, but is only known to the user
+    /// to be used a `salt`. Based on the user's key-pair.
+    pub(crate) fn get_salt(key_pair: &Ed25519KeyPair) -> String {
+        ReportSignature::sign(ReportSignature::get_public_key(key_pair).as_bytes(), key_pair).signature
+    }
 }
 
 /// Retrieves an existing key-pair from the disk or generates a new one and saves it for future use.

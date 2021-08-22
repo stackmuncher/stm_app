@@ -1,8 +1,11 @@
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::report_brief::ProjectReportOverview;
 use super::tech::Tech;
+use crate::utils::sha256::hash_str_to_sha256_as_base58;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
 use chrono;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use path_absolutize::{self, Absolutize};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -692,6 +695,96 @@ impl Report {
         report.tree_files = Some(all_tree_files);
 
         report
+    }
+
+    /// Removes or replaces any sensitive info from the report for submission to stackmuncher.com.
+    /// Requires a `salt` for name hashing. It has to be unique to the user, consistent across submissions, but is only known to the user
+    pub fn sanitize(&self, salt: String) -> Result<Self, ()> {
+        // this function should be replaced with a macro
+        // see https://github.com/stackmuncher/stm/issues/12
+
+        info!("Report pre-submission cleanup started");
+        // expensive, but probably unavoidable given that the original report will still be used at the point of call
+        let mut report = self.clone();
+
+        // clean up per_file_tech section
+        let per_file_tech = report.per_file_tech.drain().collect::<Vec<Tech>>();
+        for mut x in per_file_tech {
+            // use a signed public key as the salt to make the file name hash consistent across submissions by the same user
+            // making it very hard to match them across different users
+            // it would be computationally prohibitive to try and find a match,
+            x.file_name =
+                Some(hash_str_to_sha256_as_base58(&[&salt, x.file_name.unwrap_or_default().as_str()].concat()));
+            x.keywords.clear();
+            x.pkgs.clear();
+            x.pkgs_kw = None;
+            x.refs.clear();
+            x.refs_kw = None;
+            report.per_file_tech.insert(x);
+        }
+
+        // this may be an email address of someone else
+        report.last_commit_author = None;
+        // someone's else commit hash can be used for matching across devs
+        report.report_commit_sha1 = None;
+
+        // reset time component of the project head and init commit timestamps to prevent cross-developer project matching
+        if let Some(date_head) = &report.date_head {
+            match chrono::DateTime::parse_from_rfc3339(date_head) {
+                Err(e) => {
+                    warn!("Invalid HEAD commit date: {} ({}). Expected RFC3339 format.", date_head, e);
+                    report.date_head = None;
+                }
+                Ok(v) => {
+                    report.date_head = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
+                }
+            }
+        }
+
+        if let Some(date_init) = &report.date_init {
+            match chrono::DateTime::parse_from_rfc3339(date_init) {
+                Err(e) => {
+                    warn!("Invalid INIT commit date: {} ({}). Expected RFC3339 format.", date_init, e);
+                    report.date_init = None;
+                }
+                Ok(v) => {
+                    report.date_init = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
+                }
+            }
+        }
+
+        Ok(report)
+    }
+
+    /// GZips itself
+    pub fn gzip(&self) -> Result<Vec<u8>, ()> {
+        // serialize the report into bytes
+        let report = match serde_json::to_vec(&self) {
+            Err(e) => {
+                error!("Cannot serialize a report after pre-sub cleanup due to {}", e);
+                return Err(());
+            }
+            Ok(v) => v,
+        };
+
+        // gzip it
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        if let Err(e) = encoder.write_all(&report) {
+            error!("Cannot gzip the report due to {}", e);
+            return Err(());
+        };
+        let gzip_bytes = match encoder.finish() {
+            Err(e) => {
+                error!("Cannot finish gzipping the report due to {}", e);
+                return Err(());
+            }
+
+            Ok(v) => v,
+        };
+
+        info!("Report size: {}, GZip: {}", report.len(), gzip_bytes.len());
+
+        Ok(gzip_bytes)
     }
 }
 

@@ -1,14 +1,9 @@
 use crate::help;
 use crate::signing::ReportSignature;
 use crate::AppConfig;
-use chrono;
-use flate2::write::GzEncoder;
-use flate2::Compression;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
-use stackmuncher_lib::utils::sha256::hash_str_to_sha256_as_base58;
-use stackmuncher_lib::{config::Config, report::Report, tech::Tech};
-use std::io::prelude::*;
+use stackmuncher_lib::report::Report;
 use tracing::{debug, info, warn};
 
 //const STM_REPORT_SUBMISSION_URL: &str = "https://emvu2i81ec.execute-api.us-east-1.amazonaws.com";
@@ -16,22 +11,16 @@ const STM_REPORT_SUBMISSION_URL: &str = "https://inbox.stackmuncher.com";
 const HEADER_USER_PUB_KEY: &str = "stackmuncher_key";
 const HEADER_USER_SIGNATURE: &str = "stackmuncher_sig";
 
-// these constants are used to compare the latest available version with what is run locally
-// const CLIENT_VERSION: &'static str = env!("CARGO_PKG_VERSION");
-// #[cfg(target_os = "linux")]
-// const CLIENT_PLATFORM: &str = "linux";
-// #[cfg(target_os = "windows")]
-// const CLIENT_PLATFORM: &str = "windows";
-
 /// Submits the serialized report to STM or some other web service. Includes signing.
 /// May panic if the signing fails (missing keys, can't access keystore).
 pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
-    // remove any sensitive info from the report and gzip it
-    let report = match pre_submission_cleanup(report, &config) {
+    // compress the report
+    let report = match report.gzip() {
+        Ok(v) => v,
         Err(_) => {
+            eprintln!("STACKMUNCHER: no report was submitted.");
             return;
         }
-        Ok(v) => v,
     };
 
     // sign the report
@@ -112,112 +101,4 @@ fn log_http_body(body_bytes: &hyper::body::Bytes) {
             body_bytes.len()
         );
     }
-}
-
-/// Removes or replaces any sensitive info from the report for submission to stackmuncher.com.
-/// Gzips the sanitized report and returns the raw bytes.
-/// Returns a sanitized report as bytes ready to be sent out
-pub(crate) fn pre_submission_cleanup(report: Report, config: &AppConfig) -> Result<Vec<u8>, ()> {
-    // this function should be replaced with a macro
-    // see https://github.com/stackmuncher/stm/issues/12
-
-    info!("Report pre-submission cleanup started");
-    // expensive, but probably unavoidable given that the original report will still be used at the point of call
-    let mut report = report.clone();
-
-    // generate a salt that is unique to the user, consistent across submissions, but is only known to the user
-    let salt =
-        ReportSignature::sign(ReportSignature::get_public_key(&config.user_key_pair).as_bytes(), &config.user_key_pair);
-    let salt = salt.signature.as_str();
-
-    // clean up per_file_tech section
-    let per_file_tech = report.per_file_tech.drain().collect::<Vec<Tech>>();
-    for mut x in per_file_tech {
-        // use a signed public key as the salt to make the file name hash consistent across submissions by the same user
-        // making it very hard to match them across different users
-        // it would be computationally prohibitive to try and find a match,
-        x.file_name = Some(hash_str_to_sha256_as_base58(&[salt, x.file_name.unwrap_or_default().as_str()].concat()));
-        x.keywords.clear();
-        x.pkgs.clear();
-        x.pkgs_kw = None;
-        x.refs.clear();
-        x.refs_kw = None;
-        report.per_file_tech.insert(x);
-    }
-
-    // this may be an email address of someone else
-    report.last_commit_author = None;
-    // someone's else commit hash can be used for matching across devs
-    report.report_commit_sha1 = None;
-
-    // reset time component of the project head and init commit timestamps to prevent cross-developer project matching
-    if let Some(date_head) = &report.date_head {
-        match chrono::DateTime::parse_from_rfc3339(date_head) {
-            Err(e) => {
-                warn!("Invalid HEAD commit date: {} ({}). Expected RFC3339 format.", date_head, e);
-                report.date_head = None;
-            }
-            Ok(v) => {
-                report.date_head = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
-            }
-        }
-    }
-
-    if let Some(date_init) = &report.date_init {
-        match chrono::DateTime::parse_from_rfc3339(date_init) {
-            Err(e) => {
-                warn!("Invalid INIT commit date: {} ({}). Expected RFC3339 format.", date_init, e);
-                report.date_init = None;
-            }
-            Ok(v) => {
-                report.date_init = Some(v.date().and_hms(0, 0, 0).to_rfc3339());
-            }
-        }
-    }
-
-    // save the submitted report for inspection by the user
-    let report_dir = std::path::Path::new(
-        config
-            .lib_config
-            .report_dir
-            .as_ref()
-            .expect("Cannot unwrap config.report_dir. It's a bug."),
-    );
-    report.save_as_local_file(
-        &report_dir.join(
-            [
-                Config::CONTRIBUTOR_REPORT_SUBMITTED_FILE_NAME,
-                Config::REPORT_FILE_EXTENSION,
-            ]
-            .concat(),
-        ),
-    );
-
-    // serialize the report into bytes
-    let report = match serde_json::to_vec(&report) {
-        Err(e) => {
-            eprintln!("Cannot serialize a report after pre-sub cleanup due to {}", e);
-            return Err(());
-        }
-        Ok(v) => v,
-    };
-
-    // gzip it
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    if let Err(e) = encoder.write_all(&report) {
-        eprintln!("Cannot gzip the report due to {}", e);
-        return Err(());
-    };
-    let gzip_bytes = match encoder.finish() {
-        Err(e) => {
-            eprintln!("Cannot finish gzipping the report due to {}", e);
-            return Err(());
-        }
-
-        Ok(v) => v,
-    };
-
-    info!("Report size: {}, GZip: {}", report.len(), gzip_bytes.len());
-
-    Ok(gzip_bytes)
 }

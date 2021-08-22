@@ -22,6 +22,7 @@ sha-1 = "0.9"
 sha2 = "0.9.5"
 bs58 = "0.4.0"
 path-absolutize = "3.0.10"
+flate2 = "1.0"
 
 [dev-dependencies]
 tracing-subscriber = "0.2"

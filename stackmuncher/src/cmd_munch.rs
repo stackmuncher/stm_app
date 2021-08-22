@@ -1,4 +1,6 @@
 use crate::config::AppConfig;
+use crate::help;
+use crate::signing::ReportSignature;
 use crate::submission::submit_report;
 use futures::stream::{FuturesUnordered, StreamExt};
 use path_absolutize::{self, Absolutize};
@@ -157,25 +159,17 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             combined_report.public_contact = config.public_contact.clone();
             combined_report.primary_email = config.primary_email.clone();
 
-            // let the submission to the directory run concurrently with saving the file
-            if config.no_update {
-                if config.lib_config.log_level == tracing::Level::ERROR {
-                    println!("Directory Profile update skipped: `--no_update` flag.");
-                }
-                info!("Skipping report submission: `--no_update` flag.")
-            } else {
-                if let Some(current_identity) = &config.primary_email {
-                    if current_identity.is_empty() {
-                        info!("Skipping report submission: blank primary_email");
-                        // notify the user there was no profile update
-                        println!("Your Directory Profile was NOT updated: run with `--primary_email me@example.com` once to resume the updates.");
-                    } else {
-                        submission_jobs.push(submit_report(combined_report.clone(), &config));
-                    }
-                } else {
-                    info!("Skipping report submission: no primary_email")
-                }
-            }
+            // check if there is a already a cached contributor report
+            // it would have to be a dry run (no submission) if it's the first time STM is run on this repo
+            let combined_report_file_name = report_dir.join(
+                [
+                    Config::CONTRIBUTOR_REPORT_COMBINED_FILE_NAME,
+                    Config::REPORT_FILE_EXTENSION,
+                ]
+                .concat(),
+            );
+            let dryrun = !combined_report_file_name.exists();
+
             // save the combine report for inspection by the user
             combined_report.save_as_local_file(
                 &report_dir.join(
@@ -186,6 +180,47 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                     .concat(),
                 ),
             );
+
+            // produce a sanitized version of the combined report, save and submit it if needed
+            if let Ok(combined_report) = combined_report.sanitize(ReportSignature::get_salt(&config.user_key_pair)) {
+                // prepare the file name of the sanitized report
+                let sanitized_report_file_name = &report_dir.join(
+                    [
+                        Config::CONTRIBUTOR_REPORT_SANITIZED_FILE_NAME,
+                        Config::REPORT_FILE_EXTENSION,
+                    ]
+                    .concat(),
+                );
+
+                // save the sanitized report
+                combined_report.save_as_local_file(sanitized_report_file_name);
+
+                // check if the submission to the directory should go ahead
+                if config.no_update {
+                    // a dry-run was requested by the user
+                    if config.lib_config.log_level == tracing::Level::ERROR {
+                        println!("Directory Profile update skipped: `--no_update` flag.");
+                    }
+                    warn!("Skipping report submission: `--no_update` flag.")
+                } else {
+                    if let Some(current_identity) = &config.primary_email {
+                        if current_identity.is_empty() {
+                            info!("Skipping report submission: blank primary_email");
+                            // notify the user there was no profile update
+                            help::emit_no_primary_email_msg();
+                        } else {
+                            if dryrun {
+                                info!("No report submission on the first run");
+                                help::emit_dryrun_msg(&sanitized_report_file_name.to_string_lossy());
+                            } else {
+                                submission_jobs.push(submit_report(combined_report.clone(), &config));
+                            }
+                        }
+                    } else {
+                        help::emit_no_primary_email_msg();
+                    }
+                }
+            }
         }
 
         // there should be only a single submission of the combined report

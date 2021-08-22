@@ -98,6 +98,37 @@ pub(crate) fn emit_key_err_msg(key_file_path: &str) {
     eprintln!("    We apologize for not automating this step yet.");
     eprintln!();
 }
+
+/// Prints a message about a the first run over a repo.
+pub(crate) fn emit_dryrun_msg(report_file_path: &str) {
+    eprintln!();
+    eprintln!("A stack report was generated, but NOT submitted.");
+    eprintln!();
+    eprintln!(
+        "    If your project code is commercially sensitive you can check {} file to make sure the stack report is safe to submit.",
+        report_file_path
+    );
+    eprintln!();
+    eprintln!("    The app will start submitting stack reports for this project from the next run. Use `--dryrun` flag to skip the profile update step.");
+    eprintln!();
+}
+
+/// Prints a message about a missing primary_email.
+pub(crate) fn emit_no_primary_email_msg() {
+    eprintln!();
+    eprintln!("A stack report was generated, but NOT submitted.");
+    eprintln!();
+    eprintln!(
+        "    Run `stackmuncher{exe_suffix} --primary_email me@example.com` to set your primary email and resume the updates.",
+        exe_suffix = std::env::consts::EXE_SUFFIX
+    );
+    eprintln!();
+    eprintln!(
+        "    Your primary email can only be used to send you system updates and notifications about employer interest."
+    );
+    eprintln!();
+}
+
 /// Prints out either Win or nix/Mac Welcome msg.
 pub(crate) fn emit_welcome_msg(config: AppConfig) {
     let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
