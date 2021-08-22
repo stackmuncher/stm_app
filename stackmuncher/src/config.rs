@@ -24,7 +24,7 @@ const CONFIG_FOLDER_NAME_WIN: &'static str = ".stm_config";
 /// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
     pub command: AppArgCommands,
-    pub no_update: bool,
+    pub dryrun: bool,
     pub primary_email: Option<String>,
     pub public_name: Option<String>,
     pub public_contact: Option<String>,
@@ -295,7 +295,7 @@ impl AppConfig {
 
         let app_config = AppConfig {
             command: app_args.command,
-            no_update: app_args.no_update,
+            dryrun: app_args.dryrun,
             primary_email,
             public_name,
             public_contact,

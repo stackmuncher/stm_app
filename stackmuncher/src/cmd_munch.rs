@@ -168,7 +168,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 ]
                 .concat(),
             );
-            let dryrun = !combined_report_file_name.exists();
+            let first_run = !combined_report_file_name.exists();
 
             // save the combine report for inspection by the user
             combined_report.save_as_local_file(&combined_report_file_name, true);
@@ -188,12 +188,12 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 combined_report.save_as_local_file(sanitized_report_file_name, true);
 
                 // check if the submission to the directory should go ahead
-                if config.no_update {
+                if config.dryrun {
                     // a dry-run was requested by the user
                     if config.lib_config.log_level == tracing::Level::ERROR {
-                        println!("Directory Profile update skipped: `--no_update` flag.");
+                        println!("Directory Profile update skipped: `--dryrun` flag.");
                     }
-                    warn!("Skipping report submission: `--no_update` flag.")
+                    warn!("Skipping report submission: `--dryrun` flag.")
                 } else {
                     if let Some(current_identity) = &config.primary_email {
                         if current_identity.is_empty() {
@@ -201,7 +201,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                             // notify the user there was no profile update
                             help::emit_no_primary_email_msg();
                         } else {
-                            if dryrun {
+                            if first_run {
                                 info!("No report submission on the first run");
                                 help::emit_dryrun_msg(&sanitized_report_file_name.to_string_lossy());
                             } else {

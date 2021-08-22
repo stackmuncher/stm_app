@@ -22,7 +22,7 @@ pub(crate) enum AppArgCommands {
 /// to the names of CLI args. E.g. --emails -> emails
 pub(crate) struct AppArgs {
     pub command: AppArgCommands,
-    pub no_update: bool,
+    pub dryrun: bool,
     pub primary_email: Option<String>,
     pub emails: Option<Vec<String>>,
     pub public_name: Option<String>,
@@ -62,7 +62,7 @@ impl AppArgs {
     pub(crate) fn read_params() -> Self {
         let mut app_args = AppArgs {
             command: AppArgCommands::Munch,
-            no_update: false,
+            dryrun: false,
             primary_email: None,
             emails: None,
             public_name: None,
@@ -99,8 +99,7 @@ impl AppArgs {
         }
 
         // --noupdate param with different misspellings
-        app_args.no_update =
-            pargs.contains("--no_update") || pargs.contains("--no-update") || pargs.contains("--noupdate");
+        app_args.dryrun = pargs.contains("--dryrun") || pargs.contains("--dry-run") || pargs.contains("--dry_run");
 
         // --primary_email
         if let Some(primary_email) =

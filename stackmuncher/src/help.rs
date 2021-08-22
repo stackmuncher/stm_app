@@ -148,7 +148,7 @@ YOUR DIRECTORY PROFILE:
     An anonymous profile is created in the Directory the first time you run this app. You can ...
     * tell employers who you are: `stackmuncher{exe_suffix} --public_name \"Name or Nickname\" --public_contact \"Email, website, twitter\"`
     * become anonymous again: `stackmuncher{exe_suffix} make_anon`
-    * skip submitting any data to the Directory: use `--no_update` flag
+    * skip submitting any data to the Directory: use `--dryrun` flag
 
 CODE PRIVACY:
     All code analysis is done locally. Not a single line of code is leaving your machine. View the source code at https://github.com/stackmuncher.
@@ -167,7 +167,7 @@ OPTIONS:
     --config \"path to config folder\"              can be relative or absolute, defaults to the application folder
 
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
-    --no_update                                   skip updating your Directory Profile
+    --dryrun                                      skip updating your Directory Profile
     --help                                        display this message
 
 ADDITIONAL COMMANDS:

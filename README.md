@@ -118,14 +118,14 @@ Some of the app's settings are cached in a local config file and only need to be
 
 * `--emails "me@example.com,me@google.com"` : a list of your email addresses using in commits to include the report. Defaults to `git config user.email`. Run `git shortlog -s -e --all` to check if you made commits under other email addresses. Set once.
 * `--project "path_to_project_to_be_analyzed"`: an optional relative or absolute path to the project/repo to generate a report for, defaults to the current working directory.
-* `--no_update`: tells the app to generate a report, save it locally, but not upload anything to the Directory.
+* `--dryrun`: tells the app to generate a report, save it locally, but not upload anything to the Directory.
 
 Example:
 ```shell
-~$ stackmuncher --project "~/rust/stm_server" --emails "max@onebro.me, rimutaka@onebro.me" --no_update
+~$ stackmuncher --project "~/rust/stm_server" --emails "max@onebro.me, rimutaka@onebro.me" --dryrun
 
    Stack report:         /home/ubuntu/rust/stm_app/reports/home_ubuntu_rust_stm_server_a8ff58d9
-   Directory Profile update skipped: `--no_update` flag.
+   Directory Profile update skipped: `--dryrun` flag.
 ```
 
 #### Profile settings
