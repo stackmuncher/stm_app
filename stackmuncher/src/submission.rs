@@ -74,9 +74,9 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     // a 200 OK body can be empty if everything is OK
     if status.as_u16() == 200 && buf.is_empty() {
         debug!("Empty response body, 200 OK");
-        if config.lib_config.log_level == tracing::Level::ERROR {
-            println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key.clone());
-        }
+
+        println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key.clone());
+
         return;
     }
 

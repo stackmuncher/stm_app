@@ -614,7 +614,7 @@ impl AppConfigCache {
         }
 
         // try to serialize and save the config cache
-        match serde_json::to_vec(&app_config_cache) {
+        match serde_json::to_vec_pretty(&app_config_cache) {
             Ok(app_config_cache) => {
                 if let Err(e) = std::fs::write(app_config.config_file_path.clone(), app_config_cache) {
                     eprintln!(
