@@ -50,7 +50,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             cached_project_report.expect("Cannot unwrap cached report. It's a bug.")
         }
         Some(v) => {
-            let _ = v.save_as_local_file(&project_report_filename);
+            let _ = v.save_as_local_file(&project_report_filename, true);
             info!("Project stack analyzed in {}ms", instant.elapsed().as_millis());
             v
         }
@@ -128,7 +128,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 )
                 .await?;
 
-            contributor_report.save_as_local_file(&contributor_report_filename);
+            contributor_report.save_as_local_file(&contributor_report_filename, false);
 
             info!(
                 "Contributor stack for {} analyzed in {}ms",
@@ -171,15 +171,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             let dryrun = !combined_report_file_name.exists();
 
             // save the combine report for inspection by the user
-            combined_report.save_as_local_file(
-                &report_dir.join(
-                    [
-                        Config::CONTRIBUTOR_REPORT_COMBINED_FILE_NAME,
-                        Config::REPORT_FILE_EXTENSION,
-                    ]
-                    .concat(),
-                ),
-            );
+            combined_report.save_as_local_file(&combined_report_file_name, true);
 
             // produce a sanitized version of the combined report, save and submit it if needed
             if let Ok(combined_report) = combined_report.sanitize(ReportSignature::get_salt(&config.user_key_pair)) {
@@ -193,7 +185,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 );
 
                 // save the sanitized report
-                combined_report.save_as_local_file(sanitized_report_file_name);
+                combined_report.save_as_local_file(sanitized_report_file_name, true);
 
                 // check if the submission to the directory should go ahead
                 if config.no_update {

@@ -577,16 +577,24 @@ impl Report {
     }
 
     /// Serializes the report and saves it in the specified location. Panics if either serialize or save fail.
-    pub fn save_as_local_file(&self, file_name: &PathBuf) {
+    /// Prettified reports can be twice as big as non-formatted ones. Only use this option for reports that the user may want to look at.
+    pub fn save_as_local_file(&self, file_name: &PathBuf, make_pretty: bool) {
         let absolute_file_name = file_name
             .absolutize()
             .expect("Cannot convert rules / file_type dir path to absolute. It's a bug.")
             .to_path_buf();
 
+        // choose the json serializer (pretty or compressed)
+        let to_json = if make_pretty {
+            |a: &Self| serde_json::to_vec_pretty(a)
+        } else {
+            |a: &Self| serde_json::to_vec(a)
+        };
+
         // serialize the report into bytes
-        let payload = match serde_json::to_vec(&self) {
+        let payload = match to_json(&self) {
             Err(e) => {
-                eprintln!("Cannot save a report in {} due to {}", absolute_file_name.to_string_lossy(), e);
+                error!("Cannot save a report in {} due to {}", absolute_file_name.to_string_lossy(), e);
                 std::process::exit(1);
             }
             Ok(v) => v,
@@ -594,7 +602,7 @@ impl Report {
 
         // save into a file
         if let Err(e) = std::fs::write(file_name, payload.clone()) {
-            eprintln!("Cannot save a report in {} due to {}", absolute_file_name.to_string_lossy(), e);
+            error!("Cannot save a report in {} due to {}", absolute_file_name.to_string_lossy(), e);
             std::process::exit(1);
         };
 
