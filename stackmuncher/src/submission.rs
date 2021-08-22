@@ -38,7 +38,7 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     debug!("Http rq: {:?}", req);
 
     // send out the request
-    info!("Sending request to INBOX");
+    info!("Sending request to INBOX for {}", report_sig.public_key.clone());
     let res = match Client::builder()
         .build::<_, hyper::Body>(HttpsConnector::with_native_roots())
         .request(req)
@@ -54,11 +54,7 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     };
 
     let status = res.status();
-    info!(
-        "stm_inbox response arrived. Status: {}. URL: https://stackmuncher.com/?dev={}",
-        status,
-        report_sig.public_key.clone()
-    );
+    info!("stm_inbox response arrived, status: {}", status,);
 
     // Concatenate the body stream into a single buffer...
     let buf = match hyper::body::to_bytes(res).await {
