@@ -89,9 +89,9 @@ _mx_ and _rimutaka_ are the same person. Let's add both emails to StackMuncher c
     Primary email: max@onebro.me
     Commit emails: max@onebro.me, rimutaka@onebro.me
 
-    Public name:       not set
-    Public contact:    not set
-    Directory profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+    Anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+    Public profile: not set
+    GitHub validation: not set
 
     Local stack reports: /home/ubuntu/rust/stm_app/reports/home_ubuntu_rust_stm_app_6213a4b2
     Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
@@ -167,20 +167,18 @@ Example:
 
 #### Profile settings
 
-* `--primary_email "me@example.com"`: an email address for Directory notifications. Defaults to `git config user.email`. Set once. This setting is optional. No reports are submitted to the directory if this value is unset.
-* `--public_name "My Full Name or Nickname"`: an optional public name of your Directory Profile. It is visible to anyone, including search engines. Leave it blank to remain anonymous. Set once.
-* `--public_contact "email, website, twitter"`: optional contact details for your Directory Profile. It is visible to anyone, including search engines. Set once.
+* `--primary_email "me@example.com"`: an optional email address for Directory notifications only. Defaults to `git config user.email`. Set once.
 
 Example:
 ```shell
-~$ stackmuncher config --primary_email "max@onebro.me" --public_name "rimutaka" --public_contact "info@stackmuncher.com or https://rimutaka.me"
+~$ stackmuncher config --primary_email "max+jobs@onebro.me"
 
-    Primary email: max@onebro.me
+    Primary email: max+jobs@onebro.me
     Commit emails: max@onebro.me, rimutaka@onebro.me
 
-    Public name:       rimutaka
-    Public contact:    info@stackmuncher.com or https://rimutaka.me
-    Directory profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+    Anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+    Public profile: https://stackmuncher.com/rimutaka
+    GitHub validation: https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
 
     Local stack reports: /home/ubuntu/rust/stm_app/reports
     Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
