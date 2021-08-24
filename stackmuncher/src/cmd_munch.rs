@@ -155,8 +155,6 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             combined_report.recompute_tech_section();
 
             // add any personal details supplied via CLI or taken from the environment
-            combined_report.public_name = config.public_name.clone();
-            combined_report.public_contact = config.public_contact.clone();
             combined_report.primary_email = config.primary_email.clone();
 
             // check if there is a already a cached contributor report

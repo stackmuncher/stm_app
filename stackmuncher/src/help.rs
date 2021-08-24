@@ -1,13 +1,14 @@
 use crate::config::AppConfig;
 use crate::signing::ReportSignature;
 use stackmuncher_lib::config::Config;
+use std::env::consts::EXE_SUFFIX;
 
 /// Prints out a standard multi-line message on how to use the app and where to find more info
 pub(crate) fn emit_usage_msg() {
     println!();
     println!(
         "    Run `stackmuncher{exe_suffix} --help` for detailed usage info.",
-        exe_suffix = std::env::consts::EXE_SUFFIX
+        exe_suffix = EXE_SUFFIX
     );
     println!();
     emit_support_msg();
@@ -113,6 +114,38 @@ pub(crate) fn emit_dryrun_msg(report_file_path: &str) {
     eprintln!();
 }
 
+/// Prints a message about validation Gist troubleshooting.
+pub(crate) fn emit_gist_troubleshooting(gist_id: &str, uri: &str) {
+    eprintln!();
+    eprintln!("Troubleshooting:");
+    eprintln!("    1. Try again if it was a networking or some other intermittent problem.");
+    eprintln!(
+        "    2. Check the response with `curl -i -H 'Accept: application/vnd.github.v3+json' {}",
+        uri
+    );
+    eprintln!(
+        "       The Gist ID ({}) was taken from `--gist` CLI param. Check if it is correct.",
+        gist_id
+    );
+    eprintln!();
+}
+
+/// Prints a message about validation Gist signature troubleshooting.
+pub(crate) fn emit_gist_instructions(gist_content: &String) {
+    eprintln!();
+    eprintln!("GitHub account validation steps:");
+    eprintln!("    1. Navigate to https://gist.github.com to create a new Gist.");
+    eprintln!("      * description: \"stm validation\" or any other value");
+    eprintln!("      * file name: \"stm.txt\" or any other value");
+    eprintln!("      * content: \"{}\"", gist_content);
+    eprintln!("    2. Use the URL of the saved Gist to run `stackmuncher config --gist [URL goes here]'");
+    eprintln!();
+    eprintln!(
+        "Example: `stackmuncher config --gist https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a`"
+    );
+    eprintln!();
+}
+
 /// Prints a message about a missing primary_email.
 pub(crate) fn emit_no_primary_email_msg() {
     eprintln!();
@@ -120,7 +153,7 @@ pub(crate) fn emit_no_primary_email_msg() {
     eprintln!();
     eprintln!(
         "    Run `stackmuncher{exe_suffix} --primary_email me@example.com` to set your primary email and resume the updates.",
-        exe_suffix = std::env::consts::EXE_SUFFIX
+        exe_suffix = EXE_SUFFIX
     );
     eprintln!();
     eprintln!(
@@ -137,18 +170,15 @@ pub(crate) fn emit_welcome_msg(config: AppConfig) {
 StackMuncher app analyzes your technology stack and showcases it in the Global Directory of Software Developers.
 
 USAGE:
-    stackmuncher{exe_suffix}                        analyze the Git repo in the current folder and create or update your Directory Profile
-    stackmuncher{exe_suffix} automate               add a git-commit hook to update your Directory Profile automatically
-    stackmuncher{exe_suffix} [command] [OPTIONS]    modify the default behavior of this app
+    stackmuncher{exe_suffix}                        analyzes the Git repo in the current folder and creates or updates your Directory Profile
+    stackmuncher{exe_suffix} [command] [OPTIONS]    modifies the default behavior of this app
     
 YOUR DIRECTORY PROFILE: 
 
     https://stackmuncher.com/?dev={pub_key}
 
-    An anonymous profile is created in the Directory the first time you run this app. You can ...
-    * tell employers who you are: `stackmuncher{exe_suffix} --public_name \"Name or Nickname\" --public_contact \"Email, website, twitter\"`
-    * become anonymous again: `stackmuncher{exe_suffix} make_anon`
-    * skip submitting any data to the Directory: use `--dryrun` flag
+    An anonymous profile is created in the Directory the first time you run this app.
+    Run `stackmuncher{exe_suffix} github` to make your profile public with details from your GitHub account.
 
 CODE PRIVACY:
     All code analysis is done locally. Not a single line of code is leaving your machine. View the source code at https://github.com/stackmuncher.
@@ -157,8 +187,7 @@ OPTIONS:
     --emails \"me@example.com,me@google.com\"       a list of all your commit emails, only need to use it once, defaults to `git config user.email`
 
     --primary_email \"me@example.com\"              for Directory notifications only, defaults to the address in `git config user.email` setting
-    --public_name \"My Full Name or Nickname\"      visible to anyone, leave it blank to remain anonymous, only need to use it once
-    --public_contact \"email, website, twitter\"    visible to anyone, leave it blank to remove, only need to use it once
+    --gist                                         a URL of your GitHub login validation Gist, run `stackmuncher{exe_suffix} github` for details
 
     --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
 
@@ -167,14 +196,14 @@ OPTIONS:
     --config \"path to config folder\"              can be relative or absolute, defaults to the application folder
 
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
-    --dryrun                                      skip updating your Directory Profile
+    --dryrun                                      skip updating your Directory Profile (no data leaves your computer)
     --help                                        display this message
 
-ADDITIONAL COMMANDS:
-    view_config, make_anon, delete_profile
-
 MORE INFO:
+
+    stackmuncher{exe_suffix} config                 prints URLs of your Developer Profile and other configuration details
+
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
-    ",exe_suffix=std::env::consts::EXE_SUFFIX, pub_key=pub_key);
+    ",exe_suffix=EXE_SUFFIX, pub_key=pub_key);
 }

@@ -26,8 +26,12 @@ pub(crate) struct AppConfig {
     pub command: AppArgCommands,
     pub dryrun: bool,
     pub primary_email: Option<String>,
-    pub public_name: Option<String>,
-    pub public_contact: Option<String>,
+    /// A 32-byte long hex string of the Gist ID with the validation string for the user GH account
+    /// E.g. `fb8fc0f87ee78231f064131022c8154a`
+    pub gh_validation_id: Option<String>,
+    /// The URL is reconstructed from a Gist ID after validation.
+    /// It may seize to exist or change the contents, but the URL itself is guaranteed to be valid
+    pub gh_validation_url: Option<String>,
     /// Core config from stackmuncher_lib
     pub lib_config: Config,
     /// Extracted from the key file stored next to the config file
@@ -40,8 +44,9 @@ pub(crate) struct AppConfig {
 #[derive(Serialize, Deserialize, PartialEq)]
 struct AppConfigCache {
     pub primary_email: Option<String>,
-    pub public_name: Option<String>,
-    pub public_contact: Option<String>,
+    /// The URL is reconstructed from a Gist ID after validation.
+    /// It may seize to exist or change the contents, but the URL itself is guaranteed to be valid
+    pub gh_validation_url: Option<String>,
     pub git_identities: Vec<String>,
 }
 
@@ -202,69 +207,6 @@ impl AppConfig {
             None
         };
 
-        let public_name = if let Some(pub_name) = &app_args.public_name {
-            if pub_name.is_empty() {
-                // empty public name - make anon
-                println!("Your Directory Profile name was removed. Your profile will be anonymous.");
-                println!();
-                println!(
-                    "    Run `stackmuncher{} --public_name \"My Name or Nickname\"` to make it public.",
-                    EXE_SUFFIX
-                );
-                println!();
-            } else {
-                // a new public name was supplied
-                println!(
-                    "Your new Directory Profile name: {}. It is visible to anyone, including search engines.",
-                    pub_name
-                );
-                println!();
-                println!(
-                    "    Run `stackmuncher{} --public_name \"\"` to remove the name and make your profile anonymous.",
-                    EXE_SUFFIX
-                );
-                println!();
-            }
-            app_args.public_name
-        } else if app_config_cache.public_name.is_some() {
-            app_config_cache.public_name.clone()
-        } else {
-            None
-        };
-
-        let public_contact = if let Some(pub_contact) = &app_args.public_contact {
-            if pub_contact.is_empty() {
-                // no public contact details
-                if primary_email.is_some() && !primary_email.as_ref().unwrap().is_empty() {
-                    println!("Your Directory Profile contact details were removed. Employers will be able to express their interest via Directory notifications sent to {}.", primary_email.as_ref().unwrap());
-                } else {
-                    println!("Your Directory Profile contact details were removed. Since your primary email address is blank as well your profile will be hidden.");
-                }
-
-                println!();
-                println!(
-                    "    Run `stackmuncher{} --public_contact \"Your email, website or any other contact details\"` for employers to contact you directly.",
-                    EXE_SUFFIX
-                );
-                println!();
-            } else {
-                // new public contact details
-                println!(
-                    "Your new Directory Profile contact: {}. It is visible to anyone, including search engines.",
-                    pub_contact
-                );
-                println!();
-                println!("    Run `stackmuncher{} --public_contact \"\"` to remove it.", EXE_SUFFIX);
-                println!();
-            }
-
-            app_args.public_contact
-        } else if app_config_cache.public_contact.is_some() {
-            app_config_cache.public_contact.clone()
-        } else {
-            None
-        };
-
         // print a message about multiple git IDs on the first run
         if config.git_identities.len() > 0 && app_args.emails.is_none() && app_config_cache.git_identities.is_empty() {
             println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",config.git_identities[0]);
@@ -293,12 +235,26 @@ impl AppConfig {
             println!();
         }
 
+        // GitHub login validation - use the validated URL or None if --gist param was provided
+        // It means that the user requested a change of sorts.
+        // Otherwise use what is in the cache without any validation.
+        let gh_validation_url = if app_args.gh_validation_id.is_some() {
+            // --gist was present - so something was requested
+            match crate::configure::get_validated_gist(&app_args.gh_validation_id, &user_key_pair).await {
+                Some(gist) => Some(gist.html_url),
+                None => None,
+            }
+        } else {
+            // --gist was not present - use what's in cache
+            app_config_cache.gh_validation_url.clone()
+        };
+
         let app_config = AppConfig {
             command: app_args.command,
             dryrun: app_args.dryrun,
             primary_email,
-            public_name,
-            public_contact,
+            gh_validation_id: app_args.gh_validation_id,
+            gh_validation_url,
             lib_config: config,
             user_key_pair,
             config_file_path,
@@ -549,8 +505,7 @@ impl AppConfigCache {
         // create a blank dummy to return in case of a problem
         let app_config_cache = AppConfigCache {
             primary_email: None,
-            public_name: None,
-            public_contact: None,
+            gh_validation_url: None,
             git_identities: Vec::new(),
         };
 
@@ -602,8 +557,7 @@ impl AppConfigCache {
         // prepare the data to save
         let app_config_cache = AppConfigCache {
             primary_email: app_config.primary_email.clone(),
-            public_name: app_config.public_name.clone(),
-            public_contact: app_config.public_contact.clone(),
+            gh_validation_url: app_config.gh_validation_url.clone(),
             git_identities: app_config.lib_config.git_identities.clone(),
         };
 

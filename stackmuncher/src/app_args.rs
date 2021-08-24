@@ -1,7 +1,11 @@
 use crate::help;
 use pico_args;
+use regex::Regex;
+use std::env::consts::EXE_SUFFIX;
 use std::str::FromStr;
 use std::{path::PathBuf, process::exit};
+
+pub(crate) const GIST_ID_REGEX: &str = "[a-f0-9]{32}";
 
 /// List of valid app commands
 #[derive(PartialEq)]
@@ -16,6 +20,8 @@ pub(crate) enum AppArgCommands {
     MakeAnon,
     /// Completely delete the member profile from the directory
     DeleteProfile,
+    /// Configure Github validation page
+    GitGHubConfig,
 }
 
 /// A container for user-provided CLI commands and params. The names of the members correspond
@@ -25,8 +31,9 @@ pub(crate) struct AppArgs {
     pub dryrun: bool,
     pub primary_email: Option<String>,
     pub emails: Option<Vec<String>>,
-    pub public_name: Option<String>,
-    pub public_contact: Option<String>,
+    /// A 32-byte long hex string of the Gist ID with the validation string for the user's GH account
+    /// E.g. `fb8fc0f87ee78231f064131022c8154a`
+    pub gh_validation_id: Option<String>,
     pub project: Option<PathBuf>,
     pub rules: Option<PathBuf>,
     pub reports: Option<PathBuf>,
@@ -45,6 +52,7 @@ impl FromStr for AppArgCommands {
             "viewconfig" | "view-config" | "view_config" | "config" => Self::ViewConfig,
             "makeanon" | "make-anon" | "make_anon" => Self::MakeAnon,
             "deleteprofile" | "delete-profile" | "delete_profile" | "delete" => Self::DeleteProfile,
+            "github" => Self::GitGHubConfig,
             _ => {
                 eprintln!("STACKMUNCHER CONFIG ERROR: invalid command `{}`", command);
                 help::emit_usage_msg();
@@ -65,8 +73,7 @@ impl AppArgs {
             dryrun: false,
             primary_email: None,
             emails: None,
-            public_name: None,
-            public_contact: None,
+            gh_validation_id: None,
             project: None,
             rules: None,
             reports: None,
@@ -124,15 +131,35 @@ impl AppArgs {
             app_args.emails = Some(emails);
         };
 
-        // --public_name
-        if let Some(public_name) = find_arg_value(&mut pargs, vec!["--public_name", "--public-name", "--publicname"]) {
-            app_args.public_name = Some(public_name);
-        };
-        // --public_contact
-        if let Some(public_contact) =
-            find_arg_value(&mut pargs, vec!["--public_contact", "--public-contact", "--public_contact"])
-        {
-            app_args.public_contact = Some(public_contact);
+        // --gist
+        if let Some(gist_url) = find_arg_value(&mut pargs, vec!["--gist"]) {
+            // extract the gist id from the input, which can be the full URL, just the ID or the raw URL which is even longer
+            // e.g. fb8fc0f87ee78231f064131022c8154a
+            // or https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
+            // or https://gist.githubusercontent.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
+            // or https://gist.githubusercontent.com/rimutaka/fb8fc0f87ee78231f064131022c8154a/raw/1e99cbb2ae82c4ebfb3df7195a150f81142b894a/stm.txt
+
+            if gist_url.is_empty() {
+                // the user requested removal of GH login
+                app_args.gh_validation_id = Some(String::new());
+            } else if let Some(matches) = Regex::new(GIST_ID_REGEX)
+                .expect("Invalid gist_id_regex. It's a bug.")
+                .find(&gist_url)
+            {
+                // some value with a likely-looking gist id was provided
+                app_args.gh_validation_id = Some(matches.as_str().to_string());
+            } else {
+                // some other value was provided
+                eprintln!("STACKMUNCHER CONFIG ERROR: param `--gist` has an invalid value.",);
+                eprintln!();
+                eprintln!("    It accepts either the Gist URL or the Gist ID found in the Gist URL:",);
+                eprintln!("    * https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a");
+                eprintln!("    * fb8fc0f87ee78231f064131022c8154a");
+                eprintln!();
+                eprintln!("    To unlink from GitHub and remove private projects from your public profile use `stackmuncher{} --gist \"\"`", EXE_SUFFIX);
+                help::emit_usage_msg();
+                exit(1);
+            }
         };
 
         // project folder
@@ -258,7 +285,7 @@ fn find_arg_value(pargs: &mut pico_args::Arguments, arg_names: Vec<&'static str>
             Ok(v) => v,
             Err(_) => {
                 eprintln!(
-                    "STACKMUNCHER CONFIG ERROR: invalid or missing value for `{}`. Add \"\" to reset the value.",
+                    "STACKMUNCHER CONFIG ERROR: invalid or missing value for `{}`. Add \"\" to reset this setting.",
                     arg_name
                 );
                 help::emit_usage_msg();

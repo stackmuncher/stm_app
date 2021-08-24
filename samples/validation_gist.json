@@ -1,0 +1,82 @@
+{
+  "url": "https://api.github.com/gists/fb8fc0f87ee78231f064131022c8154a",
+  "forks_url": "https://api.github.com/gists/fb8fc0f87ee78231f064131022c8154a/forks",
+  "commits_url": "https://api.github.com/gists/fb8fc0f87ee78231f064131022c8154a/commits",
+  "id": "fb8fc0f87ee78231f064131022c8154a",
+  "node_id": "MDQ6R2lzdGZiOGZjMGY4N2VlNzgyMzFmMDY0MTMxMDIyYzgxNTRh",
+  "git_pull_url": "https://gist.github.com/fb8fc0f87ee78231f064131022c8154a.git",
+  "git_push_url": "https://gist.github.com/fb8fc0f87ee78231f064131022c8154a.git",
+  "html_url": "https://gist.github.com/fb8fc0f87ee78231f064131022c8154a",
+  "files": {
+    "stm.txt": {
+      "filename": "stm.txt",
+      "type": "text/plain",
+      "language": "Text",
+      "raw_url": "https://gist.githubusercontent.com/rimutaka/fb8fc0f87ee78231f064131022c8154a/raw/1e99cbb2ae82c4ebfb3df7195a150f81142b894a/stm.txt",
+      "size": 17,
+      "truncated": false,
+      "content": "MDQ6R2lzdGZiOGZjMGY4N2VlNzgyMzFmMDY0MTMxMDIyYzgxNTRh"
+    }
+  },
+  "public": false,
+  "created_at": "2021-08-14T04:20:07Z",
+  "updated_at": "2021-08-14T04:20:07Z",
+  "description": "",
+  "comments": 0,
+  "user": null,
+  "comments_url": "https://api.github.com/gists/fb8fc0f87ee78231f064131022c8154a/comments",
+  "owner": {
+    "login": "rimutaka",
+    "id": 5926028,
+    "node_id": "MDQ6VXNlcjU5MjYwMjg=",
+    "avatar_url": "https://avatars.githubusercontent.com/u/5926028?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/rimutaka",
+    "html_url": "https://github.com/rimutaka",
+    "followers_url": "https://api.github.com/users/rimutaka/followers",
+    "following_url": "https://api.github.com/users/rimutaka/following{/other_user}",
+    "gists_url": "https://api.github.com/users/rimutaka/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/rimutaka/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/rimutaka/subscriptions",
+    "organizations_url": "https://api.github.com/users/rimutaka/orgs",
+    "repos_url": "https://api.github.com/users/rimutaka/repos",
+    "events_url": "https://api.github.com/users/rimutaka/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/rimutaka/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "forks": [],
+  "history": [
+    {
+      "user": {
+        "login": "rimutaka",
+        "id": 5926028,
+        "node_id": "MDQ6VXNlcjU5MjYwMjg=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/5926028?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/rimutaka",
+        "html_url": "https://github.com/rimutaka",
+        "followers_url": "https://api.github.com/users/rimutaka/followers",
+        "following_url": "https://api.github.com/users/rimutaka/following{/other_user}",
+        "gists_url": "https://api.github.com/users/rimutaka/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/rimutaka/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/rimutaka/subscriptions",
+        "organizations_url": "https://api.github.com/users/rimutaka/orgs",
+        "repos_url": "https://api.github.com/users/rimutaka/repos",
+        "events_url": "https://api.github.com/users/rimutaka/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/rimutaka/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "version": "0d2c74fcd6167f9a2de514ed75d48bba2bd8361a",
+      "committed_at": "2021-08-14T04:20:07Z",
+      "change_status": {
+        "total": 1,
+        "additions": 1,
+        "deletions": 0
+      },
+      "url": "https://api.github.com/gists/fb8fc0f87ee78231f064131022c8154a/0d2c74fcd6167f9a2de514ed75d48bba2bd8361a"
+    }
+  ],
+  "truncated": false
+}
