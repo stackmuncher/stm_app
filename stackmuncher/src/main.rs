@@ -3,9 +3,9 @@ use path_absolutize::{self, Absolutize};
 use tracing::info;
 
 mod app_args;
+mod cmd_config;
 mod cmd_munch;
 mod config;
-mod configure;
 mod help;
 mod signing;
 mod submission;
@@ -60,13 +60,13 @@ async fn main() -> Result<(), ()> {
             make_anon();
         }
         app_args::AppArgCommands::ViewConfig => {
-            configure::view_config(config).await;
+            cmd_config::view_config(config).await;
         }
         app_args::AppArgCommands::Help => {
             help::emit_welcome_msg(config);
         }
         app_args::AppArgCommands::GitGHubConfig => {
-            configure::github(config).await;
+            cmd_config::github(config).await;
         }
     };
 

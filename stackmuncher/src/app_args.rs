@@ -49,7 +49,7 @@ impl FromStr for AppArgCommands {
         let command = match command.as_str() {
             "help" => Self::Help,
             "" | "munch" => Self::Munch,
-            "viewconfig" | "view-config" | "view_config" | "config" => Self::ViewConfig,
+            "config" => Self::ViewConfig,
             "makeanon" | "make-anon" | "make_anon" => Self::MakeAnon,
             "deleteprofile" | "delete-profile" | "delete_profile" | "delete" => Self::DeleteProfile,
             "github" => Self::GitGHubConfig,
@@ -101,8 +101,6 @@ impl AppArgs {
         // help has a higher priority and should be handled separately
         if pargs.contains(["-h", "--help"]) {
             app_args.command = AppArgCommands::Help;
-        } else if pargs.contains("--view_config") || pargs.contains("--viewconfig") {
-            app_args.command = AppArgCommands::ViewConfig;
         }
 
         // --noupdate param with different misspellings

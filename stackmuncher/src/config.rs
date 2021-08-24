@@ -240,7 +240,7 @@ impl AppConfig {
         // Otherwise use what is in the cache without any validation.
         let gh_validation_url = if app_args.gh_validation_id.is_some() {
             // --gist was present - so something was requested
-            match crate::configure::get_validated_gist(&app_args.gh_validation_id, &user_key_pair).await {
+            match crate::cmd_config::get_validated_gist(&app_args.gh_validation_id, &user_key_pair).await {
                 Some(gist) => Some(gist.html_url),
                 None => None,
             }

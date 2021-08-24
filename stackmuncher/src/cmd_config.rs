@@ -50,7 +50,7 @@ pub(crate) async fn github(config: AppConfig) {
     help::emit_gist_instructions(&expected_gist_content);
 }
 
-/// A temporary stub for `view_config` command.
+/// Prints its full current configuration, file locations, profile URL and some usage info.
 pub(crate) async fn view_config(config: AppConfig) {
     // prepare values needed in println!() macros to prevent line wrapping in the code
     let pub_key = ReportSignature::get_public_key(&config.user_key_pair);

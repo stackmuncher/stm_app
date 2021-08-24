@@ -94,8 +94,8 @@ pub(crate) fn emit_key_err_msg(key_file_path: &str) {
         "    2. If you didn't edit {} you can delete it and the app will generate a new one.",
         key_file_path
     );
-    eprintln!("    The side effect of that is that the app will also create a new Developer Profile for you.");
-    eprintln!("    If you think you lost your original key, just delete the file and contact us on info@stackmuncher.com to link your existing Developer Profile to the new key.");
+    eprintln!("    The side effect of that is that the app will also create a new Directory Profile for you.");
+    eprintln!("    If you think you lost your original key, just delete the file and contact us on info@stackmuncher.com to link your existing Directory Profile to the new key.");
     eprintln!("    We apologize for not automating this step yet.");
     eprintln!();
 }
@@ -201,7 +201,7 @@ OPTIONS:
 
 MORE INFO:
 
-    stackmuncher{exe_suffix} config                 prints URLs of your Developer Profile and other configuration details
+    stackmuncher{exe_suffix} config                 prints URLs of your Directory Profile and other configuration details
 
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
