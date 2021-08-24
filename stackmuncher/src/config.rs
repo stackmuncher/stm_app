@@ -25,11 +25,14 @@ const CONFIG_FOLDER_NAME_WIN: &'static str = ".stm_config";
 pub(crate) struct AppConfig {
     pub command: AppArgCommands,
     pub dryrun: bool,
+    // An empty string means NO CONTACT
     pub primary_email: Option<String>,
     /// A 32-byte long hex string of the Gist ID with the validation string for the user GH account
     /// E.g. `fb8fc0f87ee78231f064131022c8154a`
     /// It is validated on change and then cached in config.json
     pub gh_validation_id: Option<String>,
+    /// GitHub login of the user. It is set after validating the a/c ownership and then cached in config.json
+    pub gh_login: Option<String>,
     /// Core config from stackmuncher_lib
     pub lib_config: Config,
     /// Extracted from the key file stored next to the config file
@@ -44,8 +47,11 @@ pub(crate) struct AppConfig {
 /// A container for storing some config info locally as a file.
 #[derive(Serialize, Deserialize, PartialEq)]
 struct AppConfigCache {
+    // An empty string means NO CONTACT
     pub primary_email: Option<String>,
     pub gh_validation_id: Option<String>,
+    // It is a derivitive value. Used for displaying a profile URL only.
+    pub gh_login: Option<String>,
     pub git_identities: Vec<String>,
 }
 
@@ -171,7 +177,7 @@ impl AppConfig {
             if prim_email_arg.is_empty() {
                 // reset the value to NULL if `--primary_email ""`
                 debug!("Resetting primary_email to an empty string");
-                println!("Your primary email address for notifications from the Directory was removed. Your profile will no longer be updated. You can still generate and view stack reports locally.");
+                println!("Your primary email address for notifications from the Directory was removed.");
                 println!();
                 Some(String::new())
             } else {
@@ -199,7 +205,7 @@ impl AppConfig {
             println!("Missing preferred contact email. Your profile will not be updated. You can still generate and view your stack reports locally.");
             println!();
             println!(
-                "    Run `stackmuncher{} --primary_email me@example.com` to start updating your Directory profile.",
+                "    Run `stackmuncher{} --primary_email me@example.com` to set your preferred contact email for notifications about profile views and employer interest.",
                 EXE_SUFFIX
             );
             println!();
@@ -237,16 +243,16 @@ impl AppConfig {
         // GitHub login validation - use the validated ID or None if --gist param was provided
         // It means that the user requested a change of sorts.
         // Otherwise use what is in the cache without any validation.
-        let (gh_validation_id, gh_validation_gist) = if app_args.gh_validation_id.is_some() {
+        let (gh_validation_id, gh_login, gh_validation_gist) = if app_args.gh_validation_id.is_some() {
             // --gist was present - so a change was requested by the user
             match crate::cmd_config::get_validated_gist(&app_args.gh_validation_id, &user_key_pair).await {
                 // the gist struct will be needed to print config details later
-                Some(gist) => (app_args.gh_validation_id.clone(), Some(gist)),
-                None => (None, None),
+                Some(gist) => (app_args.gh_validation_id.clone(), Some(gist.login.clone()), Some(gist)),
+                None => (None, None, None),
             }
         } else {
             // --gist was not present - use what's in cache
-            (app_config_cache.gh_validation_id.clone(), None)
+            (app_config_cache.gh_validation_id.clone(), app_config_cache.gh_login.clone(), None)
         };
 
         let app_config = AppConfig {
@@ -258,6 +264,7 @@ impl AppConfig {
             user_key_pair,
             config_file_path,
             gh_validation_gist,
+            gh_login,
         };
 
         app_config_cache.save(&app_config);
@@ -506,6 +513,7 @@ impl AppConfigCache {
         let app_config_cache = AppConfigCache {
             primary_email: None,
             gh_validation_id: None,
+            gh_login: None,
             git_identities: Vec::new(),
         };
 
@@ -559,6 +567,7 @@ impl AppConfigCache {
             primary_email: app_config.primary_email.clone(),
             gh_validation_id: app_config.gh_validation_id.clone(),
             git_identities: app_config.lib_config.git_identities.clone(),
+            gh_login: app_config.gh_login.clone(),
         };
 
         // proceed only if there were any changes to the config or if the config file doesn't exist to create a stub the user can edit

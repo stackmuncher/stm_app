@@ -146,22 +146,6 @@ pub(crate) fn emit_gist_instructions(gist_content: &String) {
     eprintln!();
 }
 
-/// Prints a message about a missing primary_email.
-pub(crate) fn emit_no_primary_email_msg() {
-    eprintln!();
-    eprintln!("A stack report was generated, but NOT submitted.");
-    eprintln!();
-    eprintln!(
-        "    Run `stackmuncher{exe_suffix} --primary_email me@example.com` to set your primary email and resume the updates.",
-        exe_suffix = EXE_SUFFIX
-    );
-    eprintln!();
-    eprintln!(
-        "    Your primary email can only be used to send you system updates and notifications about employer interest."
-    );
-    eprintln!();
-}
-
 /// Prints out either Win or nix/Mac Welcome msg.
 pub(crate) fn emit_welcome_msg(config: AppConfig) {
     let pub_key = ReportSignature::get_public_key(&config.user_key_pair);

@@ -194,21 +194,11 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                     }
                     warn!("Skipping report submission: `--dryrun` flag.")
                 } else {
-                    if let Some(current_identity) = &config.primary_email {
-                        if current_identity.is_empty() {
-                            info!("Skipping report submission: blank primary_email");
-                            // notify the user there was no profile update
-                            help::emit_no_primary_email_msg();
-                        } else {
-                            if first_run {
-                                info!("No report submission on the first run");
-                                help::emit_dryrun_msg(&sanitized_report_file_name.to_string_lossy());
-                            } else {
-                                submission_jobs.push(submit_report(combined_report.clone(), &config));
-                            }
-                        }
+                    if first_run {
+                        info!("No report submission on the first run");
+                        help::emit_dryrun_msg(&sanitized_report_file_name.to_string_lossy());
                     } else {
-                        help::emit_no_primary_email_msg();
+                        submission_jobs.push(submit_report(combined_report.clone(), &config));
                     }
                 }
             }

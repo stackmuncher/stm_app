@@ -71,7 +71,12 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     if status.as_u16() == 200 && buf.is_empty() {
         debug!("Empty response body, 200 OK");
 
-        println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key.clone());
+        // public profile is preferred, but not be enabled
+        if let Some(gh_login) = &config.gh_login {
+            println!("   Public profile:    https://stackmuncher.com/{}", gh_login);
+        } else {
+            println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key);
+        }
 
         return;
     }
