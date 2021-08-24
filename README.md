@@ -10,13 +10,14 @@ The code analysis is non-judgemental. It simply collects the facts such as what 
   - [Quick start](#quick-start)
   - [Adding more commit emails](#adding-more-commit-emails)
   - [Adding more projects to your profile](#adding-more-projects-to-your-profile)
+  - [Making your profile public](#making-your-profile-public)
   - [Using StackMuncher app on multiple machines](#using-stackmuncher-app-on-multiple-machines)
   - [Detailed usage instructions](#detailed-usage-instructions)
     - [Additional options](#additional-options)
       - [Processing settings](#processing-settings)
       - [Profile settings](#profile-settings)
       - [Debug settings](#debug-settings)
-      - [Additional commands](#additional-commands)
+      - [Additional info](#additional-info)
   - [Limitations](#limitations)
   - [Troubleshooting](#troubleshooting)
   - [Bug reports and contributions](#bug-reports-and-contributions)
@@ -225,7 +226,7 @@ We want to hear about as many issues users run into as possible. Copy-paste the 
 * run `stackmuncher config` and check the output in `reports` folder - there should be at least 4 files:
     * _project_report.json_: includes all contributors 
     * _combined_report.json_: a combined report for authors/committers from Git's `user.email` setting and from `--emails` param
-    * _submitted_report.json_: a sanitized version of the combined report exactly as it was submitted to the Directory
+    * _submission.json_: a sanitized version of the combined report exactly as it is submitted to the Directory
     * _contributor_xxxxxxxx.json_: cached reports for individual contributors
 
 ## Bug reports and contributions

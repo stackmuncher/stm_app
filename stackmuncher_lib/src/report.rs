@@ -55,6 +55,11 @@ pub struct Report {
     /// A unique name containing user name and project name when stored in S3, e.g. `rimutaka/stackmuncher.report`
     #[serde(skip_serializing_if = "String::is_empty", default = "String::new")]
     pub report_s3_name: String,
+    /// A GH ownership validation Gist ID.
+    /// E.g. fb8fc0f87ee78231f064131022c8154a from https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
+    /// The app validates it, but it has to be re-checked on the server on changes and possibly more often.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gh_validation_id: Option<String>,
     /// The very last commit at the time of the report generation.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub report_commit_sha1: Option<String>,
@@ -512,6 +517,7 @@ impl Report {
             first_contributor_commit_date_epoch: None,
             owner_id: None,
             project_id: None,
+            gh_validation_id: None,
         }
     }
 

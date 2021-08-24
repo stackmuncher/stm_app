@@ -156,6 +156,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
 
             // add any personal details supplied via CLI or taken from the environment
             combined_report.primary_email = config.primary_email.clone();
+            combined_report.gh_validation_id = config.gh_validation_id.clone();
 
             // check if there is a already a cached contributor report
             // it would have to be a dry run (no submission) if it's the first time STM is run on this repo

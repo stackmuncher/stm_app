@@ -28,25 +28,24 @@ pub(crate) struct AppConfig {
     pub primary_email: Option<String>,
     /// A 32-byte long hex string of the Gist ID with the validation string for the user GH account
     /// E.g. `fb8fc0f87ee78231f064131022c8154a`
+    /// It is validated on change and then cached in config.json
     pub gh_validation_id: Option<String>,
-    /// The URL is reconstructed from a Gist ID after validation.
-    /// It may seize to exist or change the contents, but the URL itself is guaranteed to be valid
-    pub gh_validation_url: Option<String>,
     /// Core config from stackmuncher_lib
     pub lib_config: Config,
     /// Extracted from the key file stored next to the config file
     pub user_key_pair: Ed25519KeyPair,
     /// The full path to the config file.
     pub config_file_path: PathBuf,
+    /// A stash for validation Gist details to avoid going to GitHub twice
+    /// Not cached and can only be present if --gist param was used to link to a new github a/c
+    pub gh_validation_gist: Option<crate::cmd_config::Gist>,
 }
 
 /// A container for storing some config info locally as a file.
 #[derive(Serialize, Deserialize, PartialEq)]
 struct AppConfigCache {
     pub primary_email: Option<String>,
-    /// The URL is reconstructed from a Gist ID after validation.
-    /// It may seize to exist or change the contents, but the URL itself is guaranteed to be valid
-    pub gh_validation_url: Option<String>,
+    pub gh_validation_id: Option<String>,
     pub git_identities: Vec<String>,
 }
 
@@ -235,29 +234,30 @@ impl AppConfig {
             println!();
         }
 
-        // GitHub login validation - use the validated URL or None if --gist param was provided
+        // GitHub login validation - use the validated ID or None if --gist param was provided
         // It means that the user requested a change of sorts.
         // Otherwise use what is in the cache without any validation.
-        let gh_validation_url = if app_args.gh_validation_id.is_some() {
-            // --gist was present - so something was requested
+        let (gh_validation_id, gh_validation_gist) = if app_args.gh_validation_id.is_some() {
+            // --gist was present - so a change was requested by the user
             match crate::cmd_config::get_validated_gist(&app_args.gh_validation_id, &user_key_pair).await {
-                Some(gist) => Some(gist.html_url),
-                None => None,
+                // the gist struct will be needed to print config details later
+                Some(gist) => (app_args.gh_validation_id.clone(), Some(gist)),
+                None => (None, None),
             }
         } else {
             // --gist was not present - use what's in cache
-            app_config_cache.gh_validation_url.clone()
+            (app_config_cache.gh_validation_id.clone(), None)
         };
 
         let app_config = AppConfig {
             command: app_args.command,
             dryrun: app_args.dryrun,
             primary_email,
-            gh_validation_id: app_args.gh_validation_id,
-            gh_validation_url,
+            gh_validation_id,
             lib_config: config,
             user_key_pair,
             config_file_path,
+            gh_validation_gist,
         };
 
         app_config_cache.save(&app_config);
@@ -505,7 +505,7 @@ impl AppConfigCache {
         // create a blank dummy to return in case of a problem
         let app_config_cache = AppConfigCache {
             primary_email: None,
-            gh_validation_url: None,
+            gh_validation_id: None,
             git_identities: Vec::new(),
         };
 
@@ -557,7 +557,7 @@ impl AppConfigCache {
         // prepare the data to save
         let app_config_cache = AppConfigCache {
             primary_email: app_config.primary_email.clone(),
-            gh_validation_url: app_config.gh_validation_url.clone(),
+            gh_validation_id: app_config.gh_validation_id.clone(),
             git_identities: app_config.lib_config.git_identities.clone(),
         };
 

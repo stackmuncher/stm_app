@@ -77,11 +77,18 @@ pub(crate) async fn view_config(config: AppConfig) {
         .to_string_lossy()
         .to_string();
 
-    let (public_profile, github_validation) =
-        match get_validated_gist(&config.gh_validation_id, &config.user_key_pair).await {
-            Some(v) => (["https://stackmuncher.com/", &v.login].concat(), v.html_url),
-            None => ("disabled".to_owned(), "not set".to_owned()),
-        };
+    // gh_validation_gist may already be in the config if --gist option was used and it was validated
+    // otherwise we need to re-validate it and get the details from github
+    let gh_validation_gist = match config.gh_validation_gist {
+        Some(v) => Some(v),
+        None => get_validated_gist(&config.gh_validation_id, &config.user_key_pair).await,
+    };
+
+    // prepare user-friendly GH validation messages
+    let (public_profile, github_validation) = match gh_validation_gist {
+        Some(v) => (["https://stackmuncher.com/", &v.login].concat(), v.html_url),
+        None => ("disabled".to_owned(), "not set".to_owned()),
+    };
 
     println!();
     println!("    Primary email: {}", config.primary_email.as_ref().unwrap_or(&"not set".to_owned()));
