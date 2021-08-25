@@ -35,7 +35,6 @@ pub(crate) struct AppArgs {
     /// E.g. `fb8fc0f87ee78231f064131022c8154a`
     pub gh_validation_id: Option<String>,
     pub project: Option<PathBuf>,
-    pub rules: Option<PathBuf>,
     pub reports: Option<PathBuf>,
     pub config: Option<PathBuf>,
     pub log: Option<tracing::Level>,
@@ -75,7 +74,6 @@ impl AppArgs {
             emails: None,
             gh_validation_id: None,
             project: None,
-            rules: None,
             reports: None,
             config: None,
             log: None,
@@ -184,30 +182,6 @@ impl AppArgs {
             }
         };
 
-        // rules folder
-        if let Some(rules) = find_arg_value(&mut pargs, vec!["--rules"]) {
-            // en empty value doesn't make sense in this context
-            if rules.trim().is_empty() {
-                eprintln!(
-                    "STACKMUNCHER CONFIG ERROR: param `--rules` has no value. Omit it to use the default set or provide a valid path to where the rules files are located (absolute or relative).",
-                );
-                help::emit_usage_msg();
-                exit(1);
-            }
-
-            match PathBuf::from_str(&rules) {
-                Ok(v) => app_args.rules = Some(v),
-                Err(_) => {
-                    eprintln!(
-                        "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--rules`. Omit it to use the default set or provide a valid path to where the rules files are located (absolute or relative).",
-                        rules
-                    );
-                    help::emit_report_dir_msg();
-                    exit(1);
-                }
-            }
-        };
-
         // report folder
         if let Some(reports) = find_arg_value(&mut pargs, vec!["--reports"]) {
             // en empty value doesn't make sense in this context
@@ -215,7 +189,7 @@ impl AppArgs {
                 eprintln!(
                     "STACKMUNCHER CONFIG ERROR: param `--reports` has no value. Omit it to use the default location or provide a valid path to where report files should be placed (absolute or relative).",
                 );
-                help::emit_usage_msg();
+                help::emit_report_dir_msg();
                 exit(1);
             }
 
@@ -226,7 +200,7 @@ impl AppArgs {
                         "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--reports`. Omit it to use the default location or provide a valid path to where report files should be placed (absolute or relative).",
                         reports
                     );
-                    help::emit_usage_msg();
+                    help::emit_report_dir_msg();
                     exit(1);
                 }
             }

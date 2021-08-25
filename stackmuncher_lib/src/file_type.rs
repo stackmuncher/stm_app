@@ -1,6 +1,5 @@
 use regex::Regex;
 use serde::Deserialize;
-use std::fs;
 use tracing::{debug, error, warn};
 
 #[derive(Deserialize, Clone, Debug)]
@@ -15,6 +14,8 @@ pub struct FileTypeMatch {
     pub in_path_regex: Option<Vec<Regex>>, // it has other unimplemented properties
 }
 
+/// Contains a list of code processors for a given file type as defined by the file extension.
+/// E.g. `.json` can have different processors for `project.json`, `lock.json`, `yarn.json`.
 #[derive(Deserialize, Clone, Debug)]
 pub struct FileType {
     #[serde(default)]
@@ -28,73 +29,57 @@ pub struct FileType {
 impl FileType {
     /// Create a new instance from a file at `json_definition_file_path`.
     /// Returns `None` if the any part of the definition is invalid.
-    pub fn new(json_definition_file_path: &String, file_name_as_ext_regex: &Regex) -> Option<Self> {
-        debug!("Loading {}", json_definition_file_path);
-
-        // load the file definition from a json file
-        let file_def = match fs::File::open(json_definition_file_path) {
-            Err(e) => {
-                error!(
-                    "Cannot read file type definitions from {} with {}",
-                    json_definition_file_path, e
-                );
-                return None;
-            }
-            Ok(v) => v,
-        };
+    /// * `file_name` - name of the definition file, must end with `.json`
+    /// * `file_contents` - the actual json inside the file
+    pub fn new(file_name: &String, contents: &str) -> Option<Self> {
+        debug!("Loading {}", file_name);
 
         // convert into a struct
-        let mut file_def: Self = match serde_json::from_reader(file_def) {
+        let mut file_def = match serde_json::from_str::<Self>(contents) {
             Err(e) => {
-                error!("Cannot parse config file {} with {}", json_definition_file_path, e);
+                error!("Cannot parse file_type definition file {} due to {}", file_name, e);
                 return None;
             }
             Ok(v) => v,
         };
 
         // set the file ext from the file name
-        // e.g. `/dir/dir/cs.json` -> `.cs`
-        if let Some(file_ext) = file_name_as_ext_regex.find(&json_definition_file_path) {
-            let file_ext = file_ext.as_str();
-            let file_ext = file_ext[..file_ext.len() - 5].to_owned();
-            file_def.file_ext = [".".to_owned(), file_ext.clone()].concat();
+        // e.g. `cs.json` -> `.cs`
+        let file_ext = &file_name[..file_name.len() - 5];
+        file_def.file_ext = [".", file_ext].concat();
 
-            // compile regex on matches (FileTypeMatch)
-            if let Some(file_type_matches) = file_def.matches.as_mut() {
-                for file_type_match in file_type_matches {
-                    // check if the muncher name is missing
-                    let muncher_name = match file_type_match.muncher.as_ref() {
-                        Some(v) => v,
-                        None => {
-                            error!("Missing muncher name for {}", file_ext);
-                            return None;
-                        }
-                    };
-                    // compile regex for the file path/name
-                    if let Some(in_paths) = file_type_match.in_path.as_ref() {
-                        let mut in_paths_regex: Vec<Regex> = Vec::new();
-                        for in_path in in_paths {
-                            let compiled_regex = match Regex::new(in_path) {
-                                Ok(r) => r,
-                                Err(e) => {
-                                    // stop processing this muncher
-                                    error!("Failed to compile regex {} with {}", in_path, e);
-                                    return None;
-                                }
-                            };
-                            in_paths_regex.push(compiled_regex);
-                        }
-                        file_type_match.in_path_regex = Some(in_paths_regex);
-                        debug!("Compiled in_path regex for {}", muncher_name);
-                    };
-                }
-            };
+        // compile regex on matches (FileTypeMatch)
+        if let Some(file_type_matches) = file_def.matches.as_mut() {
+            for file_type_match in file_type_matches {
+                // check if the muncher name is missing
+                let muncher_name = match file_type_match.muncher.as_ref() {
+                    Some(v) => v,
+                    None => {
+                        error!("Missing muncher name for {}", file_ext);
+                        return None;
+                    }
+                };
+                // compile regex for the file path/name
+                if let Some(in_paths) = file_type_match.in_path.as_ref() {
+                    let mut in_paths_regex: Vec<Regex> = Vec::new();
+                    for in_path in in_paths {
+                        let compiled_regex = match Regex::new(in_path) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                // stop processing this muncher
+                                error!("Failed to compile regex {} with {}", in_path, e);
+                                return None;
+                            }
+                        };
+                        in_paths_regex.push(compiled_regex);
+                    }
+                    file_type_match.in_path_regex = Some(in_paths_regex);
+                    debug!("Compiled in_path regex for {}", muncher_name);
+                };
+            }
+        };
 
-            return Some(file_def);
-        }
-
-        error!("Invalid config file name {}", json_definition_file_path);
-        None
+        return Some(file_def);
     }
 
     /// Matches the file to the right muncher based on the rules inside this struct.

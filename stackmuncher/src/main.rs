@@ -36,16 +36,6 @@ async fn main() -> Result<(), ()> {
             .to_string_lossy()
     );
 
-    info!(
-        "Code rules folder: {}",
-        config
-            .lib_config
-            .code_rules_dir
-            .absolutize()
-            .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
-            .to_string_lossy()
-    );
-
     #[cfg(debug_assertions)]
     info!("Running in debug mode");
 

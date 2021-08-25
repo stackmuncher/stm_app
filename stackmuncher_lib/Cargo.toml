@@ -23,6 +23,7 @@ sha2 = "0.9.5"
 bs58 = "0.4.0"
 path-absolutize = "3.0.10"
 flate2 = "1.0"
+rust-embed = { version = "6", features = ["compression"] }
 
 [dev-dependencies]
 tracing-subscriber = "0.2"

@@ -1,8 +1,6 @@
 use regex::Regex;
 use serde::Deserialize;
-use std::fs;
 use std::hash::{Hash, Hasher};
-use std::path::Path;
 use tracing::{error, trace};
 
 // ===================================================================
@@ -55,32 +53,15 @@ pub struct Muncher {
 }
 
 impl Muncher {
-    /// Create a new instance from a file at `json_definition_file_path`.
+    /// Create a new instance from the muncher file contents.
     /// Returns None if there was a problem loading it
-    pub fn new(json_definition_file_path: &Path, muncher_name: &String) -> Option<Self> {
-        trace!("Loading {}", json_definition_file_path.to_string_lossy());
-
-        // load the file definition from a json file
-        let conf = match fs::File::open(json_definition_file_path) {
-            Err(e) => {
-                error!(
-                    "Cannot read config file {} with {}",
-                    json_definition_file_path.to_string_lossy(),
-                    e
-                );
-                return None;
-            }
-            Ok(v) => v,
-        };
+    pub fn new(muncher_contents: &str, muncher_name: &String) -> Option<Self> {
+        trace!("Loading {}", muncher_name);
 
         // convert into a struct
-        let mut conf: Self = match serde_json::from_reader(conf) {
+        let mut conf = match serde_json::from_str::<Self>(muncher_contents) {
             Err(e) => {
-                error!(
-                    "Cannot parse config file {} with {}",
-                    json_definition_file_path.to_string_lossy(),
-                    e
-                );
+                error!("Cannot parse muncher {} due to {}", muncher_name, e);
                 return None;
             }
             Ok(v) => v,

@@ -1,14 +1,19 @@
 use super::file_type::FileType;
 use super::muncher::Muncher;
-use crate::config::Config;
-use path_absolutize::{self, Absolutize};
 use regex::Regex;
-use std::{
-    collections::{BTreeMap, HashSet},
-    path::Path,
-};
-use std::{fs, path::PathBuf};
+use rust_embed::RustEmbed;
+use std::collections::{BTreeMap, HashSet};
 use tracing::{debug, info, trace};
+
+/// A container for embedded file_type rules
+#[derive(RustEmbed)]
+#[folder = "stm_rules/file_types"]
+struct EmbeddedCodeRulesFileTypes;
+
+/// A container for embedded muncher rules
+#[derive(RustEmbed)]
+#[folder = "stm_rules/munchers"]
+struct EmbeddedCodeRulesMunchers;
 
 #[derive(Debug, Clone)]
 pub struct CodeRules {
@@ -17,9 +22,6 @@ pub struct CodeRules {
 
     /// Munchers are loaded on-demand
     pub munchers: BTreeMap<String, Option<Muncher>>,
-
-    /// Directory path where muncher files are stored
-    muncher_files_dir: PathBuf,
 
     /// A compiled regex for fetching a file extension from the full
     /// file path, including directories
@@ -37,61 +39,37 @@ pub struct CodeRules {
 impl CodeRules {
     /// Create a new instance from a a list of file-type files at `file_type_dir`
     /// File-type rules are loaded upfront, munchers are loaded dynamically
-    pub fn new(config_dir: &Path) -> Self {
-        // assume that the rule-files live in subfolders of the config dir
-        let file_type_dir = config_dir.join(Config::RULES_SUBFOLDER_FILE_TYPES);
-        let muncher_dir = config_dir.join(Config::RULES_SUBFOLDER_MUNCHERS);
-
-        info!(
-            "Loading config file for file_types from {} and munchers from {}",
-            file_type_dir.to_string_lossy(),
-            muncher_dir.to_string_lossy()
-        );
-
-        // get the list of files from the target folder
-        let dir = match fs::read_dir(&file_type_dir) {
-            Err(e) => {
-                let file_type_dir = file_type_dir
-                    .absolutize()
-                    .expect("Cannot convert rules / file_types dir path to absolute. It's a bug.")
-                    .to_path_buf();
-
-                panic!(
-                    "Cannot load file type rules from {} due to {}",
-                    file_type_dir.to_string_lossy(),
-                    e
-                );
-            }
-            Ok(v) => v,
-        };
-
+    pub fn new() -> Self {
         // collect relevant file names, ignore the rest
-        let mut file_names: Vec<String> = Vec::new();
-        for f in dir {
-            if let Ok(entry) = f {
-                let path = entry.path();
-                let f_n = path.to_str().expect("Invalid file-type file name");
-                if f_n.ends_with(".json") {
-                    file_names.push(f_n.to_owned());
+        let file_names: Vec<String> = EmbeddedCodeRulesFileTypes::iter()
+            .filter_map(|file_name| {
+                if file_name.ends_with(".json") {
+                    Some(file_name.to_string())
+                } else {
+                    None
                 }
-            }
-        }
-
+            })
+            .collect();
         info!("FileTypes files found: {}", file_names.len());
 
         // prepare the output collector
         let mut code_rules = CodeRules {
             files_types: BTreeMap::new(),
             munchers: BTreeMap::new(),
-            muncher_files_dir: muncher_dir.clone(),
             file_ext_regex: Regex::new("\\.[a-zA-Z0-1_]+$").unwrap(),
             file_name_as_ext_regex: Regex::new("[a-zA-Z0-1_]+\\.json$").unwrap(),
             new_munchers: None,
         };
 
-        // load the files one by one
+        // load the contents of file_type definitions one by one
         for file in file_names {
-            if let Some(ft) = FileType::new(&file, &code_rules.file_name_as_ext_regex) {
+            let contents = EmbeddedCodeRulesFileTypes::get(&file)
+                .expect(format!("Missing embedded file_type contents: {}", file).as_str());
+
+            let contents = std::str::from_utf8(contents.data.as_ref())
+                .expect(format!("Invalid file_type contents: {}", file).as_str());
+
+            if let Some(ft) = FileType::new(&file, contents) {
                 code_rules.files_types.insert(ft.file_ext.clone(), ft);
             }
         }
@@ -109,21 +87,19 @@ impl CodeRules {
                 if let Some(muncher_name) = file_type.get_muncher_name(file_path) {
                     // load the muncher from its file on the first use
                     if !self.munchers.contains_key(&muncher_name) {
-                        // a round-about way of appending .json to a PathBuf
-                        // the existing methods on PathBuf can only replace the existing ext, not append a new one
-                        let mut muncher_file_name =
-                            self.muncher_files_dir.join(&muncher_name).as_os_str().to_os_string();
-                        muncher_file_name.push(".json");
-                        let muncher_file_name = Path::new(&muncher_file_name).to_path_buf();
+                        // all muncher definition files have .json ext
+                        let muncher_file_name = [&muncher_name, ".json"].concat();
+                        trace!("Loading muncher {} for the 1st time", muncher_file_name);
 
-                        trace!(
-                            "Loading muncher {} for the 1st time",
-                            muncher_file_name.to_string_lossy()
-                        );
+                        let contents = EmbeddedCodeRulesMunchers::get(&muncher_file_name)
+                            .expect(format!("Missing embedded muncher contents: {}", muncher_file_name).as_str());
+                        let contents = std::str::from_utf8(contents.data.as_ref())
+                            .expect(format!("Invalid muncher contents: {}", muncher_file_name).as_str());
 
                         // Insert None if the muncher could not be loaded so that it doesn't try to load it again
                         self.munchers
-                            .insert(muncher_name.clone(), Muncher::new(&muncher_file_name, &muncher_name));
+                            .insert(muncher_name.clone(), Muncher::new(contents, &muncher_name));
+                            
                         // indicate to the caller that there were new munchers added so they can be shared with other threads
                         if self.new_munchers.is_none() {
                             self.new_munchers = Some(HashSet::new());

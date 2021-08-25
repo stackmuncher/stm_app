@@ -63,13 +63,6 @@ pub(crate) async fn view_config(config: AppConfig) {
         .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
         .to_string_lossy()
         .to_string();
-    let rules = config
-        .lib_config
-        .code_rules_dir
-        .absolutize()
-        .expect("Cannot convert config.code_rules_dir to absolute path. It's a bug.")
-        .to_string_lossy()
-        .to_string();
     let config_file = config
         .config_file_path
         .absolutize()
@@ -99,8 +92,7 @@ pub(crate) async fn view_config(config: AppConfig) {
     println!("    GitHub validation: {}", github_validation);
     println!();
     println!("    Local stack reports: {}", reports);
-    println!("    Code analysis rules: {}", rules);
-    println!("    Config file: {}", config_file);
+    println!("    Config folder: {}", config_file);
     println!();
 }
 

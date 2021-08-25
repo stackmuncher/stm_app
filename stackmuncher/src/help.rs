@@ -20,29 +20,6 @@ pub(crate) fn emit_support_msg() {
     println!("Support: https://github.com/stackmuncher/stm/issues or info@stackmuncher.com");
 }
 
-/// Prints out info on where the rules are expected
-pub(crate) fn emit_code_rules_msg() {
-    println!("");
-    if cfg!(debug_assertions) {
-        println!("The default location for StackMuncher code rules in DEBUGGING MODE is `{}` sub-folder of the current working directory.", Config::RULES_FOLDER_NAME_DEBUG);
-    } else if cfg!(target_os = "linux") {
-        println!(
-            "The default location for StackMuncher code rules on Linux is `{}` folder.",
-            Config::RULES_FOLDER_NAME_LINUX
-        );
-    } else if cfg!(target_os = "windows") {
-        println!(
-            "The default location for StackMuncher code rules on Windows is `{}` folder placed next stackmuncher.exe.",
-            Config::RULES_FOLDER_NAME_WIN
-        );
-    }
-    println!();
-    println!("    To specify a different location use `--rules` param followed by a relative or absolute path to the rules folder.");
-    println!("    The latest copy of the rules can be downloaded from https://github.com/stackmuncher/stm repo or https://distro.stackmuncher.com/stm_rules.zip");
-    println!();
-    emit_support_msg();
-}
-
 /// Prints out info on where the reports can be saved
 pub(crate) fn emit_report_dir_msg() {
     println!("");

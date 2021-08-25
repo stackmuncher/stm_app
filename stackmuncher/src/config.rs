@@ -114,15 +114,8 @@ impl AppConfig {
         // only validate project, rules and report if code analysis is to be done
         // config should be validated regardless because nothing functions without it
         if app_args.command == AppArgCommands::Munch {
-            // rules and project folders are being validated only - not much difference if it's done now or later
+            // only `project` folder is being validated - not much difference if it's done now or later
             // replace default config with user values from the CLI
-            if let Some(rules) = app_args.rules {
-                validate_rules_dir(&rules);
-                config.code_rules_dir = rules;
-            } else {
-                // validate the default value
-                validate_rules_dir(&config.code_rules_dir);
-            };
 
             // check the project folder for existence and if it has .git in it
             config.project_dir = match app_args.project {
@@ -294,14 +287,13 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
     // look for the rules in the current working dir if in debug mode
     // otherwise default to a platform-specific location
     // this can be overridden by `--rules` CLI param
-    let (code_rules_dir, report_dir, config_dir, log_level) = if is_local_release {
+    let (report_dir, config_dir, log_level) = if is_local_release {
         // this branch activates when the app is called directly from `stm_app/target/release` folder, but all the config files are 2 levels up
         // go 2 steps up in the hierarchy to get to the root of stm_app project
         let mut exec_dir = exec_dir;
         exec_dir.pop();
         exec_dir.pop();
         (
-            exec_dir.join(Config::RULES_FOLDER_NAME_DEBUG),
             exec_dir.join(Config::REPORT_FOLDER_NAME_DEBUG),
             exec_dir.join(CONFIG_FOLDER_NAME_DEBUG),
             tracing::Level::ERROR,
@@ -309,14 +301,12 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
     } else if cfg!(debug_assertions) {
         // this branch activates when run as `cargo run`
         (
-            Path::new(Config::RULES_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
             Path::new(CONFIG_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
         (
-            Path::new(Config::RULES_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
             Path::new(CONFIG_FOLDER_NAME_LINUX).to_path_buf(),
             tracing::Level::ERROR,
@@ -326,7 +316,6 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         let local_appdata_dir = std::env::var("LOCALAPPDATA").expect("%LOCALAPPDATA% env variable not found");
         let local_appdata_dir = Path::new(&local_appdata_dir);
         (
-            exec_dir.join(Config::RULES_FOLDER_NAME_WIN),
             local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
             local_appdata_dir.join(CONFIG_FOLDER_NAME_WIN),
             tracing::Level::ERROR,
@@ -343,7 +332,6 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
 
     let config = Config {
         log_level,
-        code_rules_dir,
         report_dir: Some(report_dir),
         project_dir: current_dir,
         user_name: String::new(),
@@ -378,50 +366,6 @@ fn trim_canonical_project_name(name: String) -> String {
     }
 
     name
-}
-
-/// Validates the value for config.code_rules_dir and does process::exit(1) on error.
-/// Prints error messages.
-fn validate_rules_dir(rules: &PathBuf) {
-    // this checks if the rules dir is present, but not its contents
-    // incomplete, may fall over later
-    if !rules.exists() {
-        eprintln!("STACKMUNCHER CONFIG ERROR: Cannot find StackMuncher code parsing rules.");
-        help::emit_code_rules_msg();
-        exit(1);
-    }
-
-    // check if the sub-folders of stm_rules are present
-    let file_type_dir = rules.join(Config::RULES_SUBFOLDER_FILE_TYPES);
-    if !file_type_dir.exists() {
-        let file_type_dir = file_type_dir
-            .absolutize()
-            .expect("Cannot convert rules / file_types dir path to absolute. It's a bug.")
-            .to_path_buf();
-
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR: Cannot find file type rules folder {}",
-            file_type_dir.to_string_lossy()
-        );
-        help::emit_code_rules_msg();
-        std::process::exit(1);
-    }
-
-    // check if the munchers sub-folder is present
-    let muncher_dir = rules.join(Config::RULES_SUBFOLDER_MUNCHERS);
-    if !muncher_dir.exists() {
-        let muncher_dir = muncher_dir
-            .absolutize()
-            .expect("Cannot convert rules / munchers dir path to absolute. It's a bug.")
-            .to_path_buf();
-
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR: Cannot find rules directory for munchers in {}",
-            muncher_dir.to_string_lossy()
-        );
-        help::emit_code_rules_msg();
-        std::process::exit(1);
-    }
 }
 
 /// Returns a validated config.project_dir or exits with an error message

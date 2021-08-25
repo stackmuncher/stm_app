@@ -1,9 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Config {
-    /// Full path to the dir with code rules. Absolute or relative to the working dir.
-    pub code_rules_dir: PathBuf,
     /// All reports are placed in a centralized location, but this can be overridden by CLI params.
     /// Set it to None if reports are not stored locally at all.
     pub report_dir: Option<PathBuf>,
@@ -38,26 +36,11 @@ impl Config {
     pub const REPORT_FOLDER_NAME_WIN: &'static str = "stackmuncher\\reports";
     pub const REPORT_FOLDER_NAME_DEBUG: &'static str = "reports";
 
-    /// The code analysis rules should live in this folder, but the location of the folder itself
-    /// may vary from set up to set up.
-    /// The values must agree with what is configured in the deployment packages:
-    /// * Linux: Cargo.toml
-    pub const RULES_FOLDER_NAME_DEBUG: &'static str = "stm_rules";
-    pub const RULES_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/stm_rules";
-    /// This value is to be appended to the folder of the executable
-    pub const RULES_FOLDER_NAME_WIN: &'static str = "stm_rules";
-    /// Location of file-type rules to recognize file types by extension. It is expected to be `stm_rules/file_types/`
-    pub const RULES_SUBFOLDER_FILE_TYPES: &'static str = "file_types";
-    /// Location of code munching rules for very specific file types, e.g. Cargo.toml, not just any .toml.
-    /// It is expected to be `stm_rules/munchers/`
-    pub const RULES_SUBFOLDER_MUNCHERS: &'static str = "munchers";
-
     /// Returns a minimal version of Self with no validation and default values.
     /// It compiles some regex and should be cached
-    pub fn new(code_rules_dir: &Path, user_name: String, repo_name: String) -> Self {
+    pub fn new(user_name: String, repo_name: String) -> Self {
         Config {
             log_level: tracing::Level::INFO,
-            code_rules_dir: code_rules_dir.clone().into(),
             report_dir: None,
             project_dir: PathBuf::default(),
             user_name,
@@ -72,7 +55,6 @@ impl Config {
     pub fn new_with_defaults(log_level: &tracing::Level) -> Self {
         Config {
             log_level: log_level.clone(),
-            code_rules_dir: PathBuf::default(),
             report_dir: None,
             project_dir: PathBuf::default(),
             user_name: String::new(),

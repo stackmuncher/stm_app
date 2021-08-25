@@ -12,7 +12,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     let instant = std::time::Instant::now();
 
     // load code rules
-    let mut code_rules = CodeRules::new(&config.lib_config.code_rules_dir);
+    let mut code_rules = CodeRules::new();
 
     // Reports are grouped per project with a canonical project name as the last subfolder
     let report_dir = Path::new(
