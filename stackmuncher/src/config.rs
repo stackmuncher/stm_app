@@ -284,9 +284,9 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
     };
     let is_local_release = exec_dir.ends_with("target/release") || exec_dir.ends_with("target\\release");
 
-    // look for the rules in the current working dir if in debug mode
+    // use the current working dir if in debug mode
     // otherwise default to a platform-specific location
-    // this can be overridden by `--rules` CLI param
+    // this can be overridden by `--report` and `--config` CLI param
     let (report_dir, config_dir, log_level) = if is_local_release {
         // this branch activates when the app is called directly from `stm_app/target/release` folder, but all the config files are 2 levels up
         // go 2 steps up in the hierarchy to get to the root of stm_app project

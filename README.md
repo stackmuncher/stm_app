@@ -94,7 +94,6 @@ _mx_ and _rimutaka_ are the same person. Let's add both emails to StackMuncher c
     GitHub validation: not set
 
     Local stack reports: /home/ubuntu/rust/stm_app/reports/home_ubuntu_rust_stm_app_6213a4b2
-    Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
     Config file: /home/ubuntu/rust/stm_app/.stm_config/config.json
 ```
 The app stored two emails from `--emails` param in its config file and printed its full config info (`config` command). From now on it will look for commits from _max@onebro.me_ and _rimutaka@onebro.me_.
@@ -181,14 +180,12 @@ Example:
     GitHub validation: https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
 
     Local stack reports: /home/ubuntu/rust/stm_app/reports
-    Code analysis rules: /home/ubuntu/rust/stm_app/stm_rules
     Config file: /home/ubuntu/rust/stm_app/.stm_config/config.json
 ```
 
 #### Debug settings
 
 * `--log error|warn|info|debug|trace`: the log is written to _stdout_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it. E.g. `stackmuncher --log debug >> ~/stm_trace.log`
-* `--rules "path to code analysis rules"`: a path to an alternative location of code analysis rules. The path can be relative or absolute. Defaults to the application folder.
 * `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to the application folder.
 * `--config "path to config folder"`: a path to an alternative location of the config folder. The path can be relative or absolute. Defaults to the application folder.
 
@@ -202,12 +199,11 @@ Example:
 _The current version of the app is at alpha-stage and should be used for testing purposes only._
 
 1. Only a small number of computer languages are recognized.
-2. Profiles can be accessed via `/?dev=...` links only.
-3. The app may include private library names in the report - do not use it on commercially-sensitive projects.
-4. The only way to delete a profile is to email info@stackmuncher.com.
-5. Your Github profile may already be included in the Directory, but it cannot be linked to your private profile.
-6. It may take up to 2 minutes for a profile to be created/updated after a report submission.
-7. Very large reports (over 50MB) are likely to be rejected.
+2. The app may include private library names in the report - do not use it on commercially-sensitive projects.
+3. The only way to delete a profile is to email info@stackmuncher.com.
+4. It may take up to 2 minutes for a profile to be created/updated after a report submission.
+5. Very large reports (over 50MB) are likely to be rejected.
+6. Repositories with more than 10,000 files are not processed.
 
 ## Troubleshooting
 

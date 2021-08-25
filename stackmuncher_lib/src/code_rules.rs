@@ -27,10 +27,6 @@ pub struct CodeRules {
     /// file path, including directories
     pub file_ext_regex: Regex,
 
-    /// A compiled regex for extracting the file name without path or extension.
-    /// E.g. `/dir/dir/cs.json` -> `cs`
-    pub file_name_as_ext_regex: Regex,
-
     /// Contains names of newly added munchers to assist merging multiple instances
     /// of CodeRules for parallel processing.
     pub new_munchers: Option<HashSet<String>>,
@@ -57,7 +53,6 @@ impl CodeRules {
             files_types: BTreeMap::new(),
             munchers: BTreeMap::new(),
             file_ext_regex: Regex::new("\\.[a-zA-Z0-1_]+$").unwrap(),
-            file_name_as_ext_regex: Regex::new("[a-zA-Z0-1_]+\\.json$").unwrap(),
             new_munchers: None,
         };
 
@@ -99,7 +94,7 @@ impl CodeRules {
                         // Insert None if the muncher could not be loaded so that it doesn't try to load it again
                         self.munchers
                             .insert(muncher_name.clone(), Muncher::new(contents, &muncher_name));
-                            
+
                         // indicate to the caller that there were new munchers added so they can be shared with other threads
                         if self.new_munchers.is_none() {
                             self.new_munchers = Some(HashSet::new());

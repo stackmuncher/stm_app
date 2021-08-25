@@ -125,7 +125,22 @@ pub(crate) fn emit_gist_instructions(gist_content: &String) {
 
 /// Prints out either Win or nix/Mac Welcome msg.
 pub(crate) fn emit_welcome_msg(config: AppConfig) {
-    let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
+    // directory profile URL depends on if it's public or not
+    let dir_profile_url = match &config.gh_login {
+        Some(login) if !login.is_empty() => format!("https://stackmuncher.com/{}", login),
+        _ => format!("https://stackmuncher.com/?dev={}", ReportSignature::get_public_key(&config.user_key_pair)),
+    };
+
+    let profile_msg = match &config.gh_login {
+        Some(login) if !login.is_empty() => String::new(),
+        _ => format!(
+            "
+    An anonymous profile is created in the Directory the first time you run this app.
+    Run `stackmuncher{exe_suffix} github` to make your profile public with details from your GitHub account.
+    ",
+            exe_suffix = EXE_SUFFIX
+        ),
+    };
 
     println!("\
 StackMuncher app analyzes your technology stack and showcases it in the Global Directory of Software Developers.
@@ -136,11 +151,8 @@ USAGE:
     
 YOUR DIRECTORY PROFILE: 
 
-    https://stackmuncher.com/?dev={pub_key}
-
-    An anonymous profile is created in the Directory the first time you run this app.
-    Run `stackmuncher{exe_suffix} github` to make your profile public with details from your GitHub account.
-
+    {dir_profile_url}
+    {profile_msg}
 CODE PRIVACY:
     All code analysis is done locally. Not a single line of code is leaving your machine. View the source code at https://github.com/stackmuncher.
 
@@ -151,8 +163,6 @@ OPTIONS:
     --gist                                         a URL of your GitHub login validation Gist, run `stackmuncher{exe_suffix} github` for details
 
     --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
-
-    --rules \"path to code analysis rules\"         can be relative or absolute, defaults to the application folder
     --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
     --config \"path to config folder\"              can be relative or absolute, defaults to the application folder
 
@@ -166,5 +176,5 @@ MORE INFO:
 
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
-    ",exe_suffix=EXE_SUFFIX, pub_key=pub_key);
+    ",exe_suffix=EXE_SUFFIX, dir_profile_url=dir_profile_url, profile_msg=profile_msg);
 }
