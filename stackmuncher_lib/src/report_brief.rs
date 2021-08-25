@@ -174,8 +174,14 @@ impl super::report::Report {
             })
             .collect::<HashSet<TechOverview>>();
 
+        // use GitHub's project name if it exists, otherwise make one up
+        let project_name = match &self.github_repo_name {
+            Some(v) => v.clone(),
+            None => project_name_from_date(&self.date_init),
+        };
+
         ProjectReportOverview {
-            project_name: project_name_from_date(&self.date_init),
+            project_name,
             project_id: self.project_id.clone(),
             owner_id: self.owner_id.clone(),
             github_repo_name: self.github_repo_name.clone(),

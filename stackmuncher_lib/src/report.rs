@@ -25,15 +25,6 @@ pub struct Report {
     /// Only used for Inbox reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary_email: Option<String>,
-    /// Member's public name. No update is needed if None. Clear if Some("").
-    /// Only used for Inbox reports.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub public_name: Option<String>,
-    /// Member's public contact. No update is needed if None. Clear if Some("").
-    /// Can contain any details, up to the member.
-    /// Only used for Inbox reports.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub public_contact: Option<String>,
     /// GitHub user name, if known
     #[serde(skip_serializing_if = "Option::is_none")]
     pub github_user_name: Option<String>,
@@ -257,8 +248,6 @@ impl Report {
             // copy the dev identity if the other report is newer by its timestamp
             if other_report.timestamp > merge_into_inner.timestamp {
                 merge_into_inner.primary_email = other_report.primary_email;
-                merge_into_inner.public_name = other_report.public_name;
-                merge_into_inner.public_contact = other_report.public_contact;
             }
         }
 
@@ -510,8 +499,6 @@ impl Report {
             last_contributor_commit_date_epoch: None,
             last_contributor_commit_sha1: None,
             primary_email: None,
-            public_contact: None,
-            public_name: None,
             first_contributor_commit_sha1: None,
             first_contributor_commit_date_iso: None,
             first_contributor_commit_date_epoch: None,
