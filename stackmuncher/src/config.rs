@@ -19,7 +19,7 @@ const CONFIG_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
 /// The location of user config and keys for signing STM Inbox messages: `~/.stm_config`
 const CONFIG_FOLDER_NAME_LINUX: &'static str = ".stm_config";
 /// This value is to be appended to the folder of %APPDATA%
-const CONFIG_FOLDER_NAME_WIN: &'static str = "stackmuncher/.stm_config";
+const CONFIG_FOLDER_NAME_WIN: &'static str = "stackmuncher\\.stm_config";
 
 /// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
