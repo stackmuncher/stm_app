@@ -16,10 +16,10 @@ const APP_CONFIG_FILE_NAME: &str = "config.json";
 
 /// The location of user config and keys for signing STM Inbox messages: `.stm_config`
 const CONFIG_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
-/// The location of user config and keys for signing STM Inbox messages: `/usr/share/stackmuncher/.stm_config`
-const CONFIG_FOLDER_NAME_LINUX: &'static str = "/usr/share/stackmuncher/.stm_config";
-/// This value is to be appended to the folder of the executable
-const CONFIG_FOLDER_NAME_WIN: &'static str = ".stm_config";
+/// The location of user config and keys for signing STM Inbox messages: `~/.stm_config`
+const CONFIG_FOLDER_NAME_LINUX: &'static str = ".stm_config";
+/// This value is to be appended to the folder of %APPDATA%
+const CONFIG_FOLDER_NAME_WIN: &'static str = "stackmuncher/.stm_config";
 
 /// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
@@ -306,9 +306,12 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
+        let home_dir =
+            PathBuf::from_str(&std::env::var("HOME").expect("Cannot retrieve $HOME env var to store config in ~"))
+                .expect("Invalid path in $HOME var");
         (
             Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
-            Path::new(CONFIG_FOLDER_NAME_LINUX).to_path_buf(),
+            home_dir.join(CONFIG_FOLDER_NAME_LINUX),
             tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
@@ -382,8 +385,19 @@ fn validate_project_dir(project: PathBuf) -> PathBuf {
 
     // check if there is .git subfolder in the project dir
     let git_path = project.join(".git");
-    if !git_path.is_dir() {
-        eprintln!("STACKMUNCHER CONFIG ERROR: No Git repository found in {}", git_path.to_string_lossy());
+    if git_path.is_file() {
+        // multi-repos place .git file in submodules pointing at the parent module
+        eprintln!(
+            "STACKMUNCHER CONFIG ERROR: {} is a sub-module in a multi-repo.",
+            project.to_string_lossy()
+        );
+        eprintln!("    Sorry, multi-repos are not supported yet. Try cloning this sub-module as a standalone repo.");
+        eprintln!("    See https://github.com/stackmuncher/stm_app/issues/31 for details");
+        help::emit_usage_msg();
+        exit(1);
+    } else if !git_path.is_dir() {
+        // there is no sign of git here
+        eprintln!("STACKMUNCHER CONFIG ERROR: No Git repository found in {}", project.to_string_lossy());
         eprintln!("    Try running the app from the root of a project with a .git subfolder.");
         help::emit_usage_msg();
         exit(1);
@@ -525,10 +539,14 @@ impl AppConfigCache {
             Ok(app_config_cache) => {
                 if let Err(e) = std::fs::write(app_config.config_file_path.clone(), app_config_cache) {
                     eprintln!(
-                "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug. Please, report it to https://github.com/stackmuncher/stm.",
-                app_config.config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
-                e
-            );
+                        "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug.",
+                        app_config
+                            .config_file_path
+                            .absolutize()
+                            .unwrap_or_default()
+                            .to_string_lossy(),
+                        e
+                    );
                 } else {
                     debug!(
                         "Config cache saved in {}",
@@ -544,10 +562,14 @@ impl AppConfigCache {
             Err(e) => {
                 // nothing the user can do about it and it's not fatal, so inform and carry on
                 eprintln!(
-                "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug. Please, report it to https://github.com/stackmuncher/stm.",
-                app_config.config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
-                e
-            );
+                    "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug.",
+                    app_config
+                        .config_file_path
+                        .absolutize()
+                        .unwrap_or_default()
+                        .to_string_lossy(),
+                    e
+                );
             }
         }
     }

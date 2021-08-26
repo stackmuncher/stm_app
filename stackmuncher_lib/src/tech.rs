@@ -7,7 +7,7 @@ use tracing::{info, trace, warn};
 /// # PRIVACY REMINDER
 /// Any additions to this struct should be considered for clean up before submission to stackmuncher.com
 /// to avoid sending out any info that doesn't need to be sent.
-/// See https://github.com/stackmuncher/stm/issues/12
+/// See https://github.com/stackmuncher/stm_app/issues/12
 #[derive(Serialize, Deserialize, Debug, Eq, Clone)]
 #[serde(rename = "tech")]
 pub struct Tech {
@@ -64,7 +64,7 @@ pub struct Tech {
     // PRIVACY REMINDER
     // Any additions to this struct should be considered for clean up before submission to stackmuncher.com
     // to avoid sending out any info that doesn't need to be sent.
-    // See https://github.com/stackmuncher/stm/issues/12
+    // See https://github.com/stackmuncher/stm_app/issues/12
 }
 
 impl std::hash::Hash for Tech {

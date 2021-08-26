@@ -702,7 +702,7 @@ impl Report {
     /// Requires a `salt` for name hashing. It has to be unique to the user, consistent across submissions, but is only known to the user
     pub fn sanitize(&self, salt: String) -> Result<Self, ()> {
         // this function should be replaced with a macro
-        // see https://github.com/stackmuncher/stm/issues/12
+        // see https://github.com/stackmuncher/stm_app/issues/12
 
         info!("Report pre-submission cleanup started");
         // expensive, but probably unavoidable given that the original report will still be used at the point of call

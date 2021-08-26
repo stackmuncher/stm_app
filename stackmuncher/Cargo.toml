@@ -4,7 +4,7 @@ version = "0.1.3"
 authors = ["rimutaka <max@onebro.me>"]
 edition = "2018"
 homepage = "https://stackmuncher.com"
-repository = "https://github.com/stackmuncher/stm"
+repository = "https://github.com/stackmuncher/stm_app"
 license = "GPL-3.0-or-later"
 description = "A static code analysis app for reporting on amount and type of code produced by looking at git commits."
 
@@ -41,15 +41,5 @@ assets = [
     "../target/release/stackmuncher",
     "usr/bin/",
     "755",
-  ],
-  [
-    "../stm_rules/file_types/*",
-    "usr/share/stackmuncher/stm_rules/file_types/",
-    "644",
-  ],
-  [
-    "../stm_rules/munchers/*",
-    "usr/share/stackmuncher/stm_rules/munchers/",
-    "644",
-  ],
+  ]
 ]

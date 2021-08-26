@@ -31,7 +31,7 @@ deb builds rely on [cargo-deb](https://crates.io/crates/cargo-deb) crate. See co
 
 ## Windows
 
-The current MSIX config produces a *full trust* Windows App, which should be *partial trust* with only local folder access. See https://github.com/stackmuncher/stm/issues/11
+The current MSIX config produces a *full trust* Windows App, which should be *partial trust* with only local folder access. See https://github.com/stackmuncher/stm_app/issues/11
 
 Windows building and packaging steps:
 

@@ -7,7 +7,7 @@ use std::env::consts::EXE_SUFFIX;
 pub(crate) fn emit_usage_msg() {
     println!();
     println!(
-        "    Run `stackmuncher{exe_suffix} --help` for detailed usage info.",
+        "    Run `stackmuncher{exe_suffix} help` for detailed usage info.",
         exe_suffix = EXE_SUFFIX
     );
     println!();
@@ -16,8 +16,8 @@ pub(crate) fn emit_usage_msg() {
 
 /// Prints out a standard multi-line message on where to find more info
 pub(crate) fn emit_support_msg() {
-    println!("Source code: https://github.com/stackmuncher/stm");
-    println!("Support: https://github.com/stackmuncher/stm/issues or info@stackmuncher.com");
+    println!("Source code: https://github.com/stackmuncher/stm_app");
+    println!("Support: https://github.com/stackmuncher/stm_app/issues or info@stackmuncher.com");
 }
 
 /// Prints out info on where the reports can be saved
@@ -44,22 +44,15 @@ pub(crate) fn emit_report_dir_msg() {
 
 /// Prints out either Win or nix/Mac msg with --log info instructions on getting more info
 pub(crate) fn emit_detailed_output_msg() {
-    if cfg!(target_os = "windows") {
-        eprintln!("To see detailed output run `stackmuncher.exe --log info` from the project root directory (where .git folder is).");
-    } else {
-        eprintln!("To see detailed output run `stackmuncher --log info` from the project root directory (where .git folder is).");
-    }
+    eprintln!("To see detailed output run `stackmuncher{} --log info` from the project root directory (where .git folder is).",EXE_SUFFIX);
 }
 
 /// Prints a message about invalid args and exits with code 1.
 pub(crate) fn emit_cli_err_msg() {
-    if cfg!(target_os = "windows") {
-        eprintln!(
-            "Cannot parse the parameters from the command line. Run `stackmuncher.exe --help` for usage details."
-        );
-    } else {
-        eprintln!("Cannot parse the parameters from the command line. Run `stackmuncher --help` for usage details.");
-    }
+    eprintln!(
+        "Cannot parse the parameters from the command line. Run `stackmuncher{} help` for usage details.",
+        EXE_SUFFIX
+    );
 }
 
 /// Prints a message about an invalid private key.
@@ -87,7 +80,7 @@ pub(crate) fn emit_dryrun_msg(report_file_path: &str) {
         report_file_path
     );
     eprintln!();
-    eprintln!("    The app will start submitting stack reports for this project from the next run. Use `--dryrun` flag to skip the profile update step.");
+    eprintln!("    The app will start submitting stack reports for this project from the next run unless `--dryrun` flag is specified.");
     eprintln!();
 }
 
@@ -168,11 +161,11 @@ OPTIONS:
 
     --log error|warn|info|debug|trace             defaults to `error` for least verbose output
     --dryrun                                      skip updating your Directory Profile (no data leaves your computer)
-    --help                                        display this message
 
 MORE INFO:
 
-    stackmuncher{exe_suffix} config                 prints URLs of your Directory Profile and other configuration details
+    stackmuncher{exe_suffix} config                 prints the URL of your Directory Profile and other configuration details
+    stackmuncher{exe_suffix} help                   displays this message
 
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
