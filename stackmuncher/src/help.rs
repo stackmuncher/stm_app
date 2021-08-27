@@ -81,6 +81,7 @@ pub(crate) fn emit_dryrun_msg(report_file_path: &str) {
     );
     eprintln!();
     eprintln!("    The app will start submitting stack reports for this project from the next run unless `--dryrun` flag is specified.");
+    eprintln!("    Run it once more if you want to submit the report now.");
     eprintln!();
 }
 

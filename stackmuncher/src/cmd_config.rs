@@ -69,6 +69,10 @@ pub(crate) async fn view_config(config: AppConfig) {
         .expect("Cannot convert config.config_file_path to absolute path. It's a bug.")
         .to_string_lossy()
         .to_string();
+    let exe_file = match std::env::current_exe() {
+        Ok(v) => v.to_string_lossy().to_string(),
+        Err(_) => "unknown".to_string(),
+    };
 
     // gh_validation_gist may already be in the config if --gist option was used and it was validated
     // otherwise we need to re-validate it and get the details from github
@@ -88,11 +92,12 @@ pub(crate) async fn view_config(config: AppConfig) {
     println!("    Commit emails: {}", config.lib_config.git_identities.join(", "));
     println!();
     println!("    Anonymous profile: https://stackmuncher.com/?dev={}", pub_key);
-    println!("    Public profile: {}", public_profile);
+    println!("    Public profile:    {}", public_profile);
     println!("    GitHub validation: {}", github_validation);
     println!();
-    println!("    Local stack reports: {}", reports);
+    println!("    Stack reports: {}", reports);
     println!("    Config folder: {}", config_file);
+    println!("    Executable:    {}", exe_file);
     println!();
 }
 

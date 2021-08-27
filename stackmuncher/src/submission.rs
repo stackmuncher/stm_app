@@ -73,9 +73,9 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
 
         // public profile is preferred, but not be enabled
         if let Some(gh_login) = &config.gh_login {
-            println!("   Public profile:    https://stackmuncher.com/{}", gh_login);
+            println!("   Project update added to:    https://stackmuncher.com/{}", gh_login);
         } else {
-            println!("   Directory profile:    https://stackmuncher.com/?dev={}", report_sig.public_key);
+            println!("   Project update added to:    https://stackmuncher.com/?dev={}", report_sig.public_key);
         }
 
         return;
