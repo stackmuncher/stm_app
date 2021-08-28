@@ -1,6 +1,5 @@
 use crate::help;
 use bs58;
-use path_absolutize::Absolutize;
 use ring::{
     rand,
     signature::{self, Ed25519KeyPair, KeyPair},
@@ -59,11 +58,7 @@ pub(crate) fn get_key_pair(keys_dir: &PathBuf) -> Ed25519KeyPair {
     // the validity of the path and the presence of the folder should be validated during config time
     // try to get the file from the disk first
     let key_file_path = get_key_file_name(keys_dir);
-    let key_file_path_str = key_file_path
-        .absolutize()
-        .expect(&format!("Cannot convert {} to absolute path.", key_file_path.to_string_lossy()))
-        .to_string_lossy()
-        .to_string();
+    let key_file_path_str = key_file_path.to_string_lossy().to_string();
 
     // does it exist?
     if !key_file_path.exists() {
@@ -144,16 +139,9 @@ fn generate_and_save_new_pkcs8(key_file_name: &PathBuf) -> Vec<u8> {
 /// Returns the name of the key file for the normalized_email_hash for consistency.
 fn get_key_file_name(keys_dir: &PathBuf) -> PathBuf {
     // check if the keys directory exists
-    if !keys_dir.exists() {
-        if let Err(e) = std::fs::create_dir_all(keys_dir.clone()) {
-            eprintln!(
-                "STACKMUNCHER ERROR: failed to create a new directory for key files in {}. Reason: {}",
-                keys_dir.to_string_lossy(),
-                e
-            );
-            exit(1);
-        };
-        info!("Created keys folder in {}", keys_dir.to_string_lossy());
+    if !keys_dir.is_dir() {
+        eprintln!("STACKMUNCHER ERROR: config folder {} not found.", keys_dir.to_string_lossy());
+        exit(1);
     }
 
     // complete building the file name

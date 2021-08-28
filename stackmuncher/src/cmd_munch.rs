@@ -3,7 +3,6 @@ use crate::help;
 use crate::signing::ReportSignature;
 use crate::submission::submit_report;
 use futures::stream::{FuturesUnordered, StreamExt};
-use path_absolutize::{self, Absolutize};
 use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
 use tracing::{debug, info, warn};
@@ -18,7 +17,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     let report_dir = Path::new(
         config
             .lib_config
-            .report_dir
+            .project_report_dir
             .as_ref()
             .expect("Cannot unwrap config.report_dir. It's a bug."),
     );
@@ -43,10 +42,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
         None => {
             // there were no changes since the previous report - it can be reused as-is
             info!("Done in {}ms", instant.elapsed().as_millis());
-            // do not print the end user msg if the logging is enabled
-            if config.lib_config.log_level == tracing::Level::ERROR {
-                println!("No new commits since the last run.");
-            }
+            println!("    No new commits since the last run.");
             cached_project_report.expect("Cannot unwrap cached report. It's a bug.")
         }
         Some(v) => {
@@ -55,17 +51,6 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
             v
         }
     };
-
-    // print the location of the reports
-    if config.lib_config.log_level == tracing::Level::ERROR {
-        println!(
-            "   Stack report:         {}",
-            report_dir
-                .absolutize()
-                .expect("Cannot convert report_dir to absolute path. It's a bug.")
-                .to_string_lossy()
-        );
-    }
 
     info!("Contributor reports requested for: {:?}", config.lib_config.git_identities);
 
@@ -189,10 +174,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 // check if the submission to the directory should go ahead
                 if config.dryrun {
                     // a dry-run was requested by the user
-                    if config.lib_config.log_level == tracing::Level::ERROR {
-                        println!("Directory Profile update skipped: `--dryrun` flag.");
-                    }
-                    warn!("Skipping report submission: `--dryrun` flag.")
+                    println!("    Directory Profile update skipped: `--dryrun` flag.");
                 } else {
                     if first_run {
                         info!("No report submission on the first run");
@@ -215,6 +197,8 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
         }
     }
 
+    // print the location of the reports
+    println!("    Stack reports:        {}", report_dir.to_string_lossy());
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
 
     Ok(())

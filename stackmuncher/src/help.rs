@@ -1,58 +1,74 @@
-use crate::config::AppConfig;
+use crate::config::{self, AppConfig};
 use crate::signing::ReportSignature;
-use stackmuncher_lib::config::Config;
-use std::env::consts::EXE_SUFFIX;
 
 /// Prints out a standard multi-line message on how to use the app and where to find more info
 pub(crate) fn emit_usage_msg() {
     println!();
-    println!(
-        "    Run `stackmuncher{exe_suffix} help` for detailed usage info.",
-        exe_suffix = EXE_SUFFIX
-    );
+    println!("    Run `stackmuncher help` for detailed usage info.");
     println!();
     emit_support_msg();
 }
 
 /// Prints out a standard multi-line message on where to find more info
 pub(crate) fn emit_support_msg() {
-    println!("Source code: https://github.com/stackmuncher/stm_app");
-    println!("Support: https://github.com/stackmuncher/stm_app/issues or info@stackmuncher.com");
+    println!("Source code and support: https://github.com/stackmuncher/stm_app or info@stackmuncher.com");
 }
 
 /// Prints out info on where the reports can be saved
 pub(crate) fn emit_report_dir_msg() {
     println!("");
     if cfg!(debug_assertions) {
-        println!("The default location for StackMuncher reports in DEBUGGING MODE is `{}` sub-folder of the current working directory.", Config::REPORT_FOLDER_NAME_DEBUG);
+        println!("The default location for StackMuncher reports in DEBUGGING MODE is `{}` sub-folder of the current working directory.", config::REPORT_FOLDER_NAME_DEBUG);
     } else if cfg!(target_os = "linux") {
         println!(
             "The default location for StackMuncher reports on Linux is `{}` folder.",
-            Config::REPORT_FOLDER_NAME_LINUX
+            config::REPORT_FOLDER_NAME_LINUX
         );
     } else if cfg!(target_os = "windows") {
         println!(
             "The default location for StackMuncher reports on Windows is `{}` folder.",
-            Config::REPORT_FOLDER_NAME_WIN
+            config::REPORT_FOLDER_NAME_WIN
         );
     }
     println!();
-    println!("    To specify a different location use `--report` param followed by a relative or absolute path to the reports folder.");
+    println!("    To specify a different location use `--reports` param followed by a relative or absolute path to the reports folder.");
+    println!("    The path will be saved and used for any subsequent runs.");
+    println!();
+    emit_support_msg();
+}
+
+/// Prints out info on where the config is located
+pub(crate) fn emit_config_dir_msg() {
+    println!("");
+    if cfg!(debug_assertions) {
+        println!("The default location for StackMuncher config in DEBUGGING MODE is `{}` sub-folder of the current working directory.", config::CONFIG_FOLDER_NAME_DEBUG);
+    } else if cfg!(target_os = "linux") {
+        println!(
+            "The default location for StackMuncher config on Linux is `{}` folder.",
+            config::CONFIG_FOLDER_NAME_LINUX
+        );
+    } else if cfg!(target_os = "windows") {
+        println!(
+            "The default location for StackMuncher config on Windows is `{}` folder.",
+            config::CONFIG_FOLDER_NAME_WIN
+        );
+    }
+    println!();
+    println!("    To specify a different location use `--config` param followed by a relative or absolute path to the config folder.");
     println!();
     emit_support_msg();
 }
 
 /// Prints out either Win or nix/Mac msg with --log info instructions on getting more info
 pub(crate) fn emit_detailed_output_msg() {
-    eprintln!("To see detailed output run `stackmuncher{} --log info` from the project root directory (where .git folder is).",EXE_SUFFIX);
+    eprintln!(
+        "To see detailed output run `stackmuncher --log info` from the project root directory (where .git folder is)."
+    );
 }
 
 /// Prints a message about invalid args and exits with code 1.
 pub(crate) fn emit_cli_err_msg() {
-    eprintln!(
-        "Cannot parse the parameters from the command line. Run `stackmuncher{} help` for usage details.",
-        EXE_SUFFIX
-    );
+    eprintln!("Cannot parse the parameters from the command line. Run `stackmuncher help` for usage details.");
 }
 
 /// Prints a message about an invalid private key.
@@ -130,9 +146,8 @@ pub(crate) fn emit_welcome_msg(config: AppConfig) {
         _ => format!(
             "
     An anonymous profile is created in the Directory the first time you run this app.
-    Run `stackmuncher{exe_suffix} github` to make your profile public with details from your GitHub account.
+    Run `stackmuncher github` to make your profile public with details from your GitHub account.
     ",
-            exe_suffix = EXE_SUFFIX
         ),
     };
 
@@ -140,8 +155,8 @@ pub(crate) fn emit_welcome_msg(config: AppConfig) {
 StackMuncher app analyzes your technology stack and showcases it in the Global Directory of Software Developers.
 
 USAGE:
-    stackmuncher{exe_suffix}                        analyzes the Git repo in the current folder and creates or updates your Directory Profile
-    stackmuncher{exe_suffix} [command] [OPTIONS]    modifies the default behavior of this app
+    stackmuncher                        analyzes the Git repo in the current folder and creates or updates your Directory Profile
+    stackmuncher [command] [OPTIONS]    modifies the default behavior of this app
     
 YOUR DIRECTORY PROFILE: 
 
@@ -154,7 +169,7 @@ OPTIONS:
     --emails \"me@example.com,me@google.com\"       a list of all your commit emails, only need to use it once, defaults to `git config user.email`
 
     --primary_email \"me@example.com\"              for Directory notifications only, defaults to the address in `git config user.email` setting
-    --gist                                         a URL of your GitHub login validation Gist, run `stackmuncher{exe_suffix} github` for details
+    --gist                                         a URL of your GitHub login validation Gist, run `stackmuncher github` for details
 
     --project \"path to project to be analyzed\"    can be relative or absolute, defaults to the current working directory
     --reports \"path to reports folder\"            can be relative or absolute, defaults to the application folder
@@ -165,10 +180,10 @@ OPTIONS:
 
 MORE INFO:
 
-    stackmuncher{exe_suffix} config                 prints the URL of your Directory Profile and other configuration details
-    stackmuncher{exe_suffix} help                   displays this message
+    stackmuncher config                 prints the URL of your Directory Profile and other configuration details
+    stackmuncher help                   displays this message
 
     https://stackmuncher.com/about      about the Directory
     https://github.com/stackmuncher     source code, issues and more
-    ",exe_suffix=EXE_SUFFIX, dir_profile_url=dir_profile_url, profile_msg=profile_msg);
+    ", dir_profile_url=dir_profile_url, profile_msg=profile_msg);
 }

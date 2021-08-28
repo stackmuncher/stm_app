@@ -3,7 +3,6 @@ use crate::help;
 use crate::signing::ReportSignature;
 use hyper::{Client, Request};
 use hyper_rustls::HttpsConnector;
-use path_absolutize::{self, Absolutize};
 use ring::signature::{self, Ed25519KeyPair, KeyPair};
 use serde::Deserialize;
 use serde_json::Value;
@@ -11,6 +10,11 @@ use tracing::{debug, error, info, warn};
 
 /// A "well-known" string used as the content to be signed for GH verification. The signature is uploaded to a Gist.
 const GH_VERIFICATION_STRING_TO_SIGN: &str = "stackmuncher";
+
+#[cfg(not(target_os = "windows"))]
+const PATH_SEPARATOR: &str = "/";
+#[cfg(target_os = "windows")]
+const PATH_SEPARATOR: &str = "\\";
 
 /// A stripped-down representation of GH GetGist API response: Owner details.
 #[derive(Deserialize)]
@@ -55,18 +59,15 @@ pub(crate) async fn view_config(config: AppConfig) {
     // prepare values needed in println!() macros to prevent line wrapping in the code
     let pub_key = ReportSignature::get_public_key(&config.user_key_pair);
     let reports = config
-        .lib_config
-        .report_dir
+        .reports_dir
         .as_ref()
-        .expect("config.report_dir is not set. It's a bug.")
-        .absolutize()
-        .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
+        .expect("config.reports_dir is not set. It's a bug.")
         .to_string_lossy()
         .to_string();
     let config_file = config
         .config_file_path
-        .absolutize()
-        .expect("Cannot convert config.config_file_path to absolute path. It's a bug.")
+        .parent()
+        .expect("config_file_path has no parent. It's a bug.")
         .to_string_lossy()
         .to_string();
     let exe_file = match std::env::current_exe() {
@@ -95,8 +96,8 @@ pub(crate) async fn view_config(config: AppConfig) {
     println!("    Public profile:    {}", public_profile);
     println!("    GitHub validation: {}", github_validation);
     println!();
-    println!("    Stack reports: {}", reports);
-    println!("    Config folder: {}", config_file);
+    println!("    Stack reports: {}{}", reports, PATH_SEPARATOR);
+    println!("    Config folder: {}{}", config_file, PATH_SEPARATOR);
     println!("    Executable:    {}", exe_file);
     println!();
 }

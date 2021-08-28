@@ -4,7 +4,9 @@ use regex::Regex;
 use ring::signature::Ed25519KeyPair;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use stackmuncher_lib::{config::Config, git::check_git_version, git::get_local_identities, utils::hash_str_sha1};
+use stackmuncher_lib::{
+    config::Config as LibConfig, git::check_git_version, git::get_local_identities, utils::hash_str_sha1,
+};
 use std::env::consts::EXE_SUFFIX;
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -15,11 +17,19 @@ use tracing::debug;
 const APP_CONFIG_FILE_NAME: &str = "config.json";
 
 /// The location of user config and keys for signing STM Inbox messages: `.stm_config`
-const CONFIG_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
+pub(crate) const CONFIG_FOLDER_NAME_DEBUG: &'static str = ".stm_config";
 /// The location of user config and keys for signing STM Inbox messages: `~/.stm_config`
-const CONFIG_FOLDER_NAME_LINUX: &'static str = ".stm_config";
+pub(crate) const CONFIG_FOLDER_NAME_LINUX: &'static str = "stackmuncher/config";
 /// This value is to be appended to the folder of %APPDATA%
-const CONFIG_FOLDER_NAME_WIN: &'static str = "stackmuncher\\.stm_config";
+pub(crate) const CONFIG_FOLDER_NAME_WIN: &'static str = "stackmuncher\\config";
+
+/// No need to prefix this for debugging/development set up - it's in the project root
+pub const REPORT_FOLDER_NAME_DEBUG: &'static str = ".reports";
+/// The default location of reports on linux. Chosen on the basis of https://www.pathname.com/fhs/
+/// > The /var/tmp directory is made available for programs that require temporary files or directories that are preserved between system reboots.
+/// > Therefore, data stored in/var/tmp is more persistent than data in /tmp.
+pub(crate) const REPORT_FOLDER_NAME_LINUX: &'static str = "stackmuncher/reports";
+pub(crate) const REPORT_FOLDER_NAME_WIN: &'static str = "stackmuncher\\reports";
 
 /// See HELP module for explanation of what different config flags and params do.
 pub(crate) struct AppConfig {
@@ -34,7 +44,7 @@ pub(crate) struct AppConfig {
     /// GitHub login of the user. It is set after validating the a/c ownership and then cached in config.json
     pub gh_login: Option<String>,
     /// Core config from stackmuncher_lib
-    pub lib_config: Config,
+    pub lib_config: LibConfig,
     /// Extracted from the key file stored next to the config file
     pub user_key_pair: Ed25519KeyPair,
     /// The full path to the config file.
@@ -42,17 +52,21 @@ pub(crate) struct AppConfig {
     /// A stash for validation Gist details to avoid going to GitHub twice
     /// Not cached and can only be present if --gist param was used to link to a new github a/c
     pub gh_validation_gist: Option<crate::cmd_config::Gist>,
+    // The location of `reports` folder. Projects will be placed in subfolders under that folder.
+    pub reports_dir: Option<PathBuf>,
 }
 
 /// A container for storing some config info locally as a file.
 #[derive(Serialize, Deserialize, PartialEq)]
 struct AppConfigCache {
-    // An empty string means NO CONTACT
+    /// An empty string means NO CONTACT
     pub primary_email: Option<String>,
     pub gh_validation_id: Option<String>,
-    // It is a derivitive value. Used for displaying a profile URL only.
+    /// It is a derivitive value. Used for displaying a profile URL only.
     pub gh_login: Option<String>,
     pub git_identities: Vec<String>,
+    /// The location of `reports` folder. Projects will be placed in subfolders under that folder.
+    pub reports_dir: Option<PathBuf>,
 }
 
 impl AppConfig {
@@ -96,19 +110,57 @@ impl AppConfig {
         }
 
         // get config defaults from the environment - may panic
-        let (mut config, config_dir_default) = new_config_with_defaults(current_dir).await;
+        let (mut lib_config, config_dir_default) = new_lib_config_with_defaults(current_dir).await;
 
         // if the logging level was provided in a CLI param then the logging was already initialized
         if let Some(log_level) = app_args.log {
             // assign the level, but not no re-initialize
             // it can be initialized only once in the app's lifetime
-            config.log_level = log_level;
+            lib_config.log_level = log_level;
         } else {
             // using the default logging level - initialize for the first time
             tracing_subscriber::fmt()
-                .with_max_level(config.log_level.clone())
+                .with_max_level(lib_config.log_level.clone())
                 .with_ansi(false)
                 .init();
+        };
+
+        // config folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
+        let config_dir = if let Some(conf_dir_from_args) = app_args.config {
+            validate_or_create_config_dir(&conf_dir_from_args)
+        } else {
+            validate_or_create_config_dir(&config_dir_default)
+        };
+
+        // this step must be done after the config folder was validated / created
+        // it will check the git identities cached in a local file and merge them with what is in git config at the moment
+        let config_file_path = config_dir.join(APP_CONFIG_FILE_NAME);
+        let app_config_cache = AppConfigCache::read_from_disk(&config_file_path);
+
+        // individual project reports are placed in subfolders under the root reports folder
+        // which is cached in config.json
+        let root_reports_dir = match app_args.reports {
+            // use a CLI param, if present
+            Some(v) => validate_or_create_root_report_dir(v),
+            // otherwise use the default value for the platform
+            None => match &app_config_cache.reports_dir {
+                Some(v) if v.is_absolute() => validate_or_create_root_report_dir(v.clone()),
+                Some(v) => {
+                    eprintln!("Invalid value for reports folder in {} file.", config_file_path.to_string_lossy());
+                    eprintln!();
+                    eprintln!("    Expected an absolute path to a folder. Found: {}", v.to_string_lossy());
+                    eprintln!("    Use `--reports path_to_reports_folder` CLI param to correct the value.");
+                    help::emit_report_dir_msg();
+                    exit(1);
+                }
+                None => validate_or_create_root_report_dir(
+                    lib_config
+                        .project_report_dir
+                        .as_ref()
+                        .expect("Cannot unwrap config.report_dir. It's a bug.")
+                        .clone(),
+                ),
+            },
         };
 
         // only validate project, rules and report if code analysis is to be done
@@ -118,52 +170,21 @@ impl AppConfig {
             // replace default config with user values from the CLI
 
             // check the project folder for existence and if it has .git in it
-            config.project_dir = match app_args.project {
-                Some(project) => {
-                    // expand ~/somepath on Linux to /home/user/...
-                    let project = tilde_expand(project);
-                    validate_project_dir(project)
-                }
-                None => {
-                    // validate the default value
-                    validate_project_dir(config.project_dir)
-                }
-            };
+            if let Some(project) = app_args.project {
+                lib_config.project_dir = validate_project_dir(project)
+            } else {
+                // validate the default value
+                lib_config.project_dir = validate_project_dir(lib_config.project_dir);
+            }
 
-            // reports folder may need to be created in the default or specified location
-            config.report_dir = match app_args.reports {
-                Some(v) => {
-                    // expand ~/somepath on Linux to /home/user/...
-                    let v = tilde_expand(v);
-
-                    Some(validate_or_create_report_dir(&config.project_dir, &v))
-                }
-                None => Some(validate_or_create_report_dir(
-                    &config.project_dir,
-                    config
-                        .report_dir
-                        .as_ref()
-                        .expect("Cannot unwrap config.report_dir. It's a bug."),
-                )),
-            };
-        }
-
-        // config folder is needed to read or generate a user key-pair and allow caching of some config values in the same folder
-        let config_dir = if let Some(conf_dir_from_args) = app_args.config {
-            // expand ~/somepath on Linux to /home/user/...
-            tilde_expand(conf_dir_from_args)
-        } else {
-            config_dir_default
+            // project reports folder may need to be created under the reports root folder
+            lib_config.project_report_dir =
+                Some(validate_or_create_project_report_dir(&lib_config.project_dir, &root_reports_dir));
         };
 
         // get existing or generate new key pair
         // it will create STMKEYa directory needed for storing the config cache
         let user_key_pair = crate::signing::get_key_pair(&config_dir);
-
-        // this step must be done after the config folder was validated / created
-        // it will check the git identities cached in a local file and merge them with what is in git config at the moment
-        let config_file_path = config_dir.join(APP_CONFIG_FILE_NAME);
-        let app_config_cache = AppConfigCache::read_from_disk(&config_file_path);
 
         // primary_email, public_name and public_contact may come from the cache, CLI or git IDs
         let primary_email = if let Some(prim_email_arg) = app_args.primary_email {
@@ -184,16 +205,16 @@ impl AppConfig {
         } else if app_config_cache.primary_email.is_some() {
             // setting the email from cache - no need to print anything for the user
             app_config_cache.primary_email.clone()
-        } else if !config.git_identities.is_empty() {
+        } else if !lib_config.git_identities.is_empty() {
             // setting the email from GIT IDs
             println!();
-            println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",config.git_identities[0]);
+            println!("{} is your default Git commit email and will be used for notifications about your Directory Profile views and employer interest.",lib_config.git_identities[0]);
             println!(
                 "    Run `stackmuncher{} --primary_email me@example.com` to set your preferred contact email. It will not be published or shared with anyone.",
                 EXE_SUFFIX
             );
             println!();
-            Some(config.git_identities[0].clone())
+            Some(lib_config.git_identities[0].clone())
         } else {
             println!("Missing preferred contact email. Your profile will not be updated. You can still generate and view your stack reports locally.");
             println!();
@@ -206,8 +227,11 @@ impl AppConfig {
         };
 
         // print a message about multiple git IDs on the first run
-        if config.git_identities.len() > 0 && app_args.emails.is_none() && app_config_cache.git_identities.is_empty() {
-            println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",config.git_identities[0]);
+        if lib_config.git_identities.len() > 0
+            && app_args.emails.is_none()
+            && app_config_cache.git_identities.is_empty()
+        {
+            println!("Only commits from {} will be analyzed. Did you use any other email addresses for Git commits in the past?",lib_config.git_identities[0]);
             println!("    1. Run `git shortlog -s -e --all` to check if you made commits under other email addresses.");
             println!("    2. Run `stackmuncher{} --emails \"me@example.com, old@example.com\"` once to add more of your emails for this and future runs.", EXE_SUFFIX);
             println!();
@@ -216,15 +240,17 @@ impl AppConfig {
         // merge all known git identities in a single unique list (git config + --emails + cached config)
         if let Some(git_ids) = app_args.emails {
             debug!("Adding {} git IDs from CLI", git_ids.len());
-            config.git_identities.extend(git_ids);
+            lib_config.git_identities.extend(git_ids);
         }
-        config.git_identities.extend(app_config_cache.git_identities.clone());
-        config.git_identities.sort();
-        config.git_identities.dedup();
-        debug!("Valid Git IDs: {}", config.git_identities.len());
+        lib_config
+            .git_identities
+            .extend(app_config_cache.git_identities.clone());
+        lib_config.git_identities.sort();
+        lib_config.git_identities.dedup();
+        debug!("Valid Git IDs: {}", lib_config.git_identities.len());
 
         // warn the user if there are no identities to work with
-        if config.git_identities.is_empty() {
+        if lib_config.git_identities.is_empty() {
             println!("Cannot identify which commits are yours without knowing your email address.");
             println!();
             println!("    1. Add your email with `git configure --global user.email me@example.com` to identify your future commits.");
@@ -253,11 +279,12 @@ impl AppConfig {
             dryrun: app_args.dryrun,
             primary_email,
             gh_validation_id,
-            lib_config: config,
+            lib_config,
             user_key_pair,
             config_file_path,
             gh_validation_gist,
             gh_login,
+            reports_dir: Some(root_reports_dir),
         };
 
         app_config_cache.save(&app_config);
@@ -267,7 +294,7 @@ impl AppConfig {
 }
 
 /// Generate a new Config struct with the default values from the environment. May panic if the environment is not accessible.
-pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, PathBuf) {
+pub(crate) async fn new_lib_config_with_defaults(current_dir: PathBuf) -> (LibConfig, PathBuf) {
     // check if the app was compiled for release, but is still sitting in target/release/ folder
     let exec_dir = match std::env::current_exe() {
         Err(e) => {
@@ -286,7 +313,7 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
 
     // use the current working dir if in debug mode
     // otherwise default to a platform-specific location
-    // this can be overridden by `--report` and `--config` CLI param
+    // this can be overridden by `--reports` and `--config` CLI param
     let (report_dir, config_dir, log_level) = if is_local_release {
         // this branch activates when the app is called directly from `stm_app/target/release` folder, but all the config files are 2 levels up
         // go 2 steps up in the hierarchy to get to the root of stm_app project
@@ -294,15 +321,19 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         exec_dir.pop();
         exec_dir.pop();
         (
-            exec_dir.join(Config::REPORT_FOLDER_NAME_DEBUG),
+            exec_dir.join(REPORT_FOLDER_NAME_DEBUG),
             exec_dir.join(CONFIG_FOLDER_NAME_DEBUG),
             tracing::Level::ERROR,
         )
     } else if cfg!(debug_assertions) {
         // this branch activates when run as `cargo run`
+        // go 2 steps up in the hierarchy to get to the root of stm_app project
+        let mut exec_dir = exec_dir;
+        exec_dir.pop();
+        exec_dir.pop();
         (
-            Path::new(Config::REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
-            Path::new(CONFIG_FOLDER_NAME_DEBUG).to_path_buf(),
+            exec_dir.join(REPORT_FOLDER_NAME_DEBUG).to_path_buf(),
+            exec_dir.join(CONFIG_FOLDER_NAME_DEBUG).to_path_buf(),
             tracing::Level::INFO,
         )
     } else if cfg!(target_os = "linux") {
@@ -310,16 +341,16 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
             PathBuf::from_str(&std::env::var("HOME").expect("Cannot retrieve $HOME env var to store config in ~"))
                 .expect("Invalid path in $HOME var");
         (
-            Path::new(Config::REPORT_FOLDER_NAME_LINUX).to_path_buf(),
+            home_dir.join(REPORT_FOLDER_NAME_LINUX).to_path_buf(),
             home_dir.join(CONFIG_FOLDER_NAME_LINUX),
             tracing::Level::ERROR,
         )
     } else if cfg!(target_os = "windows") {
         // apps should store their data in the user profile and the exact location is obtained via an env var
-        let local_appdata_dir = std::env::var("LOCALAPPDATA").expect("%LOCALAPPDATA% env variable not found");
+        let local_appdata_dir = std::env::var("HOMEPATH").expect("%HOMEPATH% env variable not found");
         let local_appdata_dir = Path::new(&local_appdata_dir);
         (
-            local_appdata_dir.join(Config::REPORT_FOLDER_NAME_WIN),
+            local_appdata_dir.join(REPORT_FOLDER_NAME_WIN),
             local_appdata_dir.join(CONFIG_FOLDER_NAME_WIN),
             tracing::Level::ERROR,
         )
@@ -333,9 +364,9 @@ pub(crate) async fn new_config_with_defaults(current_dir: PathBuf) -> (Config, P
         Err(_) => Vec::new(),
     };
 
-    let config = Config {
+    let config = LibConfig {
         log_level,
-        report_dir: Some(report_dir),
+        project_report_dir: Some(report_dir),
         project_dir: current_dir,
         user_name: String::new(),
         repo_name: String::new(),
@@ -372,6 +403,7 @@ fn trim_canonical_project_name(name: String) -> String {
 }
 
 /// Returns a validated config.project_dir or exits with an error message
+/// The output path is absolute.
 fn validate_project_dir(project: PathBuf) -> PathBuf {
     // the project dir at this point is either a tested param from the CLI or the current dir
     // a full-trust app is guaranteed access to the current dir
@@ -397,8 +429,9 @@ fn validate_project_dir(project: PathBuf) -> PathBuf {
         exit(1);
     } else if !git_path.is_dir() {
         // there is no sign of git here
-        eprintln!("STACKMUNCHER CONFIG ERROR: No Git repository found in {}", project.to_string_lossy());
-        eprintln!("    Try running the app from the root of a project with a .git subfolder.");
+        eprintln!("STACKMUNCHER ERROR: No Git repository found in {}", project.to_string_lossy());
+        eprintln!("    * either run the app from the root of a project with a Git repository");
+        eprintln!("    * or add `--project path_to_project` param to run from anywhere else");
         help::emit_usage_msg();
         exit(1);
     }
@@ -406,9 +439,96 @@ fn validate_project_dir(project: PathBuf) -> PathBuf {
     project
 }
 
+/// Validates the value for the config dir, creates the directory if needed and returns its absolute path.
+/// Prints error messages and exits on error.
+fn validate_or_create_config_dir(config_dir: &PathBuf) -> PathBuf {
+    // make it absolute
+    let config_dir = match config_dir.absolutize() {
+        Ok(v) => v.to_path_buf(),
+        Err(e) => {
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. {} seems to be invalid ({}). Try using an absolute path.",
+                config_dir.to_string_lossy(),
+                e
+            );
+            help::emit_config_dir_msg();
+            exit(1);
+        }
+    };
+
+    // check if the folder exists or create it if possible
+    if !config_dir.is_dir() {
+        if config_dir.exists() {
+            // the path exists as something else
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. The path to config directory exists, but it is not a directory: {}",
+                config_dir.to_string_lossy()
+            );
+            help::emit_config_dir_msg();
+            exit(1);
+        }
+        // create it
+        if let Err(e) = std::fs::create_dir_all(config_dir.clone()) {
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. Cannot create a config directory at {} due to {}",
+                config_dir.to_string_lossy(),
+                e
+            );
+            help::emit_config_dir_msg();
+            exit(1);
+        };
+    }
+
+    config_dir
+}
+
+/// Validates the value for the reports dir, creates the directory if needed and returns its absolute path.
+/// Prints error messages and exits on error.
+fn validate_or_create_root_report_dir(report_root_dir: PathBuf) -> PathBuf {
+    // make it absolute
+    let report_root_dir = match report_root_dir.absolutize() {
+        Ok(v) => v.to_path_buf(),
+        Err(e) => {
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. {} seems to be invalid ({}). Try using an absolute path.",
+                report_root_dir.to_string_lossy(),
+                e
+            );
+            help::emit_report_dir_msg();
+            exit(1);
+        }
+    };
+
+    // check if the project report folder exists or create it if possible
+    if !report_root_dir.is_dir() {
+        if report_root_dir.exists() {
+            // the path exists as something else
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. The path to report directory exists, but it is not a directory: {}",
+                report_root_dir.to_string_lossy()
+            );
+            help::emit_report_dir_msg();
+            exit(1);
+        }
+        // create it
+        if let Err(e) = std::fs::create_dir_all(report_root_dir.clone()) {
+            eprintln!(
+                "STACKMUNCHER CONFIG ERROR. Cannot create a directory for reports at {} due to {}",
+                report_root_dir.to_string_lossy(),
+                e
+            );
+            help::emit_report_dir_msg();
+            exit(1);
+        };
+    }
+
+    // save the project report path in config as String
+    report_root_dir
+}
+
 /// Validates the value for the reports dir, adds the project component to it and creates the directory if needed.
 /// Prints error messages and exits on error.
-fn validate_or_create_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf {
+fn validate_or_create_project_report_dir(project: &PathBuf, report_root_dir: &PathBuf) -> PathBuf {
     // individual project reports are grouped in their own folders - build that path here
     // this can be relative or absolute, which should be converted into absolute in a canonical form as a single folder name
     // e.g. /var/tmp/stackmuncher/reports/home_ubuntu_projects_some_project_name_1_6bdf08b3 were the last part is a canonical project name built
@@ -439,7 +559,7 @@ fn validate_or_create_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf
     let canonical_project_name = trim_canonical_project_name(canonical_project_name);
 
     // append the project report subfolder name to the reports root folder
-    let report_dir = report.join(canonical_project_name);
+    let report_dir = report_root_dir.join(canonical_project_name);
 
     // check if the project report folder exists or create it if possible
     if !report_dir.is_dir() {
@@ -449,6 +569,8 @@ fn validate_or_create_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf
                 "STACKMUNCHER CONFIG ERROR. The path to report directory exists, but it is not a directory: {}",
                 report_dir.to_string_lossy()
             );
+            help::emit_report_dir_msg();
+            exit(1);
         }
         // create it
         if let Err(e) = std::fs::create_dir_all(report_dir.clone()) {
@@ -457,6 +579,8 @@ fn validate_or_create_report_dir(project: &PathBuf, report: &PathBuf) -> PathBuf
                 report_dir.to_string_lossy(),
                 e
             );
+            help::emit_report_dir_msg();
+            exit(1);
         };
     }
 
@@ -473,6 +597,7 @@ impl AppConfigCache {
             gh_validation_id: None,
             gh_login: None,
             git_identities: Vec::new(),
+            reports_dir: None,
         };
 
         // check if the file exists
@@ -486,7 +611,7 @@ impl AppConfigCache {
             Err(e) => {
                 eprintln!(
                 "STACKMUNCHER ERROR: failed to read a cached config file from {}.\n\n    Reason: {}\n\n    Will proceed anyway.",
-                config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                config_file_path.to_string_lossy(),
                 e
             );
                 return app_config_cache;
@@ -500,7 +625,7 @@ impl AppConfigCache {
             Err(e) => {
                 eprintln!(
                 "STACKMUNCHER ERROR: failed to de-serialize a cached config file from {}.\n\n    Reason: {}\n\n    Did you edit the file manually? It will be overwritten with default values.",
-                config_file_path.absolutize().unwrap_or_default().to_string_lossy(),
+                config_file_path.to_string_lossy(),
                 e
             );
                 // return the blank version
@@ -508,10 +633,7 @@ impl AppConfigCache {
             }
         };
 
-        debug!(
-            "Config cache loaded: {}",
-            config_file_path.absolutize().unwrap_or_default().to_string_lossy()
-        );
+        debug!("Config cache loaded: {}", config_file_path.to_string_lossy());
 
         // returns the version with cached contents
         app_config_cache
@@ -526,6 +648,7 @@ impl AppConfigCache {
             gh_validation_id: app_config.gh_validation_id.clone(),
             git_identities: app_config.lib_config.git_identities.clone(),
             gh_login: app_config.gh_login.clone(),
+            reports_dir: app_config.reports_dir.clone(),
         };
 
         // proceed only if there were any changes to the config or if the config file doesn't exist to create a stub the user can edit
@@ -540,22 +663,11 @@ impl AppConfigCache {
                 if let Err(e) = std::fs::write(app_config.config_file_path.clone(), app_config_cache) {
                     eprintln!(
                         "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug.",
-                        app_config
-                            .config_file_path
-                            .absolutize()
-                            .unwrap_or_default()
-                            .to_string_lossy(),
+                        app_config.config_file_path.to_string_lossy(),
                         e
                     );
                 } else {
-                    debug!(
-                        "Config cache saved in {}",
-                        app_config
-                            .config_file_path
-                            .absolutize()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                    );
+                    debug!("Config cache saved in {}", app_config.config_file_path.to_string_lossy());
                 }
             }
             // serialization shouldn't fail
@@ -563,64 +675,10 @@ impl AppConfigCache {
                 // nothing the user can do about it and it's not fatal, so inform and carry on
                 eprintln!(
                     "STACKMUNCHER ERROR: failed to save config cache in {}.\n\n    Reason: {}\n\n    It's a bug.",
-                    app_config
-                        .config_file_path
-                        .absolutize()
-                        .unwrap_or_default()
-                        .to_string_lossy(),
+                    app_config.config_file_path.to_string_lossy(),
                     e
                 );
             }
         }
     }
-}
-
-/// Replaces `~` in Linux paths with the full path to the home directory.
-/// E.g. `~/rust/stm_app` -> `/home/ubuntu/rust/stm_app`
-fn tilde_expand(path: PathBuf) -> PathBuf {
-    // check if there is a ~ at all
-    if !path.starts_with("~") {
-        return path;
-    }
-
-    // is there a home directory?
-    let home_dir = match std::env::var("HOME") {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("STACKMUNCHER CONFIG ERROR: Cannot get the name of HOME directory due to {}", e);
-            eprintln!();
-            eprintln!("     Try replacing ~ with an absolute path.");
-            eprintln!();
-            help::emit_usage_msg();
-            exit(1);
-        }
-    };
-
-    debug!("Home dir: {}", home_dir);
-
-    let home_dir = match PathBuf::from_str(&home_dir) {
-        Err(_) => {
-            eprintln!("STACKMUNCHER CONFIG ERROR: $HOME has invalid home directory path: {}", home_dir);
-            eprintln!();
-            eprintln!("     Try replacing ~ with an absolute path.");
-            eprintln!();
-            help::emit_usage_msg();
-            exit(1);
-        }
-        Ok(v) => {
-            if path.starts_with("~/") {
-                v.join(&path.to_string_lossy()[2..])
-            } else {
-                eprintln!("STACKMUNCHER CONFIG ERROR: cannot expand ~ shortcut");
-                eprintln!();
-                eprintln!("     Try replacing ~ with an absolute path.");
-                eprintln!();
-                help::emit_usage_msg();
-                exit(1);
-            }
-        }
-    };
-
-    debug!("Expanded {} -> {}", path.to_string_lossy(), home_dir.to_string_lossy());
-    home_dir
 }

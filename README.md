@@ -180,7 +180,7 @@ Example:
 #### Debug settings
 
 * `--log error|warn|info|debug|trace`: the log is written to _stdout_. Defaults to `error` for least verbose output. Redirect the output to a file or _null device_ to completely silence it. E.g. `stackmuncher --log debug >> ~/stm_trace.log`
-* `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to a platform-specific user-data location.
+* `--reports "path to reports folder"`: a path to an alternative location for saving stack reports. The path can be relative or absolute. Defaults to a platform-specific user-data location. Set once.
 * `--config "path to config folder"`: a path to an alternative location of the config folder. The path can be relative or absolute. Defaults to a platform-specific user-data location.
 
 #### Additional info

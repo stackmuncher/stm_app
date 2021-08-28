@@ -3,8 +3,9 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub struct Config {
     /// All reports are placed in a centralized location, but this can be overridden by CLI params.
-    /// Set it to None if reports are not stored locally at all.
-    pub report_dir: Option<PathBuf>,
+    /// Set it to None if reports are not stored locally at all. Points at the folder for report files
+    /// for the current project.
+    pub project_report_dir: Option<PathBuf>,
     pub log_level: tracing::Level,
     /// Absolute or relative path to the project directory with the files to analyze.
     pub project_dir: PathBuf,
@@ -28,20 +29,12 @@ impl Config {
     pub const REPORT_FILE_EXTENSION: &'static str = ".json";
     pub const GIT_FOLDER_NAME: &'static str = ".git";
 
-    /// The default location of reports on linux. Chosen on the basis of https://www.pathname.com/fhs/
-    /// > The /var/tmp directory is made available for programs that require temporary files or directories that are preserved between system reboots.
-    /// > Therefore, data stored in/var/tmp is more persistent than data in /tmp.
-    pub const REPORT_FOLDER_NAME_LINUX: &'static str = "/var/tmp/stackmuncher/reports";
-    /// This value is to be appended to the value of %LOCALAPPDATA% environment variable
-    pub const REPORT_FOLDER_NAME_WIN: &'static str = "stackmuncher\\reports";
-    pub const REPORT_FOLDER_NAME_DEBUG: &'static str = "reports";
-
     /// Returns a minimal version of Self with no validation and default values.
     /// It compiles some regex and should be cached
     pub fn new(user_name: String, repo_name: String) -> Self {
         Config {
             log_level: tracing::Level::INFO,
-            report_dir: None,
+            project_report_dir: None,
             project_dir: PathBuf::default(),
             user_name,
             repo_name,
@@ -55,7 +48,7 @@ impl Config {
     pub fn new_with_defaults(log_level: &tracing::Level) -> Self {
         Config {
             log_level: log_level.clone(),
-            report_dir: None,
+            project_report_dir: None,
             project_dir: PathBuf::default(),
             user_name: String::new(),
             repo_name: String::new(),

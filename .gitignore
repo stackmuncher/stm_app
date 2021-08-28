@@ -1,8 +1,7 @@
 /target
-/reports
-.stm_config
+/.reports
+*stm_config*
 Cargo.lock
-stm-report.json
 trace*.txt
 *report*.json
 !samples/*report*.json

@@ -4,6 +4,7 @@ use regex::Regex;
 use std::env::consts::EXE_SUFFIX;
 use std::str::FromStr;
 use std::{path::PathBuf, process::exit};
+use tracing::debug;
 
 pub(crate) const GIST_ID_REGEX: &str = "[a-f0-9]{32}";
 
@@ -169,8 +170,9 @@ impl AppArgs {
                 exit(1);
             }
 
+            // try to covert to path and expand ~/somepath on Linux to /home/user/...
             match PathBuf::from_str(&project) {
-                Ok(v) => app_args.project = Some(v),
+                Ok(v) => app_args.project = Some(tilde_expand(v)),
                 Err(_) => {
                     eprintln!(
                         "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--project`. Omit that param to use the current folder or provide a valid path to where the project is located (absolute or relative).",
@@ -193,8 +195,10 @@ impl AppArgs {
                 exit(1);
             }
 
-            match PathBuf::from_str(&reports) {
-                Ok(v) => app_args.reports = Some(v),
+            // try to convert to path
+            let reports_dir = match PathBuf::from_str(&reports) {
+                // expand ~/somepath on Linux to /home/user/...
+                Ok(v) => tilde_expand(v),
                 Err(_) => {
                     eprintln!(
                         "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--reports`. Omit it to use the default location or provide a valid path to where report files should be placed (absolute or relative).",
@@ -203,7 +207,10 @@ impl AppArgs {
                     help::emit_report_dir_msg();
                     exit(1);
                 }
-            }
+            };
+
+            // this should be an OK value that will be validated further downstream
+            app_args.reports = Some(reports_dir);
         };
 
         // config folder
@@ -218,7 +225,7 @@ impl AppArgs {
             }
 
             match PathBuf::from_str(&config_folder) {
-                Ok(v) => app_args.config = Some(v),
+                Ok(v) => app_args.config = Some(tilde_expand(v)),
                 Err(_) => {
                     eprintln!(
                         "STACKMUNCHER CONFIG ERROR: `{}` is not a valid path for `--config`. Omit it to use the default location or provide a valid path to where your encryption keys and config details should be stored (absolute or relative)",
@@ -291,4 +298,54 @@ fn string_to_log_level(s: String) -> tracing::Level {
             exit(1);
         }
     }
+}
+
+/// Replaces `~` in Linux paths with the full path to the home directory.
+/// E.g. `~/rust/stm_app` -> `/home/ubuntu/rust/stm_app`
+fn tilde_expand(path: PathBuf) -> PathBuf {
+    // check if there is a ~ at all
+    if !path.starts_with("~") {
+        return path;
+    }
+
+    // is there a home directory?
+    let home_dir = match std::env::var("HOME") {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("STACKMUNCHER CONFIG ERROR: Cannot get the name of HOME directory due to {}", e);
+            eprintln!();
+            eprintln!("     Try replacing ~ with an absolute path.");
+            eprintln!();
+            help::emit_usage_msg();
+            exit(1);
+        }
+    };
+
+    debug!("Home dir: {}", home_dir);
+
+    let home_dir = match PathBuf::from_str(&home_dir) {
+        Err(_) => {
+            eprintln!("STACKMUNCHER CONFIG ERROR: $HOME has invalid home directory path: {}", home_dir);
+            eprintln!();
+            eprintln!("     Try replacing ~ with an absolute path.");
+            eprintln!();
+            help::emit_usage_msg();
+            exit(1);
+        }
+        Ok(v) => {
+            if path.starts_with("~/") {
+                v.join(&path.to_string_lossy()[2..])
+            } else {
+                eprintln!("STACKMUNCHER CONFIG ERROR: cannot expand ~ shortcut");
+                eprintln!();
+                eprintln!("     Try replacing ~ with an absolute path.");
+                eprintln!();
+                help::emit_usage_msg();
+                exit(1);
+            }
+        }
+    };
+
+    debug!("Expanded {} -> {}", path.to_string_lossy(), home_dir.to_string_lossy());
+    home_dir
 }

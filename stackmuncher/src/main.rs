@@ -1,5 +1,4 @@
 use crate::config::AppConfig;
-use path_absolutize::{self, Absolutize};
 use tracing::info;
 
 mod app_args;
@@ -28,11 +27,9 @@ async fn main() -> Result<(), ()> {
         "Report folder: {}",
         config
             .lib_config
-            .report_dir
+            .project_report_dir
             .as_ref()
             .expect("Cannot unwrap config.report_dir. It's a bug.")
-            .absolutize()
-            .expect("Cannot convert config.report_dir to absolute path. It's a bug.")
             .to_string_lossy()
     );
 
