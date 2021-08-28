@@ -20,6 +20,14 @@ All *.sh* and *.ps1* scripts should be run from the project root.
 
 The app should be deployed to `/usr/bin/stackmuncher` and the rules to `/usr/share/stackmuncher/stm_rules/`. The choice is based on [Linux Filesystem Hierarchy Standard](https://www.pathname.com/fhs/).
 
+### Pre-requisites
+1. Make sure musl build tools are installed
+   ```shell
+   sudo apt update
+   sudo apt install musl-tools
+   ```
+2. Manual build: [distro/ubuntu/build_release.sh](distro/ubuntu/build_release.sh)
+
 ### deb package
 
 deb builds rely on [cargo-deb](https://crates.io/crates/cargo-deb) crate. See config inside [stackmuncher/Cargo.toml](stackmuncher/Cargo.toml) `[package.metadata.deb]` table.
@@ -56,6 +64,18 @@ Installation process:
 * Windows Server 2019, older Win10 or a manual install: use the PS script. 
 
 Dev cert: http://distro.stackmuncher.com/msix/stm_dev.cer <-- FOR DEVELOPMENT ONLY
+
+### Manual binary build
+```powershell
+cargo build --release --target x86_64-pc-windows-msvc
+cp target\x86_64-pc-windows-msvc\release\stackmuncher.exe ..\stackmuncher-x86_64-pc-windows-msvc.exe
+signtool sign /f ..\stm.pfx /p $env:stmpfxpwd /t http://timestamp.digicert.com /fd SHA256 ..\stackmuncher-x86_64-pc-windows-msvc.exe
+cp ..\stackmuncher-x86_64-pc-windows-msvc.exe $env:windir\stackmuncher.exe
+# TEST-RUN IT BEFORE UPLOADING
+aws s3 cp ..\stackmuncher-x86_64-pc-windows-msvc.exe s3://$env:stmdistrobucket/
+```
+Copy the Win distributable from _distro_ bucket: `aws s3 cp s3://$STM_S3_BUCKET_DISTRO/stackmuncher-x86_64-pc-windows-msvc.exe .`
+  
 
 #### Dev and testing
 

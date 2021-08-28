@@ -13,3 +13,5 @@ trace*.txt
 *.pri
 *.zip
 distro/msix/manifest_*/stm_rules
+stackmuncher-x86_64-unknown-linux-gnu
+stackmuncher-x86_64-unknown-linux-musl

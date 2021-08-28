@@ -41,12 +41,12 @@ The app creates a sample stack report on the first run over a project without su
 _This is an alpha release and the only way to run this app is to compile it from the source in Rust._
 
 1. Download the latest binary from GitHub
-   * Linux (GNU): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.3/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/bin/stackmuncher`
-   * Linux (MUSL): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.3/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/bin/stackmuncher`
-   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.3/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
+   * Linux (GNU): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/bin/stackmuncher`
+   * Linux (MUSL): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/bin/stackmuncher`
+   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
 2. Change the current directory to one of your projects with a Git repository (has _.git_ subfolder) and run:
    * Linux: `stackmuncher`
-   * Windows PowerShell: `.\stackmuncher.exe`
+   * Windows PowerShell: `stackmuncher`
 
 The app will access the local Git repository for the current directory and create a stack report, but will NOT submit any data to the Directory to let you review the stack report first. It will start updating your profile on subsequent runs unless `--dryrun` flag is used.
 
