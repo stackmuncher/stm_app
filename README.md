@@ -56,6 +56,7 @@ I made commits to `~/rust/xml_to_serde` project recently and now want to test St
 ```shell
 ~$ cd rust/xml_to_serde
 ~/rust/xml_to_serde$ stackmuncher
+   Summary (LoC/libs):  Rust 1265/6, Markdown 187, Bash 16
    Stack reports:       /home/mx/stackmuncher/reports/home_ubuntu_rust_xml_to_serde_git_9a32520d
    Project added to:    https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 
@@ -155,8 +156,9 @@ Example:
 ```shell
 ~$ stackmuncher --project "~/rust/stm_server" --emails "max@onebro.me, rimutaka@onebro.me" --dryrun
 
-   Stack reports:         /home/mx/stackmuncher/reports/home_ubuntu_rust_stm_server_a8ff58d9
-   Directory Profile update skipped: `--dryrun` flag.
+   Summary (LoC/libs):  Rust 12656/26, Markdown 587, PowerShell 169
+   Stack reports:       /home/mx/stackmuncher/reports/home_ubuntu_rust_stm_server_a8ff58d9
+   Profile update:      skipped with `--dryrun` flag
 ```
 
 #### Profile settings
@@ -226,7 +228,7 @@ Assuming that you have Git and a [Rust toolchain](https://www.rust-lang.org/tool
 ```bash
 git clone https://github.com/stackmuncher/stm_app.git
 cd stm_app
-cargo run -- --project "path_to_any_of_your_local_projects"
+cargo run -- --log error --project "path_to_any_of_your_local_projects"
 ```
 
 ## Bug reports and contributions

@@ -3,6 +3,7 @@ use crate::help;
 use crate::signing::ReportSignature;
 use crate::submission::submit_report;
 use futures::stream::{FuturesUnordered, StreamExt};
+use stackmuncher_lib::report_brief::TechOverview;
 use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
 use tracing::{debug, info, warn};
@@ -171,10 +172,12 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
                 // save the sanitized report
                 combined_report.save_as_local_file(sanitized_report_file_name, true);
 
+                print_combined_stats(&combined_report);
+
                 // check if the submission to the directory should go ahead
                 if config.dryrun {
                     // a dry-run was requested by the user
-                    println!("    Directory Profile update skipped: `--dryrun` flag.");
+                    println!("    Profile update:      skipped with `--dryrun` flag");
                 } else {
                     if first_run {
                         info!("No report submission on the first run");
@@ -198,8 +201,35 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     }
 
     // print the location of the reports
-    println!("    Stack reports:        {}", report_dir.to_string_lossy());
+    println!("    Stack reports:       {}", report_dir.to_string_lossy());
     info!("Repo processed in {}ms", instant.elapsed().as_millis());
 
     Ok(())
+}
+
+/// Prints a one-line summary of the report for the user to get an idea and not need to look up the report file
+/// E.g. `Summary (LoC/libs):  Rust 12656/26, Markdown 587, PowerShell 169`
+fn print_combined_stats(report: &Report) {
+    let report = report.get_overview();
+
+    // get a summary and sort the stack by LoC
+    let mut tech = report.tech.iter().collect::<Vec<&TechOverview>>();
+    tech.sort_unstable_by(|a, b| b.loc.cmp(&a.loc));
+
+    // prepare a single line of per-tech stats
+    let per_tech_stats = tech
+        .iter()
+        .map(|t| {
+            // only include libs count if there are any
+            let libs = if t.libs > 0 {
+                ["/", t.libs.to_string().as_str()].concat()
+            } else {
+                String::new()
+            };
+
+            [t.language.as_str(), " ", t.loc.to_string().as_str(), libs.as_str()].concat()
+        })
+        .collect::<Vec<String>>();
+    let per_tech_stats = per_tech_stats.as_slice().join(", ");
+    println!("    Summary (LoC/libs):  {}", per_tech_stats);
 }

@@ -135,7 +135,7 @@ impl super::tech::Tech {
 impl super::report::Report {
     /// Returns an abridged version of Self in the form of ProjectReportOverview.
     /// Calculation of `libs` is not very accurate. See comments inside the body.
-    pub(crate) fn get_overview(&self) -> ProjectReportOverview {
+    pub fn get_overview(&self) -> ProjectReportOverview {
         // collect all tech data in the overview form
         // there may be multiple records for the same tech, e.g. Rust/.rs and Rust/.toml, so they need to be added up
         let mut tech_overviews: HashMap<String, TechOverview> = HashMap::new();
