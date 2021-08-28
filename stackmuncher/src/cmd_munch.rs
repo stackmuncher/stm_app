@@ -3,6 +3,7 @@ use crate::help;
 use crate::signing::ReportSignature;
 use crate::submission::submit_report;
 use futures::stream::{FuturesUnordered, StreamExt};
+use stackmuncher_lib::contributor::Contributor;
 use stackmuncher_lib::report_brief::TechOverview;
 use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
@@ -128,7 +129,10 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
 
         // combine multiple contributor reports from different identities
         debug!("Combining {} contributor reports", contributor_reports.len());
-        if !contributor_reports.is_empty() {
+        if contributor_reports.is_empty() {
+            // there were no matching contributors
+            print_no_contributions_msg(&config.lib_config.git_identities, contributors);
+        } else {
             // seed the combined report from the 1st contributor report in the list of all contributor reports
             let (mut combined_report, contributor_git_id) = contributor_reports.pop().unwrap();
             combined_report.reset_combined_contributor_report(contributor_git_id, &list_of_commits, &project_report);
@@ -232,4 +236,39 @@ fn print_combined_stats(report: &Report) {
         .collect::<Vec<String>>();
     let per_tech_stats = per_tech_stats.as_slice().join(", ");
     println!("    Summary (LoC/libs):  {}", per_tech_stats);
+}
+
+/// Prints a list of contributors and git identities to help find user git identities
+fn print_no_contributions_msg(git_identities: &Vec<String>, contributors: &Vec<Contributor>) {
+    // is this repo empty?
+    if contributors.is_empty() {
+        println!("    This repository has no commits with identifiable committers.");
+        return;
+    }
+
+    match git_identities.len() {
+        0 => {
+            println!();
+            println!("    No commits were selected for analysis.");
+            println!("    Configure `user.email` Git setting or use `--email` CLI params to add committer emails.");
+            println!();
+        }
+        1 => {
+            println!();
+            println!(
+                "Found no commits from {}. Did you make commits with a different email?",
+                git_identities[0]
+            );
+            println!("    Run `git shortlog -s -e --all` to see all committer emails in this repo.");
+            println!("    Add more of your committer emails with `stackmuncher config --emails \"me1@gmail.com,me2@gmail.com\"");
+            println!();
+        }
+        _ => {
+            println!();
+            println!("    Found no commits from any of: {}.", git_identities.join(", "));
+            println!("    Run `git shortlog -s -e --all` to see all committer emails in this repo.");
+            println!("    Add more of your committer emails with `stackmuncher config --emails \"me1@gmail.com,me2@gmail.com\"");
+            println!();
+        }
+    }
 }
