@@ -56,8 +56,8 @@ I made commits to `~/rust/xml_to_serde` project recently and now want to test St
 ```shell
 ~$ cd rust/xml_to_serde
 ~/rust/xml_to_serde$ stackmuncher
-   Stack report:         /var/tmp/stackmuncher/reports/home_ubuntu_rust_xml_to_serde_git_9a32520d
-   Directory profile:    https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
+   Stack reports:       /home/mx/stackmuncher/reports/home_ubuntu_rust_xml_to_serde_git_9a32520d
+   Project added to:    https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
 
 ```
 
@@ -87,11 +87,12 @@ _mx_ and _rimutaka_ are the same person. Let's add both emails to StackMuncher c
     Commit emails: max@onebro.me, rimutaka@onebro.me
 
     Anonymous profile: https://stackmuncher.com/?dev=9PdHabyyhf4KhHAE1SqdpnbAZEXTHhpkermwfPQcLeFK
-    Public profile: not set
+    Public profile: disabled
     GitHub validation: not set
 
-    Local stack reports: /var/tmp/stackmuncher/reports/home_ubuntu_rust_stm_app_6213a4b2
-    Config file: /home/ubuntu/.stm_config/config.json
+    Stack reports: /home/mx/stackmuncher/reports/
+    Config folder: /home/mx/stackmuncher/config/
+    Executable:    /usr/bin/stackmuncher
 ```
 The app stored two emails from `--emails` param in its config file and printed its full config info (`config` command). From now on it will look for commits from _max@onebro.me_ and _rimutaka@onebro.me_.
 
@@ -142,7 +143,7 @@ The 2nd machine will be connected to the same Developer Profile as the first one
 
 Running `stackmuncher` without any additional params generates a report for the project in the current working directory and updates your Developer Profile.
 
-Some of the app's settings are cached in a local config file and only need to be set once. You can set, change or unset them via CLI params or by editing _.stm_config/config.json_ file directly.
+Some of the app's settings are cached in a local config file and only need to be set once. You can set, change or unset them via CLI params or by editing _config.json_ file directly.
 
 #### Processing settings
 
@@ -154,7 +155,7 @@ Example:
 ```shell
 ~$ stackmuncher --project "~/rust/stm_server" --emails "max@onebro.me, rimutaka@onebro.me" --dryrun
 
-   Stack report:         /var/tmp/stackmuncher/reports/home_ubuntu_rust_stm_server_a8ff58d9
+   Stack reports:         /home/mx/stackmuncher/reports/home_ubuntu_rust_stm_server_a8ff58d9
    Directory Profile update skipped: `--dryrun` flag.
 ```
 
@@ -173,8 +174,9 @@ Example:
     Public profile: https://stackmuncher.com/rimutaka
     GitHub validation: https://gist.github.com/rimutaka/fb8fc0f87ee78231f064131022c8154a
 
-    Local stack reports: /var/tmp/stackmuncher/reports
-    Config file: /home/ubuntu/.stm_config/config.json
+    Stack reports: /home/mx/stackmuncher/reports/
+    Config folder: /home/mx/stackmuncher/config/
+    Executable:    /usr/bin/stackmuncher
 ```
 
 #### Debug settings
