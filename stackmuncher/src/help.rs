@@ -96,8 +96,8 @@ pub(crate) fn emit_dryrun_msg(report_file_path: &str) {
         report_file_path
     );
     eprintln!();
-    eprintln!("    The app will start submitting stack reports for this project from the next run unless `--dryrun` flag is specified.");
-    eprintln!("    Run it once more if you want to submit the report now.");
+    eprintln!("    The app will add this project to your profile at the next run unless `--dryrun` flag is specified.");
+    eprintln!("    Run `stackmuncher` again to add it now.");
     eprintln!();
 }
 
