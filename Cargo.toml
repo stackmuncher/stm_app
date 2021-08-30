@@ -3,3 +3,7 @@ members = [
     "stackmuncher_lib",
     "stackmuncher"
 ]
+
+[profile.release]
+lto = true
+codegen-units = 1
