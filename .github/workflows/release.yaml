@@ -31,7 +31,7 @@ jobs:
       - name: Strip release binary (linux and macOS)
         if: matrix.job.os != 'windows-latest'
         run: |
-            strip "target/${{ matrix.job.target }}/release/xh"
+            strip "target/${{ matrix.job.target }}/release/stackmuncher"
 
       - name: Publish
         uses: softprops/action-gh-release@v1
