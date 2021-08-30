@@ -33,10 +33,19 @@ jobs:
         run: |
             strip "target/${{ matrix.job.target }}/release/stackmuncher"
 
+      - name: Package
+        shell: bash
+        run: |
+          if [ "${{ matrix.job.os }}" = "windows-latest" ]; then
+            cp "target/${{ matrix.job.target }}/release/stackmuncher.exe" stackmuncher-${{ matrix.job.target }}.exe
+          else
+            cp "target/${{ matrix.job.target }}/release/stackmuncher" stackmuncher-${{ matrix.job.target }}
+          fi
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-            files: 'stackmuncher*'
+            files: 'stackmuncher-*'
             draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
