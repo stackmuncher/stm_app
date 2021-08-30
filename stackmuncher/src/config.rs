@@ -416,18 +416,9 @@ fn validate_project_dir(project: PathBuf) -> PathBuf {
     }
 
     // check if there is .git subfolder in the project dir
-    let git_path = project.join(".git");
-    if git_path.is_file() {
-        // multi-repos place .git file in submodules pointing at the parent module
-        eprintln!(
-            "STACKMUNCHER CONFIG ERROR: {} is a sub-module in a multi-repo.",
-            project.to_string_lossy()
-        );
-        eprintln!("    Sorry, multi-repos are not supported yet. Try cloning this sub-module as a standalone repo.");
-        eprintln!("    See https://github.com/stackmuncher/stm_app/issues/31 for details");
-        help::emit_usage_msg();
-        exit(1);
-    } else if !git_path.is_dir() {
+    // it can also be `.git` text file that contains a pointer to the parent repo
+    // in a multi-repo set up
+    if !project.join(".git").exists() {
         // there is no sign of git here
         eprintln!("STACKMUNCHER ERROR: No Git repository found in {}", project.to_string_lossy());
         eprintln!("    * either run the app from the root of a project with a Git repository");
