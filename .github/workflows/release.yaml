@@ -1,0 +1,42 @@
+name: release
+
+on: workflow_dispatch
+
+jobs:
+
+  deploy:
+    name: Deploy
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      matrix:
+        job:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            use-cross: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.job.use-cross }}
+          command: build
+          args: --release --target ${{ matrix.job.target }}
+
+      - name: Strip release binary (linux and macOS)
+        if: matrix.job.os != 'windows-latest'
+        run: |
+            strip "target/${{ matrix.job.target }}/release/xh"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+            files: 'stackmuncher*'
+            draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
