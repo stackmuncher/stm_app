@@ -38,12 +38,11 @@ The app creates a sample stack report on the first run over a project without su
 
 ## Quick start
 
-_This is an alpha release and the only way to run this app is to compile it from the source in Rust._
-
 1. Download the latest binary from GitHub
-   * Linux (GNU): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/bin/stackmuncher`
-   * Linux (MUSL): `sudo curl -o /usr/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/bin/stackmuncher`
-   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.4/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
+   * Linux (GNU): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * Linux (MUSL): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * macOS: `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-apple-darwin && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
 2. Change the current directory to one of your projects with a Git repository (has _.git_ subfolder) and run:
    * Linux: `stackmuncher`
    * Windows PowerShell: `stackmuncher`
@@ -93,7 +92,7 @@ _mx_ and _rimutaka_ are the same person. Let's add both emails to StackMuncher c
 
     Stack reports: /home/mx/stackmuncher/reports/
     Config folder: /home/mx/stackmuncher/config/
-    Executable:    /usr/bin/stackmuncher
+    Executable:    /usr/local/bin/stackmuncher
 ```
 The app stored two emails from `--emails` param in its config file and printed its full config info (`config` command). From now on it will look for commits from _max@onebro.me_ and _rimutaka@onebro.me_.
 
@@ -178,7 +177,7 @@ Example:
 
     Stack reports: /home/mx/stackmuncher/reports/
     Config folder: /home/mx/stackmuncher/config/
-    Executable:    /usr/bin/stackmuncher
+    Executable:    /usr/local/bin/stackmuncher
 ```
 
 #### Debug settings
