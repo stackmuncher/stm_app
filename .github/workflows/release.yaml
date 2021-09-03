@@ -10,13 +10,13 @@ jobs:
     strategy:
       matrix:
         job:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            use-cross: true
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          # - os: ubuntu-latest
+          #   target: x86_64-unknown-linux-gnu
+          # - os: ubuntu-latest
+          #   target: x86_64-unknown-linux-musl
+          #   use-cross: true
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
     steps:
@@ -41,6 +41,14 @@ jobs:
           else
             cp "target/${{ matrix.job.target }}/release/stackmuncher" stackmuncher-${{ matrix.job.target }}
           fi
+      
+      - name: Sign
+        uses:  vespakoen/code-sign-action@v1
+        with:
+          certificate: '${{ secrets.WIN_CERT_B64 }}'
+          password: '${{ secrets.WIN_CERT_B64_P }}'
+          folder: '.'
+          recursive: false
 
       - name: Publish
         uses: softprops/action-gh-release@v1
