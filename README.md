@@ -102,14 +102,24 @@ Adding more of your projects to your Directory Profile builds a more complete pi
 
 1. Make sure `stackmuncher` executable is placed in a folder included in `PATH` environment variable or add its folder to `PATH`.
 2. Check if you have Git hooks already configured: `git config --get-all init.templatedir`
-   * _the query returned a value_ - edit your post-commit templates manually
-   * _the query returned nothing_ - add a [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
+   * _if the query returned a value_ - edit your post-commit templates manually
+   * _if the query returned nothing_ - add a [post-commit  Git hook](https://git-scm.com/docs/githooks#_post_commit):
+
+    #### Shell
     ```bash
     git config --global --add init.templatedir '~/.git-templates'
     mkdir -p ~/.git-templates/hooks
     echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> ~/.git-templates/hooks/post-commit
     chmod a+x ~/.git-templates/hooks/post-commit
     ```
+    #### PowerShell
+    ```bash
+    git config --global --add init.templatedir '~/.git-templates'
+    mkdir -p ~/.git-templates/hooks
+    echo '#!/bin/sh' >> ~/.git-templates/hooks/post-commit
+    echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> ~/.git-templates/hooks/post-commit
+    ```
+
 3. Run `git init` on your existing repos to add the hook from the template. 
     * Any new repos or clones will get the hook added by default.
     * Repos with an existing `hooks/post-commit` file can have the hook added with `echo 'stackmuncher --log info 2>&1 >> ~/.stm.log' >> .git/hooks/post-commit`. Run it from the root of the project folder.

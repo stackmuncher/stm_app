@@ -347,8 +347,12 @@ pub(crate) async fn new_lib_config_with_defaults(current_dir: PathBuf) -> (LibCo
         )
     } else if cfg!(target_os = "windows") {
         // apps should store their data in the user profile and the exact location is obtained via an env var
-        let local_appdata_dir = std::env::var("HOMEPATH").expect("%HOMEPATH% env variable not found");
-        let local_appdata_dir = Path::new(&local_appdata_dir);
+        // homedrive would be something like c: and homedir would be `\Users\admin`
+        // if homedrive is not used the current active drive is used
+        let home_drive = std::env::var("HOMEDRIVE").expect("%HOMEDRIVE% env variable not found");
+        let home_dir = std::env::var("HOMEPATH").expect("%HOMEPATH% env variable not found");
+        let home_dir = [home_drive, home_dir].concat();
+        let local_appdata_dir = Path::new(&home_dir);
         (
             local_appdata_dir.join(REPORT_FOLDER_NAME_WIN),
             local_appdata_dir.join(CONFIG_FOLDER_NAME_WIN),
