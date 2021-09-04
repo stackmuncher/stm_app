@@ -43,7 +43,7 @@ jobs:
           fi
       
       - name: Sign
-        uses:  stackmuncher/code-sign-action@main
+        uses:  stackmuncher/code-sign-action@master
         with:
           certificate: '${{ secrets.WIN_CERT_B64 }}'
           password: '${{ secrets.WIN_CERT_B64_P }}'
