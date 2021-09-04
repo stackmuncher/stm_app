@@ -113,7 +113,7 @@ Adding more of your projects to your Directory Profile builds a more complete pi
     chmod a+x ~/.git-templates/hooks/post-commit
     ```
     #### PowerShell
-    ```bash
+    ```powershell
     git config --global --add init.templatedir '~/.git-templates'
     mkdir -p ~/.git-templates/hooks
     echo '#!/bin/sh' >> ~/.git-templates/hooks/post-commit

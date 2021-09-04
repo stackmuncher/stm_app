@@ -43,12 +43,11 @@ jobs:
           fi
       
       - name: Sign
-        uses:  vespakoen/code-sign-action@36116b6c909e1f6decd8584a798e4feec15835fe
+        uses:  stackmuncher/code-sign-action
         with:
           certificate: '${{ secrets.WIN_CERT_B64 }}'
           password: '${{ secrets.WIN_CERT_B64_P }}'
           folder: '.'
-          recursive: false
 
       - name: Publish
         uses: softprops/action-gh-release@v1
