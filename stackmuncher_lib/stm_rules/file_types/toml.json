@@ -1,5 +1,5 @@
 {
-  "$schema": "https://gist.githubusercontent.com/rimutaka/e47dc710fa05367ad5d9a286a28a6f62/raw/2864315c6a537bc76db364ff72f5517e26933c1e/stm_file-type.json",
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/file-type.json",
   "line_endings": "unix",
   "matches": [
     {
