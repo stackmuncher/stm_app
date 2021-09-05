@@ -52,7 +52,11 @@ impl CodeRules {
         let mut code_rules = CodeRules {
             files_types: BTreeMap::new(),
             munchers: BTreeMap::new(),
-            file_ext_regex: Regex::new("\\.[a-zA-Z0-1_]+$").unwrap(),
+            // c:/dir/foo.bar -> bar
+            // c:/dir/.bar -> bar
+            // c:/dir/foo -> foo
+            // dir\foo -> foo
+            file_ext_regex: Regex::new(r#"[\.\\/][a-zA-Z0-1_]+$|^[a-zA-Z0-1_]+$"#).unwrap(),
             new_munchers: None,
         };
 
@@ -65,6 +69,7 @@ impl CodeRules {
                 .expect(format!("Invalid file_type contents: {}", file).as_str());
 
             if let Some(ft) = FileType::new(&file, contents) {
+                debug!("File type def found: {}", ft.file_ext);
                 code_rules.files_types.insert(ft.file_ext.clone(), ft);
             }
         }
@@ -74,10 +79,22 @@ impl CodeRules {
 
     /// Return the right muncher for the file extension extracted from the full path.
     pub fn get_muncher(&mut self, file_path: &String) -> Option<&Muncher> {
-        // try to get file extension
+        debug!("Getting a muncher for: {}", file_path);
+        // try to get file extension or the file name if it has no extension like Dockerfile
         if let Some(ext) = self.file_ext_regex.find(&file_path) {
+            // the file ext regex returns the ext with the separator, which is a ., but if the file has no extension it returns
+            // the file name with the leading separator, which can be / or \
+            // if the file has chars outside what the regex expects in a valid ext or file name it returns nothing
+            let ext = ext
+                .as_str()
+                .trim_start_matches(".")
+                .trim_start_matches("\\")
+                .trim_start_matches("/")
+                .to_lowercase();
+            debug!("Extracted file extension: {}", ext);
             // try to find a file_type match for the ext
-            if let Some(file_type) = self.files_types.get(ext.as_str()) {
+            if let Some(file_type) = self.files_types.get(&ext) {
+                debug!("Matching file-type: {}", file_type.file_ext);
                 // try to find a matching muncher
                 if let Some(muncher_name) = file_type.get_muncher_name(file_path) {
                     // load the muncher from its file on the first use
@@ -104,6 +121,8 @@ impl CodeRules {
 
                     return self.munchers.get(&muncher_name).unwrap().as_ref();
                 }
+            } else {
+                debug!("File-type is unknown");
             }
         }
 

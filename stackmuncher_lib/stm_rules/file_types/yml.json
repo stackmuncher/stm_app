@@ -1,0 +1,30 @@
+{
+  "$schema": "https://gist.githubusercontent.com/rimutaka/e47dc710fa05367ad5d9a286a28a6f62/raw/2864315c6a537bc76db364ff72f5517e26933c1e/stm_file-type.json",
+  "line_endings": "unix",
+  "matches": [
+    {
+      "muncher": "cicd.appveyor.yml",
+      "in_path": [
+        "appveyor\\.yml$"
+      ]
+    },
+    {
+      "muncher": "cicd.circleci.yml",
+      "in_path": [
+        "circle\\.yml$"
+      ]
+    },
+    {
+      "muncher": "cicd.codecov.yml",
+      "in_path": [
+        "codecov\\.yml$"
+      ]
+    },
+    {
+      "muncher": "cicd.travis.yml",
+      "in_path": [
+        "travis\\.yml$"
+      ]
+    }
+  ]
+}

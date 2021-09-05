@@ -1,12 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/muncher.json",
   "line_endings": "unix",
-  "language": "Python",
+  "language": "Go",
   "line_comments": [
-    "^\\s*#\\s*.{10,}"
+    "^[[:blank:]]*#.+"
   ],
-  "refs": [
-    "^\\s*import\\s+([A-Za-z0-9_\\.]+)",
-    "^\\s*from\\s+([A-Za-z0-9_\\.]+)\\s+import\\s+([A-Za-z0-9_\\.]+)"
+  "inline_comments": [
+    "[.[^#\\n\\s]]+[[:blank:]]+#.+"
   ]
 }

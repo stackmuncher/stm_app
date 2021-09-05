@@ -20,36 +20,37 @@
     "matches": {
       "type": "array",
       "description": "List of possible language matches for the file type. The conditions described inside this object must be met for the match to activate. The matches should be arranged in the order of specificity: the most generic first, the most specific last. The code will go with the very last match that met all its conditions.",
-      "items": [
-        {
-          "type": "object",
-          "properties": {
-            "muncher": {
-              "type": "string",
-              "description": "The ID of the analyzer (muncher) for this match. It becomes `id.json` file name."
-            },
-            "in_path": {
-              "type": "array",
-              "description": "Multiple Regex of the paths the file can be in. E.g. `Cargo\\.toml$` matches `Cargo.toml` files.",
-              "minItems": 1,
-              "uniqueItems": true
-            },
-            "found_with": {
-              "type": "array",
-              "minItems": 1,
-              "uniqueItems": true,
-              "description": "Multiple Regex of other files that should be present in the project. The files can be located at any level."
-            },
-            "contains": {
-              "type": "array",
-              "description": "Multiple Regex of the file contents. E.g. .json files with `$schema` prop are classed as json schemas.",
-              "minItems": 1,
-              "uniqueItems": true
+      "items": {
+        "type": "object",
+        "properties": {
+          "muncher": {
+            "type": "string",
+            "description": "The ID of the analyzer (muncher) for this match. It becomes `id.json` file name. If this property is missing the file is ignored."
+          },
+          "in_path": {
+            "type": "array",
+            "description": "Multiple Regex of the paths the file can be in. E.g. `Cargo\\.toml$` matches `Cargo.toml` files.",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
             }
           },
+          "found_with": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Multiple Regex of other files that should be present in the project. The files can be located at any level."
+          },
+          "contains": {
+            "type": "array",
+            "description": "Multiple Regex of the file contents. E.g. .json files with `$schema` prop are classed as json schemas.",
+            "minItems": 1,
+            "uniqueItems": true
+          },
           "additionalProperties": false
-        }
-      ],
+        },
+        "additionalProperties": false
+      },
       "additionalItems": false
     }
   },

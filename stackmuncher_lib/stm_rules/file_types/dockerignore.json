@@ -3,15 +3,9 @@
   "line_endings": "unix",
   "matches": [
     {
-      "muncher": "rust.cargo.toml",
+      "muncher": "docker",
       "in_path": [
-        "Cargo\\.toml$"
-      ]
-    },
-    {
-      "muncher": "go.gopkg.toml",
-      "in_path": [
-        "Gopkg\\.toml$"
+        "dockerignore$"
       ]
     }
   ]

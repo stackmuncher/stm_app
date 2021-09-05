@@ -44,9 +44,8 @@ impl FileType {
         };
 
         // set the file ext from the file name
-        // e.g. `cs.json` -> `.cs`
-        let file_ext = &file_name[..file_name.len() - 5];
-        file_def.file_ext = [".", file_ext].concat();
+        // e.g. `cs.json` -> `cs`
+        file_def.file_ext = file_name[..file_name.len() - 5].to_lowercase();
 
         // compile regex on matches (FileTypeMatch)
         if let Some(file_type_matches) = file_def.matches.as_mut() {
@@ -55,7 +54,7 @@ impl FileType {
                 let muncher_name = match file_type_match.muncher.as_ref() {
                     Some(v) => v,
                     None => {
-                        error!("Missing muncher name for {}", file_ext);
+                        error!("Missing muncher name for {}", file_def.file_ext);
                         return None;
                     }
                 };
