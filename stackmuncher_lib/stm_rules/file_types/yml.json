@@ -25,6 +25,12 @@
       "in_path": [
         "travis\\.yml$"
       ]
+    },
+    {
+      "muncher": "cicd.github.yml",
+      "in_path": [
+        "\\.github/workflows/.+\\.yml$"
+      ]
     }
   ]
 }
