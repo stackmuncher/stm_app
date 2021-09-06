@@ -1,1 +1,1 @@
-cargo build --release && sudo cp target/release/stackmuncher /usr/bin/ && sudo chmod 755 /usr/bin/stackmuncher
+cargo build --release && cargo strip && sudo cp target/release/stackmuncher /usr/local/bin/ && sudo chmod 755 /usr/local/bin/stackmuncher
