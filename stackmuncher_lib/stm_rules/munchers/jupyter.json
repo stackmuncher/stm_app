@@ -4,5 +4,9 @@
   "language": "Jupyter",
   "bracket_only": [
     "^[[:blank:]]*[{}\\[\\]\\(\\)][[:blank:];,)]*$"
+  ],
+  "refs": [
+    "^\\s*\"\\s*import\\s+([A-Za-z0-9_\\.]+)",
+    "^\\s*\"\\s*from\\s+([A-Za-z0-9_\\.]+)\\s+import\\s+([A-Za-z0-9_\\.]+)"
   ]
 }
