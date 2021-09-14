@@ -39,10 +39,10 @@ The app creates a sample stack report on the first run over a project without su
 ## Quick start
 
 1. Download the latest binary from GitHub
-   * Linux (GNU): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/local/bin/stackmuncher`
-   * Linux (MUSL): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/local/bin/stackmuncher`
-   * macOS: `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-apple-darwin && sudo chmod 755 /usr/local/bin/stackmuncher`
-   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.5/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
+   * Linux (GNU): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.6/stackmuncher-x86_64-unknown-linux-gnu && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * Linux (MUSL): `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.6/stackmuncher-x86_64-unknown-linux-musl && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * macOS: `sudo curl -o /usr/local/bin/stackmuncher -L https://github.com/stackmuncher/stm_app/releases/download/v0.1.6/stackmuncher-x86_64-apple-darwin && sudo chmod 755 /usr/local/bin/stackmuncher`
+   * Windows: `invoke-webrequest -uri https://github.com/stackmuncher/stm_app/releases/download/v0.1.6/stackmuncher-x86_64-pc-windows-msvc.exe -outfile $env:windir\stackmuncher.exe`
 2. Change the current directory to one of your projects with a Git repository (has _.git_ subfolder) and run:
    * Linux: `stackmuncher`
    * Windows PowerShell: `stackmuncher`
