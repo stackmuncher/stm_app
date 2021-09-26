@@ -1,6 +1,6 @@
 use regex::Regex;
 use serde::Deserialize;
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct FileTypeMatch {
@@ -109,9 +109,9 @@ impl FileType {
         }
 
         // otherwise return None
-        if best_match.is_none() {
-            warn!("No matching muncher found for {}.", file_name_with_path);
-        }
+        // if best_match.is_none() {
+        //     warn!("No matching muncher found for {}.", file_name_with_path);
+        // }
         best_match
     }
 }
