@@ -2,7 +2,7 @@ use super::kwc::{KeywordCounter, KeywordCounterSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tracing::{info, trace, warn};
+use tracing::{debug, trace, warn};
 
 /// # PRIVACY REMINDER
 /// Any additions to this struct should be considered for clean up before submission to stackmuncher.com
@@ -163,7 +163,7 @@ impl Tech {
                     }
 
                     // Python imports may start with . which needs to be removed
-                    let cap = cap.trim_matches('.').to_owned();
+                    let cap = cap.trim_matches('.').trim().to_owned();
 
                     // add the counts depending with different factory functions for different Tech fields
                     kw_counter.increment_counters(kw_counter_factory(cap, 1));
@@ -281,7 +281,7 @@ impl Tech {
                 // .clone() is necessary to remove the local kwc from the list later
                 // there should only be a small number of imports per project
                 local_imports.push(kwc.clone());
-                info!("Removing local import: {} / {}", kwc.k, full_file_name);
+                debug!("Removing local import: {} / {}", kwc.k, full_file_name);
                 break;
             }
         }
