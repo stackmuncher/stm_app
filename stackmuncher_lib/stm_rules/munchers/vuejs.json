@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "VueJS",
+  "bracket_only": [
+    "^\\s*[{}\\[\\]][\\s;,)]*$"
+  ],
+  "line_comments": [
+    "^\\s*//\\s*.{10,}"
+  ],
+  "inline_comments": [
+    "^[.[^/\n]]+\\s//\\s.{10,}"
+  ],
+  "block_comments_start": [
+    "(?i)^\\s*/\\*"
+  ],
+  "block_comments_end": [
+    "(?i)\\*/\\s*$"
+  ]
+}
