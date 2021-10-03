@@ -30,6 +30,9 @@ pub struct CodeRules {
     /// Contains names of newly added munchers to assist merging multiple instances
     /// of CodeRules for parallel processing.
     pub new_munchers: Option<HashSet<String>>,
+
+    /// Compiled regex for file names and paths that should be ignored regardless of any other rules
+    pub ignore_paths: Vec<Regex>,
 }
 
 impl CodeRules {
@@ -58,6 +61,7 @@ impl CodeRules {
             // dir\foo -> foo
             file_ext_regex: Regex::new(r#"[\.\\/][a-zA-Z0-1_]+$|^[a-zA-Z0-1_]+$"#).unwrap(),
             new_munchers: None,
+            ignore_paths: crate::ignore_paths::compile_ignore_paths(),
         };
 
         // load the contents of file_type definitions one by one

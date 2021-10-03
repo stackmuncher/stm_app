@@ -31,7 +31,7 @@ pub(crate) async fn run(config: AppConfig) -> Result<(), ()> {
     let cached_project_report = Report::from_disk(&project_report_filename);
 
     // get and retain a copy of the full git lot to re-use in multiple places
-    let git_log = git::get_log(&config.lib_config.project_dir, None).await?;
+    let git_log = git::get_log(&config.lib_config.project_dir, None, &code_rules.ignore_paths).await?;
 
     let project_report = match Report::process_project(
         &mut code_rules,

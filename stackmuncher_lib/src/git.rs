@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use tokio::process::Command;
@@ -209,7 +210,11 @@ pub(crate) async fn populate_blob_sha1(
 /// 100644 blob f288702d2fa16d3cdf0035b15a9fcbc552cd88e7    LICENSE
 /// 100644 blob 9da69050aa4d1f6488a258a221217a4dd9e73b71    assets/file-types/cs.json
 /// ```
-pub(crate) async fn get_all_tree_files(dir: &Path, commit_sha1: Option<String>) -> Result<HashSet<String>, ()> {
+pub(crate) async fn get_all_tree_files(
+    dir: &Path,
+    commit_sha1: Option<String>,
+    ignore_paths: &Vec<Regex>,
+) -> Result<HashSet<String>, ()> {
     // use HEAD by default
     let commit_sha1 = commit_sha1.unwrap_or("HEAD".to_owned());
 
@@ -228,9 +233,42 @@ pub(crate) async fn get_all_tree_files(dir: &Path, commit_sha1: Option<String>) 
             }
         })
         .collect::<HashSet<String>>();
-    info!("Objects in the GIT tree: {}", files.len());
+    let tree_all = files.len();
+
+    // remove ignored files
+    let files = files
+        .into_iter()
+        .filter_map(|file_path| {
+            if is_in_ignore_list(ignore_paths, &file_path) {
+                None
+            } else {
+                Some(file_path)
+            }
+        })
+        .collect::<HashSet<String>>();
+
+    info!(
+        "Objects in the GIT tree: {}, ignored: {}, processing: {}",
+        tree_all,
+        tree_all - files.len(),
+        files.len(),
+    );
 
     Ok(files)
+}
+
+/// Returns TRUE if the file matches any of the ignore regex rules from `ignore_paths` module.
+#[inline]
+fn is_in_ignore_list(ignore_paths: &Vec<Regex>, file_path: &str) -> bool {
+    // check if the path is in the ignore list
+    for ignore_regex in ignore_paths {
+        if ignore_regex.is_match(file_path) {
+            debug!("Path ignored: {}", file_path);
+            return true;
+        }
+    }
+
+    false
 }
 
 /// Get the contents of the Git blob as text.
@@ -240,9 +278,13 @@ pub(crate) async fn get_blob_contents(dir: &Path, blob_sha1: &String) -> Result<
     Ok(blob_contents)
 }
 
-/// Extracts and parses GIT log into who, what, when. No de-duping or optimisation is done. All log data is copied into the structs as-is.
+/// Extracts and parses GIT log into who, what, when. Removes ignored files. No de-duping or optimisation is done. All log data is copied into the structs as-is.
 /// Merge commits are excluded.
-pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>) -> Result<Vec<GitLogEntry>, ()> {
+pub async fn get_log(
+    repo_dir: &Path,
+    contributor_git_identity: Option<&String>,
+    ignore_paths: &Vec<Regex>,
+) -> Result<Vec<GitLogEntry>, ()> {
     debug!("Extracting git log");
 
     // prepare the command that may optionally include the author name to limit commits just to that contributor
@@ -285,7 +327,10 @@ pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>)
             // commit d5e742de653954bfae88f0e5f6c8f0a7a5f6c437
             // save the previous commit details and start a new one
             // the very first entry will be always blank, it is remove outside the loop
-            log_entries.push(current_log_entry);
+            if current_log_entry.files.len() > 0 {
+                // do not add a commit if a commit consists entirely of ignored files or has no files for another reason
+                log_entries.push(current_log_entry);
+            }
             current_log_entry = GitLogEntry::new();
             if line.len() > 8 {
                 current_log_entry.sha1 = line[7..].to_owned();
@@ -315,7 +360,7 @@ pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>)
             }
             // name/email split failed - add the entire line
             current_log_entry.author_name_email = (author.to_owned(), String::new());
-            error!("Split failed on {}", line);
+            warn!("Split failed on {}", line);
         } else if line.starts_with("Date: ") {
             // Date:   Tue Dec 22 17:43:07 2020 +0000
             if line.len() < 9 {
@@ -326,7 +371,7 @@ pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>)
             trace!("Date: {}", date);
             // go to the next line if there is no date (impossible?)
             if date.is_empty() {
-                error!("Encountered a commit with no date: {}", line);
+                warn!("Encountered a commit with no date: {}", line);
                 continue;
             }
 
@@ -351,17 +396,19 @@ pub async fn get_log(repo_dir: &Path, contributor_git_identity: Option<&String>)
             // the only remaining type of data should be the list of files
             // they are not tagged or indented - the entire line is the file name with the relative path
             // file names are displayed only with --name-only option
-            trace!("Added as a file");
-            current_log_entry.files.insert(line.into());
+            if !is_in_ignore_list(ignore_paths, line) {
+                trace!("Added as a file");
+                current_log_entry.files.insert(line.into());
+            } else {
+                trace!("Ignored");
+            }
         }
     }
 
     // the very last commit has to be pushed outside the loop
     log_entries.push(current_log_entry);
-    // the very first commit is always a blank record
-    log_entries.remove(0);
 
-    debug!("Found {} commits", log_entries.len());
+    debug!("Found {} commits of interest", log_entries.len());
     Ok(log_entries)
 }
 

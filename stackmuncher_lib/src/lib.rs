@@ -10,6 +10,7 @@ pub mod config;
 pub mod contributor;
 pub mod file_type;
 pub mod git;
+mod ignore_paths;
 pub mod kwc;
 pub mod muncher;
 pub mod processors;
@@ -36,10 +37,14 @@ impl Report {
     ) -> Result<Option<report::Report>, ()> {
         let report = report::Report::new();
 
-        let git_log = git_log.unwrap_or(git::get_log(project_dir, None).await?);
+        // get the full git log if none was supplied
+        let git_log = match git_log {
+            Some(v) => v,
+            None => git::get_log(project_dir, None, &code_rules.ignore_paths).await?,
+        };
 
         // get the list of files in the tree at HEAD
-        let all_head_files = git::get_all_tree_files(project_dir, None).await?;
+        let all_head_files = git::get_all_tree_files(project_dir, None, &code_rules.ignore_paths).await?;
         if all_head_files.len() > Report::MAX_FILES_PER_REPO {
             warn!("Repo ignored. Too many files: {}", all_head_files.len());
             return Err(());
@@ -90,12 +95,12 @@ impl Report {
             .collect::<ListOfBlobs>();
         debug!("Blobs that could not be copied from cache: {}", blobs_to_munch.len());
 
-        // remove blobs that have no munchers - there is no point even retrieving the contents
+        // remove blobs that have no munchers or should be ignored - there is no point even retrieving the contents
         let blobs_to_munch = blobs_to_munch
             .into_iter()
-            .filter_map(|(file_name, blob)| {
-                if code_rules.get_muncher(&file_name).is_some() {
-                    Some((file_name, blob))
+            .filter_map(|(file_path, blob)| {
+                if code_rules.get_muncher(&file_path).is_some() {
+                    Some((file_path, blob))
                 } else {
                     None
                 }
