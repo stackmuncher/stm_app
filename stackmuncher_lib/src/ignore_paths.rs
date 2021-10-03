@@ -16,7 +16,7 @@ fn test_compile_ignore_paths() {
 
 /// A list of path fragments, file names, file extensions as Regex.
 /// Files with the path matching any of regex from this list are ignored.
-const IGNORE_PATHS: [&str; 25] = [
+const IGNORE_PATHS: [&str; 39] = [
     // known framework paths
     r#"node_modules[/\\]"#,
     r#"angular[/\\]README\.md"#,
@@ -27,6 +27,22 @@ const IGNORE_PATHS: [&str; 25] = [
     r#"\.jpg$"#,
     r#"\.jpeg$"#,
     r#"\.gif$"#,
+    r#"\.svg$"#,
+    r#"\.bmp$"#,
+    r#"\.tif$"#,
+    r#"\.tiff$"#,
+    r#"\.eps$"#,
+    r#"\.webp$"#,
+    // audio / video
+    r#"\.mp4$"#,
+    r#"\.mp3$"#,
+    r#"\.mpeg$"#,
+    // fonts
+    r#"\.ttf$"#,
+    r#"\.otf$"#,
+    r#"\.eot$"#,
+    r#"\.woff$"#,
+    r#"\.woff2$"#,
     // documents
     r#"\.pdf$"#,
     r#"\.doc$"#,
