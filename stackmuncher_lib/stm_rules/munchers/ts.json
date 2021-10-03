@@ -16,5 +16,8 @@
   ],
   "block_comments_end": [
     "(?i)\\*/\\s*$"
+  ],
+  "refs": [
+    "^[[:blank:]]*import[[:blank:]]+.*[[:blank:]]*['\"]([@A-Za-z0-9_][@A-Za-z0-9_\\-\\.]+).*['\"][[:blank:]]*;"
   ]
 }

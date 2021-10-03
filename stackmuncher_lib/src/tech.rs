@@ -291,6 +291,23 @@ impl Tech {
             tech.refs.remove(&local_import);
         }
 
+        // some TypeScript refs start with @, e.g. @angular/core
+        // it's a valid name, but @ will get in the way of users searching for "angular"
+        tech.refs = tech
+            .refs
+            .into_iter()
+            .map(|kwc| {
+                if kwc.k.starts_with("@") {
+                    KeywordCounter {
+                        k: kwc.k.trim_start_matches("@").to_string(),
+                        ..kwc
+                    }
+                } else {
+                    kwc
+                }
+            })
+            .collect::<HashSet<KeywordCounter>>();
+
         tech
     }
 }

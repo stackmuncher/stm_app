@@ -94,8 +94,8 @@ impl KeywordCounter {
 
         // loop through the characters to find the first boundary
         for (i, c) in kwc.k.as_bytes().iter().enumerate() {
-            // keep iterating until the first separator (not -._"')
-            if c.is_ascii_alphanumeric() || *c == 45u8 || *c == 46u8 || *c == 95u8 {
+            // keep iterating until the first separator (not -._"'@)
+            if c.is_ascii_alphanumeric() || *c == 45u8 || *c == 46u8 || *c == 95u8 || *c == 64u8 {
                 continue;
             }
 
