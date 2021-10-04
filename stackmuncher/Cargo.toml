@@ -1,6 +1,6 @@
 [package]
 name = "stackmuncher"
-version = "0.1.3"
+version = "0.1.7"
 authors = ["rimutaka <max@onebro.me>"]
 edition = "2018"
 homepage = "https://stackmuncher.com"
