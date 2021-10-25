@@ -20,6 +20,9 @@ pub mod report_brief;
 pub mod tech;
 pub mod utils;
 
+/// All project reports created prior to this date must be reprocessed
+const REPORT_FORMAT_VERSION: &str = "2021-10-25T02:50:50+00:00";
+
 impl Report {
     /// Processes the entire repo with or without a previous report. If the report is present and the munchers
     /// have not changed the relevant sections are copied from the old report. Use this function when:
@@ -427,6 +430,21 @@ impl Report {
             return true;
         }
         let old_report = old_report.as_ref().unwrap();
+
+        // check if the report is in an older format and has to be reprocessed regardless
+        if let Ok(ts_cached) = chrono::DateTime::parse_from_rfc3339(&old_report.timestamp) {
+            if ts_cached.with_timezone(&chrono::Utc)
+                < chrono::DateTime::parse_from_rfc3339(REPORT_FORMAT_VERSION)
+                    .expect("Invalid REPORT_FORMAT_VERSION value.")
+                    .with_timezone(&chrono::Utc)
+            {
+                warn!("Full reprocessing due to new report format: {}", REPORT_FORMAT_VERSION);
+                return true;
+            }
+        } else {
+            warn!("Cached report ignored due to invalid timestamp: {}", old_report.timestamp);
+            return true;
+        };
 
         let report_commit_sha1 = self.report_commit_sha1.clone().unwrap_or_default();
         let old_report_commit_sha1 = old_report.report_commit_sha1.clone().unwrap_or_default();
