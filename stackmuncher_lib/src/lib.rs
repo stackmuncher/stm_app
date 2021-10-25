@@ -1,3 +1,4 @@
+use chrono::TimeZone;
 use contributor::Contributor;
 use git::{log_entries_to_list_of_blobs, GitBlob, GitLogEntry, ListOfBlobs};
 use report::Report;
@@ -359,12 +360,50 @@ impl Report {
             .process_project_files(code_rules, project_dir, &blobs_to_munch, all_tree_files)
             .await?;
 
+        // copy all contributor commits from the list of project commits by commit idx
+        if let Some(project_commits) = &project_report.recent_project_commits {
+            let contributor_commits = contributor
+                .commits
+                .iter()
+                .filter_map(|idx| {
+                    if project_commits.len() > *idx {
+                        Some(project_commits[*idx].clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<String>>();
+
+            // add meta for the first commit
+            if let Some(first_commit) = contributor_commits.iter().last() {
+                if let Some((sha1, ts)) = first_commit.split_once("_") {
+                    if let Ok(ts_num) = i64::from_str_radix(ts, 10) {
+                        let ts_dt = chrono::Utc.timestamp(ts_num, 0);
+
+                        report.first_contributor_commit_date_epoch = Some(ts_num);
+                        report.first_contributor_commit_date_iso = Some(ts_dt.to_rfc3339());
+                        report.first_contributor_commit_sha1 = Some(sha1.to_string());
+                    }
+                }
+            }
+
+            report.recent_project_commits = Some(contributor_commits);
+        } else {
+            warn!("No project commits to copy to contributor");
+        }
+
+        // check if the contributor commits meta was set correctly
+        if report.first_contributor_commit_sha1.is_none() {
+            warn!("Missing first contributor commit info");
+        }
+
         // copy some meta from the project report
         report.report_commit_sha1 = project_report.report_commit_sha1.clone();
         report.log_hash = project_report.log_hash.clone();
         report.is_single_commit = project_report.is_single_commit;
         report.last_commit_author = project_report.last_commit_author.clone();
         report.git_ids_included.insert(contributor.git_id.clone());
+        report.contributor_count = project_report.contributor_count.clone();
         report.last_contributor_commit_sha1 = Some(last_contributor_commit_sha1);
         report.last_contributor_commit_date_iso = last_contributor_commit_date_iso;
         report.last_contributor_commit_date_epoch = Some(last_contributor_commit_date_epoch);

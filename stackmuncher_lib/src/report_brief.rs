@@ -159,9 +159,15 @@ impl super::report::Report {
         // collect summary
         let loc = tech_overviews.iter().map(|t| t.loc).sum::<usize>();
         let libs = tech_overviews.iter().map(|t| t.libs).sum::<usize>();
-        let ppl = match self.contributor_git_ids.as_ref() {
-            None => 0,
-            Some(v) => v.len(),
+        // contributor reports do not have a list of contributors, but may have the number copied from the project
+        let ppl = match self.contributor_count {
+            Some(v) => v,
+            None => match &self.contributors {
+                // if no summary is present, try to get the value from the list of contributors
+                // it will only be present in the full project report
+                Some(c) => c.len(),
+                None => 0,
+            },
         };
 
         // update percentages
@@ -180,6 +186,25 @@ impl super::report::Report {
             None => project_name_from_date(&self.date_init),
         };
 
+        // prefer contributor commit dates over project's init and head dates
+        let date_head = match &self.last_contributor_commit_date_iso {
+            Some(v) => Some(v.clone()),
+            None => self.date_head.clone(),
+        };
+        let date_init = match &self.first_contributor_commit_date_iso {
+            Some(v) => Some(v.clone()),
+            None => self.date_init.clone(),
+        };
+
+        let recent_project_commits = match &self.recent_project_commits {
+            Some(v) => Some(v
+                .iter()
+                .take(v.len().min(500))
+                .map(|commit| commit.clone())
+                .collect::<Vec<String>>()),
+                None => None
+        };
+
         ProjectReportOverview {
             project_name,
             project_id: self.project_id.clone(),
@@ -187,12 +212,12 @@ impl super::report::Report {
             github_repo_name: self.github_repo_name.clone(),
             github_user_name: self.github_user_name.clone(),
             tech,
-            date_init: self.date_init.clone(),
-            date_head: self.date_head.clone(),
+            date_init,
+            date_head,
             loc,
             libs,
             ppl,
-            commits: self.recent_project_commits.clone(),
+            commits: recent_project_commits,
         }
     }
 }

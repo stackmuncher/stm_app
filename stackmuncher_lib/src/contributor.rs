@@ -20,8 +20,11 @@ pub struct Contributor {
     pub last_commit_epoch: i64,
     /// The timestamp of the last commit by this contributor formatted as RFC-3339.
     pub last_commit_date: String,
-    /// The list of files touched by this contributor as FileName/CommitSHA1 tuple
+    /// The list of files touched by this contributor as FileName/CommitSHA1 tuple.
     pub touched_files: HashSet<ContributorFile>,
+    /// A list of pointers at contributor commits in recent project commits member of Report.
+    #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
+    pub commits: Vec<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq)]
@@ -64,7 +67,7 @@ impl Contributor {
         // each contributor has a hashmap with file as the key and commit/date/timestamp tuple that gets converted into an Vec for touched_files property
         let mut contributors: HashMap<String, (Contributor, HashMap<String, (String, String, i64)>)> = HashMap::new();
 
-        for commit in commits {
+        for (commit_idx, commit) in commits.into_iter().enumerate() {
             // skip commits with no author details
             if commit.author_name_email.0.is_empty() && commit.author_name_email.1.is_empty() {
                 continue;
@@ -86,6 +89,9 @@ impl Contributor {
                         touched_files.insert(file, (commit.sha1.clone(), commit.date.clone(), commit.date_epoch));
                     }
                 }
+
+                // add the commit to the list of contributor commits
+                contributor.commits.push(commit_idx);
             } else {
                 // it's a new contributor - add as-is
 
@@ -101,6 +107,9 @@ impl Contributor {
                     }
                 }
 
+                // add the commit to the list of contributor commits
+                let contr_commits_list = vec![commit_idx];
+
                 // init the contributor
                 let contributor = Contributor {
                     git_id: git_identity.clone(),
@@ -109,6 +118,7 @@ impl Contributor {
                     last_commit_epoch: commit.date_epoch,
                     last_commit_date: commit.date,
                     touched_files: HashSet::new(),
+                    commits: contr_commits_list,
                 };
 
                 contributors.insert(git_identity, (contributor, touched_files));

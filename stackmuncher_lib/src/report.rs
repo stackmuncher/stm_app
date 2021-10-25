@@ -96,6 +96,13 @@ pub struct Report {
     /// The date of the current HEAD
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
+    /// The number of records in `contributor_git_ids` for contributor report.
+    /// Contributors only have their own contributor ID included, so it is not possible to say how big the team
+    /// was just by looking at the contributor report.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contributor_count: Option<usize>,
+    /// SHA1 of the first commit made by the contributor.
+    /// Used in contributor reports only and is blank in project reports.
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
     /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -201,27 +208,46 @@ impl Report {
             }
 
             // update the date of the last commit
+            // contributor reports may be missing date_head, but would have last_contributor_commit_date_iso
+            let date_head_other = match other_report.date_head.as_ref() {
+                Some(v) => Some(v.clone()),
+                None => other_report.last_contributor_commit_date_iso.clone(),
+            };
+            if merge_into_inner.date_head.is_none() {
+                merge_into_inner.date_head = date_head_other;
+            } else if date_head_other.is_some() {
+                // update if the report has a newer date
+                if merge_into_inner.date_head.as_ref().unwrap() < date_head_other.as_ref().unwrap() {
+                    merge_into_inner.date_head = date_head_other;
+                }
+            }
             if merge_into_inner.date_head.is_none() {
                 // this should not happen - all commits have dates, so should the reports
-                warn!("Missing date_head in master");
-                merge_into_inner.date_head = other_report.date_head;
-            } else if other_report.date_head.is_some() {
-                // update if the report has a newer date
-                if merge_into_inner.date_head.as_ref().unwrap() < other_report.date_head.as_ref().unwrap() {
-                    merge_into_inner.date_head = other_report.date_head;
-                }
+                warn!("Missing date_head");
             }
 
             // repeat the same logic for the oldest commit
+            // newer contributor reports may contain first_contributor_commit_date_iso,
+            // but if that is missing last_contributor_commit_date_iso would do
+            let date_init_other = match other_report.date_init.as_ref() {
+                Some(v) => Some(v.clone()),
+                None => match &other_report.first_contributor_commit_date_iso {
+                    Some(v) => Some(v.clone()),
+                    None => other_report.last_contributor_commit_date_iso.clone(),
+                },
+            };
+            if merge_into_inner.date_init.is_none() {
+                merge_into_inner.date_init = date_init_other;
+            } else if date_init_other.is_some() {
+                // update if the report has a newer date
+                if merge_into_inner.date_init.as_ref().unwrap() > date_init_other.as_ref().unwrap() {
+                    merge_into_inner.date_init = date_init_other;
+                }
+            }
             if merge_into_inner.date_init.is_none() {
                 // this should not happen - all commits have dates, so should the reports
-                warn!("Missing date_init in master");
-                merge_into_inner.date_init = other_report.date_init;
-            } else if other_report.date_init.is_some() {
-                // update if the report has a newer date
-                if merge_into_inner.date_init.as_ref().unwrap() > other_report.date_init.as_ref().unwrap() {
-                    merge_into_inner.date_init = other_report.date_init;
-                }
+                // but date_init was not tracked in contributor reports
+                warn!("Missing date_init");
             }
 
             // only contributor IDs are getting merged
@@ -412,6 +438,18 @@ impl Report {
             self.last_contributor_commit_date_epoch = None;
         };
 
+        // repeat the same in the reverse order for the very first commit
+        if let Some(latest_log_entry) = list_of_commits.iter().last() {
+            self.first_contributor_commit_sha1 = Some(latest_log_entry.sha1.clone());
+            self.first_contributor_commit_date_iso = Some(latest_log_entry.date.clone());
+            self.first_contributor_commit_date_epoch = Some(latest_log_entry.date_epoch.clone());
+        } else {
+            warn!("Missing last contributor commit info.");
+            self.first_contributor_commit_sha1 = None;
+            self.first_contributor_commit_date_iso = None;
+            self.first_contributor_commit_date_epoch = None;
+        };
+
         // add the list of N recent contributor commits to the project overview and include it into the this combined report
         self.recent_project_commits = Some(
             list_of_commits
@@ -453,6 +491,7 @@ impl Report {
         if let Some(contributors) = report.contributors.as_mut() {
             for contributor in contributors {
                 contributor.touched_files.clear();
+                contributor.commits.clear();
             }
         };
 
@@ -505,6 +544,7 @@ impl Report {
             owner_id: None,
             project_id: None,
             gh_validation_id: None,
+            contributor_count: None,
         }
     }
 
@@ -630,13 +670,12 @@ impl Report {
             git_log.iter().map(|entry| entry.sha1.clone()).collect::<Vec<String>>(),
         ));
 
-        // compile a list of the last N commits to match projects with different remote URL hashes
+        // compile a list of all project commits for matching forks and clones
         // the SHA1 is truncated to 8 chars to save space, but it increases the chance of collision
         // https://github.com/source-foundry/font-v/issues/2
         report.recent_project_commits = Some(
             git_log
                 .iter()
-                .take(git_log.len().min(500))
                 .map(|log_entry| log_entry.join_commit_with_ts())
                 .collect::<Vec<String>>(),
         );
@@ -652,6 +691,13 @@ impl Report {
                 .iter()
                 .map(|contributor| contributor.git_id.clone())
                 .collect::<HashSet<String>>(),
+        );
+        report.contributor_count = Some(
+            report
+                .contributors
+                .as_ref()
+                .expect("Cannot unwrap report.contributor_git_ids. It's a bug")
+                .len(),
         );
 
         report
