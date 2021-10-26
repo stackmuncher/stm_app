@@ -101,6 +101,14 @@ pub struct Report {
     /// was just by looking at the contributor report.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributor_count: Option<usize>,
+    /// Lines Of Code (excludes blank lines) to show the size of the project.
+    /// The value is set to the size of the project in project and contributor reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc_project: Option<usize>,
+    /// Total number of unique library names to show the breadth of the project.
+    /// The value is set to the size of the project in project and contributor reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub libs_project: Option<usize>,
     /// SHA1 of the first commit made by the contributor.
     /// Used in contributor reports only and is blank in project reports.
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
@@ -545,6 +553,8 @@ impl Report {
             project_id: None,
             gh_validation_id: None,
             contributor_count: None,
+            loc_project: None,
+            libs_project: None,
         }
     }
 
@@ -832,6 +842,19 @@ impl Report {
         info!("Report size: {}, GZip: {}", report.len(), gzip_bytes.len());
 
         Ok(gzip_bytes)
+    }
+
+    /// Updates itself with total counts for `loc_project` and `libs_project`.
+    pub(crate) fn with_summary(self) -> Self {
+        // collect summary
+        let loc_project = Some(self.tech.iter().map(|t| t.code_lines).sum::<usize>());
+        let libs_project = Some(self.tech.iter().map(|t| t.refs.len() + t.pkgs.len()).sum::<usize>());
+
+        Self {
+            loc_project,
+            libs_project,
+            ..self
+        }
     }
 }
 

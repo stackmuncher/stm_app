@@ -21,7 +21,7 @@ pub mod tech;
 pub mod utils;
 
 /// All project reports created prior to this date must be reprocessed
-const REPORT_FORMAT_VERSION: &str = "2021-10-25T02:50:50+00:00";
+const REPORT_FORMAT_VERSION: &str = "2021-10-25T23:30:00+00:00";
 
 impl Report {
     /// Processes the entire repo with or without a previous report. If the report is present and the munchers
@@ -124,6 +124,9 @@ impl Report {
 
         // update lists of files (unprocessed and project tree)
         let report = report.update_project_file_lists(all_head_files);
+
+        // add various metadata based on the final report
+        let report = report.with_summary();
 
         Ok(Some(report))
     }
@@ -410,6 +413,8 @@ impl Report {
         report.last_contributor_commit_sha1 = Some(last_contributor_commit_sha1);
         report.last_contributor_commit_date_iso = last_contributor_commit_date_iso;
         report.last_contributor_commit_date_epoch = Some(last_contributor_commit_date_epoch);
+        report.loc_project = project_report.loc_project.clone();
+        report.libs_project = project_report.libs_project.clone();
 
         Ok(report)
     }

@@ -68,10 +68,18 @@ pub struct ProjectReportOverview {
     /// e.g. 2021-06-30T22:06:42+01:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
-    /// Lines Of Code (excludes blank lines) to show the size of the project
+    /// Lines Of Code (excludes blank lines) to show the size of the contribution.
+    /// The value is set to zero in full project reports.
     pub loc: usize,
-    /// Total number of unique library names to show the breadth of the project
+    /// Total number of unique library names to show the breadth of the contribution
+    /// /// The value is set to zero in full project reports.
     pub libs: usize,
+    /// Lines Of Code (excludes blank lines) to show the size of the project.
+    /// The value is set to the size of the project in project and contributor reports.
+    pub loc_project: usize,
+    /// Total number of unique library names to show the breadth of the project.
+    /// The value is set to the size of the project in project and contributor reports.
+    pub libs_project: usize,
     /// Total number of contributors to show the size of the team
     pub ppl: usize,
     pub tech: HashSet<TechOverview>,
@@ -197,12 +205,13 @@ impl super::report::Report {
         };
 
         let recent_project_commits = match &self.recent_project_commits {
-            Some(v) => Some(v
-                .iter()
-                .take(v.len().min(500))
-                .map(|commit| commit.clone())
-                .collect::<Vec<String>>()),
-                None => None
+            Some(v) => Some(
+                v.iter()
+                    .take(v.len().min(500))
+                    .map(|commit| commit.clone())
+                    .collect::<Vec<String>>(),
+            ),
+            None => None,
         };
 
         ProjectReportOverview {
@@ -218,6 +227,8 @@ impl super::report::Report {
             libs,
             ppl,
             commits: recent_project_commits,
+            loc_project: self.loc_project.clone().unwrap_or_default(),
+            libs_project: self.loc_project.clone().unwrap_or_default(),
         }
     }
 }
