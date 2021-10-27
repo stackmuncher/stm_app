@@ -20,6 +20,11 @@ pub struct Contributor {
     pub last_commit_epoch: i64,
     /// The timestamp of the last commit by this contributor formatted as RFC-3339.
     pub last_commit_date: String,
+    /// The number of commits by the contributor.
+    /// This can be taken from counting the number of entries in `commits` property, but that may be capped
+    /// in the future, so it's easier to have a separate counter.
+    #[serde(default)]
+    pub commit_count: usize,
     /// The list of files touched by this contributor as FileName/CommitSHA1 tuple.
     pub touched_files: HashSet<ContributorFile>,
     /// A list of pointers at contributor commits in recent project commits member of Report.
@@ -119,6 +124,7 @@ impl Contributor {
                     last_commit_date: commit.date,
                     touched_files: HashSet::new(),
                     commits: contr_commits_list,
+                    commit_count: 1,
                 };
 
                 contributors.insert(git_identity, (contributor, touched_files));
@@ -139,6 +145,10 @@ impl Contributor {
                     date_iso,
                 })
                 .collect::<HashSet<ContributorFile>>();
+
+            // this line will need to move if the list of commits is capped
+            contributor.commit_count = contributor.commits.len();
+
             output_collector.push(contributor);
         }
 

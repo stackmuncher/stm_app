@@ -90,10 +90,12 @@ pub struct Report {
     /// E.g. 1627176058
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_contributor_commit_date_epoch: Option<i64>,
-    /// The date of the first commit
+    /// The date of the first commit for the entire repo.
+    /// Combined reports have  the same value as first_contributor_commit.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
-    /// The date of the current HEAD
+    /// The date of the last commit for the entire repo or the current HEAD.
+    /// Combined reports have  the same value as last_contributor_commit.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
     /// The number of records in `contributor_git_ids` for contributor report.
@@ -109,6 +111,12 @@ pub struct Report {
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub libs_project: Option<usize>,
+    /// Total number of commits by the contributor, if there is one. Valid for contributor reports only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_count_contributor: Option<usize>,
+    /// Total number of commits in the repo. Valid for repo and contributor reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_count_project: Option<usize>,
     /// SHA1 of the first commit made by the contributor.
     /// Used in contributor reports only and is blank in project reports.
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
@@ -174,7 +182,13 @@ impl Report {
 
         // prepare an overview of the project being merged into the combined report
         // before `other_report` gets pulled to pieces by the merge
-        let project_report = other_report.get_overview();
+        let other_report_overview = other_report.get_overview();
+
+        // check if there is anything useful in the other report
+        if other_report_overview.loc == 0 {
+            warn!("LoC=0 in the report to merge. Skipping.");
+            return merge_into;
+        }
 
         // update keyword summaries and muncher name in all tech records
         let mut new_rep_tech = Report::new();
@@ -258,6 +272,29 @@ impl Report {
                 warn!("Missing date_init");
             }
 
+            // update contributor commit dates
+            if merge_into_inner.last_contributor_commit_date_iso.is_none() {
+                merge_into_inner.last_contributor_commit_date_iso = other_report.last_contributor_commit_date_iso;
+            } else if other_report.last_contributor_commit_date_iso.is_some() {
+                // update if the other report has a newer date
+                if merge_into_inner.last_contributor_commit_date_iso.as_ref().unwrap()
+                    < other_report.last_contributor_commit_date_iso.as_ref().unwrap()
+                {
+                    merge_into_inner.last_contributor_commit_date_iso = other_report.last_contributor_commit_date_iso;
+                }
+            }
+            // repeat the same logic for the 1st commit
+            if merge_into_inner.first_contributor_commit_date_iso.is_none() {
+                merge_into_inner.first_contributor_commit_date_iso = other_report.first_contributor_commit_date_iso;
+            } else if other_report.first_contributor_commit_date_iso.is_some() {
+                // update if the other report has a newer date
+                if merge_into_inner.first_contributor_commit_date_iso.as_ref().unwrap()
+                    > other_report.first_contributor_commit_date_iso.as_ref().unwrap()
+                {
+                    merge_into_inner.first_contributor_commit_date_iso = other_report.first_contributor_commit_date_iso;
+                }
+            }
+
             // only contributor IDs are getting merged
             if let Some(contributor_git_ids) = other_report.contributor_git_ids {
                 // this should not happen often, but check just in case if there is no hashset
@@ -288,7 +325,7 @@ impl Report {
         // add the project overview from the project being added to the list of projects in the combined report
         // we could probably do a simple unwrap() here, but if let feels safer
         if let Some(report_inner) = merge_into.as_mut() {
-            report_inner.projects_included.insert(project_report);
+            report_inner.projects_included.insert(other_report_overview);
         }
 
         merge_into
@@ -475,6 +512,11 @@ impl Report {
         self.report_commit_sha1 = None;
         self.last_commit_author = None;
         self.log_hash = None;
+        self.commit_count_project = None;
+        self.commit_count_contributor = None;
+        self.contributor_count = None;
+        self.loc_project = None;
+        self.libs_project = None;
         self.unprocessed_file_names.clear();
         self.per_file_tech.clear();
 
@@ -483,6 +525,18 @@ impl Report {
         self.report_id = String::new();
         self.report_s3_name = String::new();
         self.timestamp = chrono::Utc::now().to_rfc3339();
+
+        self.recent_project_commits = None;
+
+        self.projects_included = self
+            .projects_included
+            .drain()
+            .into_iter()
+            .map(|mut pro| {
+                pro.commits = None;
+                pro
+            })
+            .collect::<HashSet<ProjectReportOverview>>();
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -555,6 +609,8 @@ impl Report {
             contributor_count: None,
             loc_project: None,
             libs_project: None,
+            commit_count_project: None,
+            commit_count_contributor: None,
         }
     }
 
@@ -657,6 +713,8 @@ impl Report {
     pub(crate) async fn add_commits_history(self, git_log: Vec<GitLogEntry>) -> Self {
         let mut report = self;
         debug!("Adding commit history");
+
+        report.commit_count_project = Some(git_log.len());
 
         // get the date of the last commit
         if let Some(commit) = git_log.iter().next() {

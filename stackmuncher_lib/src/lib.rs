@@ -21,7 +21,7 @@ pub mod tech;
 pub mod utils;
 
 /// All project reports created prior to this date must be reprocessed
-const REPORT_FORMAT_VERSION: &str = "2021-10-25T23:30:00+00:00";
+const REPORT_FORMAT_VERSION: &str = "2021-10-27T01:45:00+00:00";
 
 impl Report {
     /// Processes the entire repo with or without a previous report. If the report is present and the munchers
@@ -415,6 +415,8 @@ impl Report {
         report.last_contributor_commit_date_epoch = Some(last_contributor_commit_date_epoch);
         report.loc_project = project_report.loc_project.clone();
         report.libs_project = project_report.libs_project.clone();
+        report.commit_count_project = project_report.commit_count_project.clone();
+        report.commit_count_contributor = Some(contributor.commit_count.clone());
 
         Ok(report)
     }

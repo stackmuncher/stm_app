@@ -70,18 +70,30 @@ pub struct ProjectReportOverview {
     pub date_head: Option<String>,
     /// Lines Of Code (excludes blank lines) to show the size of the contribution.
     /// The value is set to zero in full project reports.
+    #[serde(default)]
     pub loc: usize,
     /// Total number of unique library names to show the breadth of the contribution
     /// /// The value is set to zero in full project reports.
+    #[serde(default)]
     pub libs: usize,
     /// Lines Of Code (excludes blank lines) to show the size of the project.
     /// The value is set to the size of the project in project and contributor reports.
+    #[serde(default)]
     pub loc_project: usize,
     /// Total number of unique library names to show the breadth of the project.
     /// The value is set to the size of the project in project and contributor reports.
+    #[serde(default)]
     pub libs_project: usize,
-    /// Total number of contributors to show the size of the team
+    /// Total number of contributors to show the size of the team.
+    #[serde(default)]
     pub ppl: usize,
+    /// Total number of commits by the contributor, if there is one.
+    #[serde(default)]
+    pub commit_count: usize,
+    /// Total number of commits in the repo.
+    #[serde(default)]
+    pub commit_count_project: usize,
+    /// Stats per stack technology.
     pub tech: HashSet<TechOverview>,
     /// The last N commits for matching reports to projects.
     /// Full project reports have the list of commits from all contributors. Contributor reports only have commits for that contributor.
@@ -129,7 +141,7 @@ impl super::tech::Tech {
     pub(crate) fn get_overview(&self) -> TechOverview {
         TechOverview {
             language: self.language.clone(),
-            loc: self.total_lines,
+            loc: self.code_lines,
             // the percentage is not known at this stage
             loc_percentage: 0,
             // this is not a good way of doing it
@@ -228,7 +240,9 @@ impl super::report::Report {
             ppl,
             commits: recent_project_commits,
             loc_project: self.loc_project.clone().unwrap_or_default(),
-            libs_project: self.loc_project.clone().unwrap_or_default(),
+            libs_project: self.libs_project.clone().unwrap_or_default(),
+            commit_count: self.commit_count_contributor.as_ref().unwrap_or_else(|| &0).clone(),
+            commit_count_project: self.commit_count_project.as_ref().unwrap_or_else(|| &0).clone(),
         }
     }
 }
