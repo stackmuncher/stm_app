@@ -175,6 +175,9 @@ impl Report {
     /// but since ignoring files like nodejs modules is not implemented we'll just ignore such repos.
     pub const MAX_FILES_PER_REPO: usize = 10000;
 
+    /// All project reports created prior to this date must be reprocessed
+    pub const REPORT_FORMAT_VERSION: &'static str = "2021-10-27T01:45:00+00:00";
+
     /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
     pub fn merge(merge_into: Option<Self>, other_report: Self) -> Option<Self> {
         let mut merge_into = merge_into;
@@ -913,6 +916,31 @@ impl Report {
             libs_project,
             ..self
         }
+    }
+
+    /// Parses `self.timestamp` from RFC3339 to an EPOCH. Returns 0 if the value is not valid.
+    pub fn parsed_timestamp(&self) -> i64 {
+        // check if the report is in an older format and has to be reprocessed regardless
+        if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&self.timestamp) {
+            ts.with_timezone(&chrono::Utc).timestamp()
+        } else {
+            warn!("Invalid cached report timestamp: {}", self.timestamp);
+            0
+        }
+    }
+
+    /// Parses `REPORT_FORMAT_VERSION` from RFC3339 to an EPOCH. Panics if the value is not valid.
+    /// Reports produced prior to that date should be updated.
+    pub fn report_format_version() -> i64 {
+        // check if the report is in an older format and has to be reprocessed regardless
+        chrono::DateTime::parse_from_rfc3339(Report::REPORT_FORMAT_VERSION)
+            .expect("Invalid REPORT_FORMAT_VERSION value.")
+            .timestamp()
+    }
+
+    /// Returns TRUE if the report is in an older format than the current version.
+    pub fn is_outdated_format(&self) -> bool {
+        self.parsed_timestamp() < Report::report_format_version()
     }
 }
 
