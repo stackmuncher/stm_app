@@ -143,8 +143,8 @@ pub struct Report {
     // Brief details about the projects included into a combined user or org report.
     /// Blank for individual project reports. It is only needed by STM server to display project details on the combined report page
     /// without going to the individual project reports.
-    #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
-    pub projects_included: HashSet<super::report_brief::ProjectReportOverview>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
+    pub projects_included: Vec<super::report_brief::ProjectReportOverview>,
     /// A list of GIT identities for the contributors included in the report.
     /// Used only in combined contributor reports
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
@@ -328,7 +328,7 @@ impl Report {
         // add the project overview from the project being added to the list of projects in the combined report
         // we could probably do a simple unwrap() here, but if let feels safer
         if let Some(report_inner) = merge_into.as_mut() {
-            report_inner.projects_included.insert(other_report_overview);
+            report_inner.projects_included.push(other_report_overview);
         }
 
         merge_into
@@ -509,7 +509,7 @@ impl Report {
     }
 
     /// Removes some sections that make no sense in the combined report.
-    pub fn reset_combined_dev_report(&mut self) {
+    pub fn reset_combined_dev_report<'a>(&mut self) {
         self.contributors = None;
         self.tree_files = None;
         self.report_commit_sha1 = None;
@@ -531,15 +531,32 @@ impl Report {
 
         self.recent_project_commits = None;
 
-        self.projects_included = self
-            .projects_included
-            .drain()
-            .into_iter()
-            .map(|mut pro| {
-                pro.commits = None;
-                pro
-            })
-            .collect::<HashSet<ProjectReportOverview>>();
+        // remove lists of commits from project overviews
+        for proj in self.projects_included.iter_mut() {
+            proj.commits = None;
+        }
+
+        // sort project overviews latest to oldest using contributor and head dates, whichever is available
+        // ideally this needs to be an impl of PartialOrd trait, but it wouldn't agree with it on ==
+        self.projects_included.sort_unstable_by(|a, b| {
+            let a = if a.contributor_last_commit.is_some() {
+                a.contributor_last_commit.as_ref().unwrap()
+            } else if a.date_head.is_some() {
+                a.date_head.as_ref().unwrap()
+            } else {
+                ""
+            };
+
+            let b = if b.contributor_last_commit.is_some() {
+                b.contributor_last_commit.as_ref().unwrap()
+            } else if b.date_head.is_some() {
+                b.date_head.as_ref().unwrap()
+            } else {
+                ""
+            };
+
+            b.cmp(a)
+        });
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -569,7 +586,7 @@ impl Report {
                 pro.commits = None;
                 pro
             })
-            .collect::<HashSet<ProjectReportOverview>>();
+            .collect::<Vec<ProjectReportOverview>>();
 
         report
     }
@@ -587,7 +604,7 @@ impl Report {
             report_s3_name: String::new(),
             report_id: uuid::Uuid::new_v4().to_string(),
             reports_included: HashSet::new(),
-            projects_included: HashSet::new(),
+            projects_included: Vec::new(),
             git_ids_included: HashSet::new(),
             contributor_git_ids: None,
             contributors: None,

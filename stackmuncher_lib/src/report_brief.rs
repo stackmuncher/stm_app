@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
@@ -61,13 +61,18 @@ pub struct ProjectReportOverview {
     /// Values are set on the server. Values set on the client are ignored.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub github_repo_name: Option<String>,
-    /// The date of the first project or contributor commit, e.g. 2020-08-26T14:15:46+01:00
+    /// The date of the first project commit, UTC, time reset to 0, e.g. 2020-08-26T00:00:00+00:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_init: Option<String>,
-    /// The date of the current HEAD for project or the latest contributor commit,
-    /// e.g. 2021-06-30T22:06:42+01:00
+    /// The date of the current HEAD for project, UTC, time reset to 0, e.g. 2020-08-26T00:00:00+00:00
     #[serde(skip_serializing_if = "Option::is_none")]
     pub date_head: Option<String>,
+    /// The date of the first contributor commit, UTC, time reset to 0, e.g. 2020-08-26T00:00:00+00:00
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contributor_first_commit: Option<String>,
+    /// The date of the latest contributor commit, UTC, time reset to 0, e.g. 2020-08-26T00:00:00+00:00
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contributor_last_commit: Option<String>,
     /// Lines Of Code (excludes blank lines) to show the size of the contribution.
     /// The value is set to zero in full project reports.
     #[serde(default)]
@@ -206,16 +211,6 @@ impl super::report::Report {
             None => project_name_from_date(&self.date_init),
         };
 
-        // prefer contributor commit dates over project's init and head dates
-        let date_head = match &self.last_contributor_commit_date_iso {
-            Some(v) => Some(v.clone()),
-            None => self.date_head.clone(),
-        };
-        let date_init = match &self.first_contributor_commit_date_iso {
-            Some(v) => Some(v.clone()),
-            None => self.date_init.clone(),
-        };
-
         let recent_project_commits = match &self.recent_project_commits {
             Some(v) => Some(
                 v.iter()
@@ -233,8 +228,10 @@ impl super::report::Report {
             github_repo_name: self.github_repo_name.clone(),
             github_user_name: self.github_user_name.clone(),
             tech,
-            date_init,
-            date_head,
+            date_init: commit_timestamp_to_date(&self.date_init),
+            date_head: commit_timestamp_to_date(&self.date_head),
+            contributor_first_commit: commit_timestamp_to_date(&self.first_contributor_commit_date_iso),
+            contributor_last_commit: commit_timestamp_to_date(&self.last_contributor_commit_date_iso),
             loc,
             libs,
             ppl,
@@ -245,6 +242,32 @@ impl super::report::Report {
             commit_count_project: self.commit_count_project.as_ref().unwrap_or_else(|| &0).clone(),
         }
     }
+}
+
+/// Resets the time component by converting ISO dates like `2020-07-28T14:30:50-07:00` into `2020-07-28T00:00:00+00:00`
+fn commit_timestamp_to_date(timestamp: &Option<String>) -> Option<String> {
+    // a russian doll of safe unwraps to get to the end of the formatting
+    // if any of them fails the code falls through to the end and returns None
+    if let Some(timestamp) = timestamp {
+        if let Ok(timestamp) = DateTime::parse_from_rfc3339(timestamp) {
+            let timestamp = timestamp.with_timezone(&Utc);
+            if let Some(timestamp) = timestamp.with_hour(0) {
+                if let Some(timestamp) = timestamp.with_minute(0) {
+                    if let Some(timestamp) = timestamp.with_second(0) {
+                        // the nano part is probably redundant, but if any timestamp contained this part
+                        // it would be copied over
+                        // this adds 2 characters to the length
+                        if let Some(timestamp) = timestamp.with_nanosecond(0) {
+                            return Some(timestamp.to_rfc3339());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // if this line is reached then the input param was None
+    None
 }
 
 /// Converts an ISO3339 date into a project name using numbers based on the repo init date.
