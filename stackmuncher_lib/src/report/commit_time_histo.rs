@@ -288,57 +288,83 @@ impl CommitTimeHisto {
             + self.histogram_all.h23;
 
         if self.histogram_recent_sum > 0 {
-            self.histogram_recent.h00 = self.histogram_recent.h00 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h01 = self.histogram_recent.h01 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h02 = self.histogram_recent.h02 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h03 = self.histogram_recent.h03 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h04 = self.histogram_recent.h04 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h05 = self.histogram_recent.h05 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h06 = self.histogram_recent.h06 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h07 = self.histogram_recent.h07 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h08 = self.histogram_recent.h08 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h09 = self.histogram_recent.h09 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h10 = self.histogram_recent.h10 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h11 = self.histogram_recent.h11 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h12 = self.histogram_recent.h12 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h13 = self.histogram_recent.h13 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h14 = self.histogram_recent.h14 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h15 = self.histogram_recent.h15 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h16 = self.histogram_recent.h16 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h17 = self.histogram_recent.h17 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h18 = self.histogram_recent.h18 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h19 = self.histogram_recent.h19 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h20 = self.histogram_recent.h20 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h21 = self.histogram_recent.h21 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h22 = self.histogram_recent.h22 * 100 / self.histogram_recent_sum;
-            self.histogram_recent.h23 = self.histogram_recent.h23 * 100 / self.histogram_recent_sum;
+            let histogram_recent_sum = self.histogram_recent_sum as f64;
+            self.histogram_recent.h00 =
+                (self.histogram_recent.h00 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h01 =
+                (self.histogram_recent.h01 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h02 =
+                (self.histogram_recent.h02 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h03 =
+                (self.histogram_recent.h03 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h04 =
+                (self.histogram_recent.h04 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h05 =
+                (self.histogram_recent.h05 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h06 =
+                (self.histogram_recent.h06 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h07 =
+                (self.histogram_recent.h07 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h08 =
+                (self.histogram_recent.h08 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h09 =
+                (self.histogram_recent.h09 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h10 =
+                (self.histogram_recent.h10 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h11 =
+                (self.histogram_recent.h11 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h12 =
+                (self.histogram_recent.h12 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h13 =
+                (self.histogram_recent.h13 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h14 =
+                (self.histogram_recent.h14 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h15 =
+                (self.histogram_recent.h15 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h16 =
+                (self.histogram_recent.h16 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h17 =
+                (self.histogram_recent.h17 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h18 =
+                (self.histogram_recent.h18 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h19 =
+                (self.histogram_recent.h19 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h20 =
+                (self.histogram_recent.h20 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h21 =
+                (self.histogram_recent.h21 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h22 =
+                (self.histogram_recent.h22 as f64 * 100.0 / histogram_recent_sum).round() as usize;
+            self.histogram_recent.h23 =
+                (self.histogram_recent.h23 as f64 * 100.0 / histogram_recent_sum).round() as usize;
         }
 
         if self.histogram_all_sum > 0 {
-            self.histogram_all.h00 = self.histogram_all.h00 * 100 / self.histogram_all_sum;
-            self.histogram_all.h01 = self.histogram_all.h01 * 100 / self.histogram_all_sum;
-            self.histogram_all.h02 = self.histogram_all.h02 * 100 / self.histogram_all_sum;
-            self.histogram_all.h03 = self.histogram_all.h03 * 100 / self.histogram_all_sum;
-            self.histogram_all.h04 = self.histogram_all.h04 * 100 / self.histogram_all_sum;
-            self.histogram_all.h05 = self.histogram_all.h05 * 100 / self.histogram_all_sum;
-            self.histogram_all.h06 = self.histogram_all.h06 * 100 / self.histogram_all_sum;
-            self.histogram_all.h07 = self.histogram_all.h07 * 100 / self.histogram_all_sum;
-            self.histogram_all.h08 = self.histogram_all.h08 * 100 / self.histogram_all_sum;
-            self.histogram_all.h09 = self.histogram_all.h09 * 100 / self.histogram_all_sum;
-            self.histogram_all.h10 = self.histogram_all.h10 * 100 / self.histogram_all_sum;
-            self.histogram_all.h11 = self.histogram_all.h11 * 100 / self.histogram_all_sum;
-            self.histogram_all.h12 = self.histogram_all.h12 * 100 / self.histogram_all_sum;
-            self.histogram_all.h13 = self.histogram_all.h13 * 100 / self.histogram_all_sum;
-            self.histogram_all.h14 = self.histogram_all.h14 * 100 / self.histogram_all_sum;
-            self.histogram_all.h15 = self.histogram_all.h15 * 100 / self.histogram_all_sum;
-            self.histogram_all.h16 = self.histogram_all.h16 * 100 / self.histogram_all_sum;
-            self.histogram_all.h17 = self.histogram_all.h17 * 100 / self.histogram_all_sum;
-            self.histogram_all.h18 = self.histogram_all.h18 * 100 / self.histogram_all_sum;
-            self.histogram_all.h19 = self.histogram_all.h19 * 100 / self.histogram_all_sum;
-            self.histogram_all.h20 = self.histogram_all.h20 * 100 / self.histogram_all_sum;
-            self.histogram_all.h21 = self.histogram_all.h21 * 100 / self.histogram_all_sum;
-            self.histogram_all.h22 = self.histogram_all.h22 * 100 / self.histogram_all_sum;
-            self.histogram_all.h23 = self.histogram_all.h23 * 100 / self.histogram_all_sum;
+            let histogram_all_sum = self.histogram_all_sum as f64;
+            self.histogram_all.h00 = (self.histogram_all.h00 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h01 = (self.histogram_all.h01 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h02 = (self.histogram_all.h02 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h03 = (self.histogram_all.h03 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h04 = (self.histogram_all.h04 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h05 = (self.histogram_all.h05 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h06 = (self.histogram_all.h06 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h07 = (self.histogram_all.h07 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h08 = (self.histogram_all.h08 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h09 = (self.histogram_all.h09 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h10 = (self.histogram_all.h10 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h11 = (self.histogram_all.h11 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h12 = (self.histogram_all.h12 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h13 = (self.histogram_all.h13 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h14 = (self.histogram_all.h14 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h15 = (self.histogram_all.h15 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h16 = (self.histogram_all.h16 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h17 = (self.histogram_all.h17 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h18 = (self.histogram_all.h18 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h19 = (self.histogram_all.h19 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h20 = (self.histogram_all.h20 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h21 = (self.histogram_all.h21 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h22 = (self.histogram_all.h22 as f64 * 100.0 / histogram_all_sum).round() as usize;
+            self.histogram_all.h23 = (self.histogram_all.h23 as f64 * 100.0 / histogram_all_sum).round() as usize;
         }
     }
 }
