@@ -1,9 +1,10 @@
+use super::commit_time_histo::CommitTimeHisto;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
-use super::report_brief::ProjectReportOverview;
 use super::tech::Tech;
+use super::ProjectReportOverview;
 use crate::utils::sha256::hash_str_to_sha256_as_base58;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
-use chrono;
+use chrono::{DateTime, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use path_absolutize::{self, Absolutize};
@@ -144,7 +145,7 @@ pub struct Report {
     /// Blank for individual project reports. It is only needed by STM server to display project details on the combined report page
     /// without going to the individual project reports.
     #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
-    pub projects_included: Vec<super::report_brief::ProjectReportOverview>,
+    pub projects_included: Vec<ProjectReportOverview>,
     /// A list of GIT identities for the contributors included in the report.
     /// Used only in combined contributor reports
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
@@ -152,6 +153,10 @@ pub struct Report {
     /// List of names and emails of all committers for this repo. Only applies to per-project reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributors: Option<Vec<Contributor>>,
+    /// Number of commits per UTC hour and other stats related to committer active hours.
+    /// Used to determine approximate active timezone of the dev.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub commit_time_histo: Option<CommitTimeHisto>,
     /// The current list of files in the GIT tree
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tree_files: Option<HashSet<String>>,
@@ -325,9 +330,10 @@ impl Report {
             }
         }
 
-        // add the project overview from the project being added to the list of projects in the combined report
-        // we could probably do a simple unwrap() here, but if let feels safer
-        if let Some(report_inner) = merge_into.as_mut() {
+        if let Some(mut report_inner) = merge_into.as_mut() {
+            // update the commit time histogram
+            CommitTimeHisto::add_commits(&mut report_inner, &other_report_overview.commits);
+            // add the project overview
             report_inner.projects_included.push(other_report_overview);
         }
 
@@ -465,7 +471,7 @@ impl Report {
     ) {
         debug!("Resetting combined contributor report for {}", contributor_git_id);
         self.report_id = uuid::Uuid::new_v4().to_string();
-        self.timestamp = chrono::Utc::now().to_rfc3339();
+        self.timestamp = Utc::now().to_rfc3339();
         self.report_s3_name = String::new();
         self.is_single_commit = false;
         self.log_hash = None;
@@ -527,7 +533,7 @@ impl Report {
         self.github_user_name = None;
         self.report_id = String::new();
         self.report_s3_name = String::new();
-        self.timestamp = chrono::Utc::now().to_rfc3339();
+        self.timestamp = Utc::now().to_rfc3339();
 
         self.recent_project_commits = None;
 
@@ -557,6 +563,11 @@ impl Report {
 
             b.cmp(a)
         });
+
+        // recalculate commit histograms from absolute number of commits to percentage
+        if let Some(histo) = self.commit_time_histo.as_mut() {
+            histo.recalculate_counts_to_percentage();
+        }
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -596,7 +607,7 @@ impl Report {
         Report {
             tech: HashSet::new(),
             per_file_tech: HashSet::new(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: Utc::now().to_rfc3339(),
             unprocessed_file_names: HashSet::new(),
             unknown_file_types: HashSet::new(),
             github_user_name: None,
@@ -631,6 +642,7 @@ impl Report {
             libs_project: None,
             commit_count_project: None,
             commit_count_contributor: None,
+            commit_time_histo: None,
         }
     }
 
@@ -865,7 +877,7 @@ impl Report {
 
         // reset time component of the project head and init commit timestamps to prevent cross-developer project matching
         if let Some(date_head) = &report.date_head {
-            match chrono::DateTime::parse_from_rfc3339(date_head) {
+            match DateTime::parse_from_rfc3339(date_head) {
                 Err(e) => {
                     warn!("Invalid HEAD commit date: {} ({}). Expected RFC3339 format.", date_head, e);
                     report.date_head = None;
@@ -877,7 +889,7 @@ impl Report {
         }
 
         if let Some(date_init) = &report.date_init {
-            match chrono::DateTime::parse_from_rfc3339(date_init) {
+            match DateTime::parse_from_rfc3339(date_init) {
                 Err(e) => {
                     warn!("Invalid INIT commit date: {} ({}). Expected RFC3339 format.", date_init, e);
                     report.date_init = None;
@@ -938,8 +950,8 @@ impl Report {
     /// Parses `self.timestamp` from RFC3339 to an EPOCH. Returns 0 if the value is not valid.
     pub fn parsed_timestamp(&self) -> i64 {
         // check if the report is in an older format and has to be reprocessed regardless
-        if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(&self.timestamp) {
-            ts.with_timezone(&chrono::Utc).timestamp()
+        if let Ok(ts) = DateTime::parse_from_rfc3339(&self.timestamp) {
+            ts.with_timezone(&Utc).timestamp()
         } else {
             warn!("Invalid cached report timestamp: {}", self.timestamp);
             0
@@ -950,7 +962,7 @@ impl Report {
     /// Reports produced prior to that date should be updated.
     pub fn report_format_version() -> i64 {
         // check if the report is in an older format and has to be reprocessed regardless
-        chrono::DateTime::parse_from_rfc3339(Report::REPORT_FORMAT_VERSION)
+        DateTime::parse_from_rfc3339(Report::REPORT_FORMAT_VERSION)
             .expect("Invalid REPORT_FORMAT_VERSION value.")
             .timestamp()
     }

@@ -12,12 +12,9 @@ pub mod contributor;
 pub mod file_type;
 pub mod git;
 mod ignore_paths;
-pub mod kwc;
 pub mod muncher;
 pub mod processors;
 pub mod report;
-pub mod report_brief;
-pub mod tech;
 pub mod utils;
 
 impl Report {

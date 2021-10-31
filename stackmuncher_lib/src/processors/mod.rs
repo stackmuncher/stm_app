@@ -1,5 +1,5 @@
 use super::muncher::Muncher;
-use super::tech::Tech;
+use crate::report::Tech;
 use crate::git::get_blob_contents;
 use encoding_rs as _;
 use encoding_rs::WINDOWS_1252;

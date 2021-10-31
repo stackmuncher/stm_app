@@ -1,3 +1,4 @@
+use super::tech::Tech;
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -140,7 +141,7 @@ impl PartialEq for ProjectReportOverview {
     }
 }
 
-impl super::tech::Tech {
+impl Tech {
     /// Returns an abridged version of Self in the form of TechBrief.
     /// Calculation of `libs` is not very accurate. See comments inside the body.
     pub(crate) fn get_overview(&self) -> TechOverview {

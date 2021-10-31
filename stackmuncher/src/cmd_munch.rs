@@ -4,7 +4,7 @@ use crate::signing::ReportSignature;
 use crate::submission::submit_report;
 use futures::stream::{FuturesUnordered, StreamExt};
 use stackmuncher_lib::contributor::Contributor;
-use stackmuncher_lib::report_brief::TechOverview;
+use stackmuncher_lib::report::TechOverview;
 use stackmuncher_lib::{code_rules::CodeRules, config::Config, git, report::Report, utils::hash_str_sha1};
 use std::path::Path;
 use tracing::{debug, info, warn};
