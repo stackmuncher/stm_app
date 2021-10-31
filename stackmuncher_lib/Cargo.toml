@@ -9,7 +9,7 @@ license = "GPL-3.0-or-later"
 description = "The code library for a static code analysis app for reporting on amount and type of code produced by looking at git commits."
 
 [dependencies]
-regex = "1.4"
+regex = "1.5"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4"
@@ -17,13 +17,13 @@ tracing = { version = "0.1", features = ["log"] }
 encoding_rs_io = "0.1"
 encoding_rs = "0.8"
 uuid = { version = "0.8", features = ["v4"] }
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 sha-1 = "0.9"
-sha2 = "0.9.5"
-bs58 = "0.4.0"
-path-absolutize = "3.0.10"
+sha2 = "0.9"
+bs58 = "0.4"
+path-absolutize = "3.0"
 flate2 = "1.0"
 rust-embed = { version = "6", features = ["compression"] }
 
 [dev-dependencies]
-tracing-subscriber = "0.2"
+tracing-subscriber = "0.3"
