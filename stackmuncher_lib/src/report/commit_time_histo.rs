@@ -63,6 +63,22 @@ pub struct CommitTimeHistoHours {
 /// Contains members and methods related to commit time histogram
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommitTimeHisto {
+    /// The sum of all commits included in `histogram_recent`. This value is used as the 100% of all recent commits.
+    /// The value is populated once after all commits have been added.
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
+    pub histogram_recent_sum: usize,
+    /// The sum of all commits included in `histogram_all`. This value is used as the 100% of all commits.
+    /// The value is populated once after all commits have been added.
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
+    pub histogram_all_sum: usize,
+
+    /// The standard deviation of `histogram_recent` values.
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero_f64", default = "f64::default")]
+    pub histogram_recent_std: f64,
+    /// The standard deviation of `histogram_all` values.
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero_f64", default = "f64::default")]
+    pub histogram_all_std: f64,
+
     /// Initially, the contains the number of commits per UTC hour for the last N days as defined in `RECENT_PERIOD_LENGTH_IN_DAYS` const.
     /// Later the values are recalculated to percentages for storing in the DB.
     #[serde(
@@ -77,20 +93,34 @@ pub struct CommitTimeHisto {
         default = "CommitTimeHistoHours::default"
     )]
     pub histogram_all: CommitTimeHistoHours,
-    /// The sum of all commits included in `histogram_recent`. This value is used as the 100% of all recent commits.
-    /// The value is populated once after all commits have been added.
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub histogram_recent_sum: usize,
-    /// The sum of all commits included in `histogram_all`. This value is used as the 100% of all commits.
-    /// The value is populated once after all commits have been added.
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub histogram_all_sum: usize,
+
+    /// Number of working hours in overlap between the dev's active time and the 8am - 6pm working day in the specified time zone.
+    /// Timezones with negative offset are represented as 24-offset. E.g. `-6` hours will be in `h18`.
+    /// Only activity within standard deviation is included.
+    #[serde(
+        skip_serializing_if = "CommitTimeHistoHours::is_empty",
+        default = "CommitTimeHistoHours::default"
+    )]
+    pub timezone_overlap_recent: CommitTimeHistoHours,
+    /// Number of working hours in overlap between the dev's active time and the 8am - 6pm working day in the specified time zone.
+    /// Timezones with negative offset are represented as 24-offset. E.g. `-6` hours will be in `h18`.
+    /// Only activity within standard deviation is included.
+    #[serde(
+        skip_serializing_if = "CommitTimeHistoHours::is_empty",
+        default = "CommitTimeHistoHours::default"
+    )]
+    pub timezone_overlap_all: CommitTimeHistoHours,
 }
 
 impl CommitTimeHistoHours {
     /// A helper function for serde. Returns true if the value is zero.
     fn is_zero(val: &usize) -> bool {
         val == &0
+    }
+
+    /// A helper function for serde. Returns true if the value is zero.
+    fn is_zero_f64(val: &f64) -> bool {
+        val == &0.0
     }
 
     /// A helper function for serde. Returns true if all members have value of zero.
@@ -156,6 +186,165 @@ impl CommitTimeHistoHours {
             _ => panic!("Invalid value for HOUR: {}. ts.time().hour() should never return > 23.", hour),
         }
     }
+
+    /// Converts `hxx` values from the number of commits to percentage.
+    fn convert_counts_to_percentage(&mut self, sum: usize) {
+        if sum == 0 {
+            return;
+        }
+
+        // convert the sum into f64 to allow for rounding of the fraction after doing division
+        let sum = sum as f64;
+        // re-calculate every member
+        self.h00 = (self.h00 as f64 * 100.0 / sum).round() as usize;
+        self.h01 = (self.h01 as f64 * 100.0 / sum).round() as usize;
+        self.h02 = (self.h02 as f64 * 100.0 / sum).round() as usize;
+        self.h03 = (self.h03 as f64 * 100.0 / sum).round() as usize;
+        self.h04 = (self.h04 as f64 * 100.0 / sum).round() as usize;
+        self.h05 = (self.h05 as f64 * 100.0 / sum).round() as usize;
+        self.h06 = (self.h06 as f64 * 100.0 / sum).round() as usize;
+        self.h07 = (self.h07 as f64 * 100.0 / sum).round() as usize;
+        self.h08 = (self.h08 as f64 * 100.0 / sum).round() as usize;
+        self.h09 = (self.h09 as f64 * 100.0 / sum).round() as usize;
+        self.h10 = (self.h10 as f64 * 100.0 / sum).round() as usize;
+        self.h11 = (self.h11 as f64 * 100.0 / sum).round() as usize;
+        self.h12 = (self.h12 as f64 * 100.0 / sum).round() as usize;
+        self.h13 = (self.h13 as f64 * 100.0 / sum).round() as usize;
+        self.h14 = (self.h14 as f64 * 100.0 / sum).round() as usize;
+        self.h15 = (self.h15 as f64 * 100.0 / sum).round() as usize;
+        self.h16 = (self.h16 as f64 * 100.0 / sum).round() as usize;
+        self.h17 = (self.h17 as f64 * 100.0 / sum).round() as usize;
+        self.h18 = (self.h18 as f64 * 100.0 / sum).round() as usize;
+        self.h19 = (self.h19 as f64 * 100.0 / sum).round() as usize;
+        self.h20 = (self.h20 as f64 * 100.0 / sum).round() as usize;
+        self.h21 = (self.h21 as f64 * 100.0 / sum).round() as usize;
+        self.h22 = (self.h22 as f64 * 100.0 / sum).round() as usize;
+        self.h23 = (self.h23 as f64 * 100.0 / sum).round() as usize;
+    }
+
+    /// Converts `hxx` values from the number of commits to percentage.
+    fn standard_deviation(&mut self, mean: f64) -> f64 {
+        if mean == 0.0 {
+            return 0.0;
+        }
+
+        // calculate variance
+        let variance = (self.h00 as f64 - mean).powi(2)
+            + (self.h01 as f64 - mean).powi(2)
+            + (self.h02 as f64 - mean).powi(2)
+            + (self.h03 as f64 - mean).powi(2)
+            + (self.h04 as f64 - mean).powi(2)
+            + (self.h05 as f64 - mean).powi(2)
+            + (self.h06 as f64 - mean).powi(2)
+            + (self.h07 as f64 - mean).powi(2)
+            + (self.h08 as f64 - mean).powi(2)
+            + (self.h09 as f64 - mean).powi(2)
+            + (self.h10 as f64 - mean).powi(2)
+            + (self.h11 as f64 - mean).powi(2)
+            + (self.h12 as f64 - mean).powi(2)
+            + (self.h13 as f64 - mean).powi(2)
+            + (self.h14 as f64 - mean).powi(2)
+            + (self.h15 as f64 - mean).powi(2)
+            + (self.h16 as f64 - mean).powi(2)
+            + (self.h17 as f64 - mean).powi(2)
+            + (self.h18 as f64 - mean).powi(2)
+            + (self.h19 as f64 - mean).powi(2)
+            + (self.h20 as f64 - mean).powi(2)
+            + (self.h21 as f64 - mean).powi(2)
+            + (self.h22 as f64 - mean).powi(2)
+            + (self.h23 as f64 - mean).powi(2);
+
+        (variance / 24.0).sqrt()
+    }
+
+    /// Returns the sum of all `hxx` members.
+    fn sum(&self) -> usize {
+        self.h00
+            + self.h01
+            + self.h02
+            + self.h03
+            + self.h04
+            + self.h05
+            + self.h06
+            + self.h07
+            + self.h08
+            + self.h09
+            + self.h10
+            + self.h11
+            + self.h12
+            + self.h13
+            + self.h14
+            + self.h15
+            + self.h16
+            + self.h17
+            + self.h18
+            + self.h19
+            + self.h20
+            + self.h21
+            + self.h22
+            + self.h23
+    }
+
+    /// Calculates how many working (8am - 6pm) hours overlap between commit time and the target timezone.
+    /// Only commit hours above the standard deviation (std) are included.
+    fn overlap(&self, std: f64) -> Self {
+        // copy the commit counts into an array for easy referencing in a loop
+        let commit_counts: [usize; 24] = [
+            self.h00, self.h01, self.h02, self.h03, self.h04, self.h05, self.h06, self.h07, self.h08, self.h09,
+            self.h10, self.h11, self.h12, self.h13, self.h14, self.h15, self.h16, self.h17, self.h18, self.h19,
+            self.h20, self.h21, self.h22, self.h23,
+        ];
+
+        let mut tz_overlap: [usize; 24] = [0; 24];
+
+        // populate an array for all possible timezones with the number of overlapping hours
+        for tz in 0..23 {
+            tz_overlap[tz] = commit_counts
+                .iter()
+                .enumerate()
+                .map(|(hr, v)| {
+                    // normalize the UTC time of the commit counts to the working hours of the target timezone
+                    // e.g. 18hr for UTC+12 = 30
+                    let hr = hr + tz;
+                    // e.g. 30 - 24 = 6am UTC
+                    let hr = if hr > 23 { hr - 24 } else { hr };
+                    // hours between 8am and 6pm of the target timezone where the number of commits is above the standard deviation
+                    if hr >= 8 && hr < 18 && *v as f64 > std {
+                        1
+                    } else {
+                        0
+                    }
+                })
+                .sum::<usize>();
+        }
+
+        Self {
+            h00: tz_overlap[0],
+            h01: tz_overlap[1],
+            h02: tz_overlap[2],
+            h03: tz_overlap[3],
+            h04: tz_overlap[4],
+            h05: tz_overlap[5],
+            h06: tz_overlap[6],
+            h07: tz_overlap[7],
+            h08: tz_overlap[8],
+            h09: tz_overlap[9],
+            h10: tz_overlap[10],
+            h11: tz_overlap[11],
+            h12: tz_overlap[12],
+            h13: tz_overlap[13],
+            h14: tz_overlap[14],
+            h15: tz_overlap[15],
+            h16: tz_overlap[16],
+            h17: tz_overlap[17],
+            h18: tz_overlap[18],
+            h19: tz_overlap[19],
+            h20: tz_overlap[20],
+            h21: tz_overlap[21],
+            h22: tz_overlap[22],
+            h23: tz_overlap[23],
+        }
+    }
 }
 
 impl Default for CommitTimeHistoHours {
@@ -202,6 +391,10 @@ impl CommitTimeHisto {
                     histogram_all: CommitTimeHistoHours::default(),
                     histogram_recent_sum: 0,
                     histogram_all_sum: 0,
+                    timezone_overlap_recent: CommitTimeHistoHours::default(),
+                    timezone_overlap_all: CommitTimeHistoHours::default(),
+                    histogram_recent_std: 0.0,
+                    histogram_all_std: 0.0,
                 });
             }
 
@@ -237,134 +430,17 @@ impl CommitTimeHisto {
 
     /// Calculates the percentage of each bucket from the total sum of commits in the histogram for `_recent` and `_all`.
     pub(crate) fn recalculate_counts_to_percentage(&mut self) {
-        self.histogram_recent_sum = self.histogram_recent.h00
-            + self.histogram_recent.h01
-            + self.histogram_recent.h02
-            + self.histogram_recent.h03
-            + self.histogram_recent.h04
-            + self.histogram_recent.h05
-            + self.histogram_recent.h06
-            + self.histogram_recent.h07
-            + self.histogram_recent.h08
-            + self.histogram_recent.h09
-            + self.histogram_recent.h10
-            + self.histogram_recent.h11
-            + self.histogram_recent.h12
-            + self.histogram_recent.h13
-            + self.histogram_recent.h14
-            + self.histogram_recent.h15
-            + self.histogram_recent.h16
-            + self.histogram_recent.h17
-            + self.histogram_recent.h18
-            + self.histogram_recent.h19
-            + self.histogram_recent.h20
-            + self.histogram_recent.h21
-            + self.histogram_recent.h22
-            + self.histogram_recent.h23;
+        self.histogram_recent_sum = self.histogram_recent.sum();
+        let mean_recent = self.histogram_recent_sum as f64 / 24.0;
+        self.histogram_recent_std = self.histogram_recent.standard_deviation(mean_recent);
+        self.timezone_overlap_recent = self.histogram_recent.overlap(self.histogram_recent_std);
+        self.histogram_recent
+            .convert_counts_to_percentage(self.histogram_recent_sum);
 
-        self.histogram_all_sum = self.histogram_all.h00
-            + self.histogram_all.h01
-            + self.histogram_all.h02
-            + self.histogram_all.h03
-            + self.histogram_all.h04
-            + self.histogram_all.h05
-            + self.histogram_all.h06
-            + self.histogram_all.h07
-            + self.histogram_all.h08
-            + self.histogram_all.h09
-            + self.histogram_all.h10
-            + self.histogram_all.h11
-            + self.histogram_all.h12
-            + self.histogram_all.h13
-            + self.histogram_all.h14
-            + self.histogram_all.h15
-            + self.histogram_all.h16
-            + self.histogram_all.h17
-            + self.histogram_all.h18
-            + self.histogram_all.h19
-            + self.histogram_all.h20
-            + self.histogram_all.h21
-            + self.histogram_all.h22
-            + self.histogram_all.h23;
-
-        if self.histogram_recent_sum > 0 {
-            let histogram_recent_sum = self.histogram_recent_sum as f64;
-            self.histogram_recent.h00 =
-                (self.histogram_recent.h00 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h01 =
-                (self.histogram_recent.h01 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h02 =
-                (self.histogram_recent.h02 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h03 =
-                (self.histogram_recent.h03 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h04 =
-                (self.histogram_recent.h04 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h05 =
-                (self.histogram_recent.h05 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h06 =
-                (self.histogram_recent.h06 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h07 =
-                (self.histogram_recent.h07 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h08 =
-                (self.histogram_recent.h08 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h09 =
-                (self.histogram_recent.h09 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h10 =
-                (self.histogram_recent.h10 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h11 =
-                (self.histogram_recent.h11 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h12 =
-                (self.histogram_recent.h12 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h13 =
-                (self.histogram_recent.h13 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h14 =
-                (self.histogram_recent.h14 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h15 =
-                (self.histogram_recent.h15 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h16 =
-                (self.histogram_recent.h16 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h17 =
-                (self.histogram_recent.h17 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h18 =
-                (self.histogram_recent.h18 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h19 =
-                (self.histogram_recent.h19 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h20 =
-                (self.histogram_recent.h20 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h21 =
-                (self.histogram_recent.h21 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h22 =
-                (self.histogram_recent.h22 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-            self.histogram_recent.h23 =
-                (self.histogram_recent.h23 as f64 * 100.0 / histogram_recent_sum).round() as usize;
-        }
-
-        if self.histogram_all_sum > 0 {
-            let histogram_all_sum = self.histogram_all_sum as f64;
-            self.histogram_all.h00 = (self.histogram_all.h00 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h01 = (self.histogram_all.h01 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h02 = (self.histogram_all.h02 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h03 = (self.histogram_all.h03 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h04 = (self.histogram_all.h04 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h05 = (self.histogram_all.h05 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h06 = (self.histogram_all.h06 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h07 = (self.histogram_all.h07 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h08 = (self.histogram_all.h08 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h09 = (self.histogram_all.h09 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h10 = (self.histogram_all.h10 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h11 = (self.histogram_all.h11 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h12 = (self.histogram_all.h12 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h13 = (self.histogram_all.h13 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h14 = (self.histogram_all.h14 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h15 = (self.histogram_all.h15 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h16 = (self.histogram_all.h16 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h17 = (self.histogram_all.h17 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h18 = (self.histogram_all.h18 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h19 = (self.histogram_all.h19 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h20 = (self.histogram_all.h20 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h21 = (self.histogram_all.h21 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h22 = (self.histogram_all.h22 as f64 * 100.0 / histogram_all_sum).round() as usize;
-            self.histogram_all.h23 = (self.histogram_all.h23 as f64 * 100.0 / histogram_all_sum).round() as usize;
-        }
+        self.histogram_all_sum = self.histogram_all.sum();
+        let mean_all = self.histogram_all_sum as f64 / 24.0;
+        self.histogram_all_std = self.histogram_all.standard_deviation(mean_all);
+        self.timezone_overlap_all = self.histogram_all.overlap(self.histogram_all_std);
+        self.histogram_all.convert_counts_to_percentage(self.histogram_all_sum);
     }
 }
