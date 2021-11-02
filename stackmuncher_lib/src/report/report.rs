@@ -134,8 +134,9 @@ pub struct Report {
     pub per_file_tech: HashSet<Tech>,
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub unprocessed_file_names: HashSet<String>,
+    /// A list of all file extensions used in the project with the number of times they were encountered.
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
-    pub unknown_file_types: HashSet<KeywordCounter>,
+    pub file_types: HashSet<KeywordCounter>,
     /// S3 keys of the reports from `report_s3_name` merged into a combined user or org report
     /// This attribute was depricated in favour of projects_included, but has to be in use until
     /// https://github.com/stackmuncher/stm-html/issues/8 is resolved.
@@ -181,7 +182,7 @@ impl Report {
     pub const MAX_FILES_PER_REPO: usize = 10000;
 
     /// All project reports created prior to this date must be reprocessed
-    pub const REPORT_FORMAT_VERSION: &'static str = "2021-10-27T01:45:00+00:00";
+    pub const REPORT_FORMAT_VERSION: &'static str = "2021-11-02T00:23:00+00:00";
 
     /// Adds up `tech` totals from `other_report` into `self`, clears unprocessed files and unknown extensions.
     pub fn merge(merge_into: Option<Self>, other_report: Self) -> Option<Self> {
@@ -228,8 +229,8 @@ impl Report {
             }
 
             // merge unknown_file_types
-            for uft in other_report.unknown_file_types {
-                merge_into_inner.unknown_file_types.increment_counters(uft);
+            for uft in other_report.file_types {
+                merge_into_inner.file_types.increment_counters(uft);
             }
 
             // collect names of sub-reports in an array for easy retrieval
@@ -609,7 +610,7 @@ impl Report {
             per_file_tech: HashSet::new(),
             timestamp: Utc::now().to_rfc3339(),
             unprocessed_file_names: HashSet::new(),
-            unknown_file_types: HashSet::new(),
+            file_types: HashSet::new(),
             github_user_name: None,
             github_repo_name: None,
             report_s3_name: String::new(),
@@ -688,22 +689,38 @@ impl Report {
     fn add_unprocessed_file(&mut self, file_name: &String) {
         // add the file name to the list
         self.unprocessed_file_names.insert(file_name.clone());
+    }
 
+    /// Adds a file extension to a set of counters. Some extensions that look like temp files are excluded.
+    pub(crate) fn add_file_type(&mut self, file_name: &String) {
         // check if this particular extension was encountered
         if let Some(position) = file_name.rfind(".") {
-            let ext = file_name.split_at(position);
+            let (_, ext) = file_name.split_at(position);
+            let ext = ext.trim_start_matches(".");
             // filter out files with no extension and files that sit in a folder
             // starting with a ., e.g. `.bin/license`
-            if !ext.1.is_empty() && ext.1.find("/").is_none() && ext.1.find("\\").is_none() {
-                let ext = KeywordCounter {
-                    k: ext.1.trim_start_matches(".").to_string(),
-                    t: None,
-                    c: 1,
-                };
-                self.unknown_file_types.increment_counters(ext);
-            } else {
-                debug!("No extension on {}", file_name);
+            // files starting or ending with _ are usually of no interest
+            if ext.len() == 0 || ext.len() > 20 || ext.starts_with("_") || ext.ends_with("_") {
+                info!("Invalid ext: {}", ext);
+                return;
             }
+
+            // validate every char in the extension - only alphanumerics, _, - are allowed
+            for chr in ext.chars() {
+                if chr == '-' || chr == '_' || chr.is_ascii_alphanumeric() {
+                    // that's a valid char, let it be
+                } else {
+                    info!("Invalid ext: {}", ext);
+                    return;
+                }
+            }
+
+            let ext = KeywordCounter {
+                k: ext.trim_start_matches(".").to_string(),
+                t: None,
+                c: 1,
+            };
+            self.file_types.increment_counters(ext);
         }
     }
 
@@ -836,6 +853,11 @@ impl Report {
         debug!("Found {} un-processed files", unprocessed_files.len());
         for f in unprocessed_files {
             report.add_unprocessed_file(f);
+        }
+
+        // get total counts per file extension
+        for file_name in &all_tree_files {
+            report.add_file_type(file_name);
         }
 
         // save the entire list of tree files in the report

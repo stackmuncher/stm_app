@@ -360,6 +360,11 @@ impl Report {
             .process_project_files(code_rules, project_dir, &blobs_to_munch, all_tree_files)
             .await?;
 
+        // count all file extensions from contributor files
+        for contributor_file in &contributor.touched_files {
+            report.add_file_type(&contributor_file.name);
+        }
+
         // copy all contributor commits from the list of project commits by commit idx
         if let Some(project_commits) = &project_report.recent_project_commits {
             let contributor_commits = contributor
