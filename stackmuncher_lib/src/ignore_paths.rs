@@ -16,7 +16,7 @@ fn test_compile_ignore_paths() {
 
 /// A list of path fragments, file names, file extensions as Regex.
 /// Files with the path matching any of regex from this list are ignored.
-const IGNORE_PATHS: [&str; 39] = [
+const IGNORE_PATHS: [&str; 40] = [
     // known framework paths
     r#"node_modules[/\\]"#,
     r#"angular[/\\]README\.md"#,
@@ -57,6 +57,7 @@ const IGNORE_PATHS: [&str; 39] = [
     r#"\.dll$"#,
     r#"\.so$"#,
     r#"\.jar$"#,
+    r#"\.pdb$"#,
     // archives
     r#"\.zip$"#,
     r#"\.rar$"#,
