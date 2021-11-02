@@ -510,7 +510,7 @@ impl Report {
             list_of_commits
                 .iter()
                 .take(list_of_commits.len().min(500))
-                .map(|log_entry| log_entry.join_commit_with_ts())
+                .filter_map(|log_entry| log_entry.join_commit_with_ts())
                 .collect(),
         );
     }
@@ -701,7 +701,7 @@ impl Report {
             // starting with a ., e.g. `.bin/license`
             // files starting or ending with _ are usually of no interest
             if ext.len() == 0 || ext.len() > 20 || ext.starts_with("_") || ext.ends_with("_") {
-                info!("Invalid ext: {}", ext);
+                debug!("Invalid ext: {}", ext);
                 return;
             }
 
@@ -710,7 +710,7 @@ impl Report {
                 if chr == '-' || chr == '_' || chr.is_ascii_alphanumeric() {
                     // that's a valid char, let it be
                 } else {
-                    info!("Invalid ext: {}", ext);
+                    debug!("Invalid ext: {}", ext);
                     return;
                 }
             }
@@ -793,7 +793,7 @@ impl Report {
         report.recent_project_commits = Some(
             git_log
                 .iter()
-                .map(|log_entry| log_entry.join_commit_with_ts())
+                .filter_map(|log_entry| log_entry.join_commit_with_ts())
                 .collect::<Vec<String>>(),
         );
 

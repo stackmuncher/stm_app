@@ -66,10 +66,16 @@ impl GitLogEntry {
 
     /// Returns a concatenated commit hash with the timestamp as a string.
     /// E.g. `e29d17e6_1627380297`. The commit hash is shortened to 8 characters.
-    pub(crate) fn join_commit_with_ts(&self) -> String {
-        [&self.sha1[..8], "_", self.date_epoch.to_string().as_str()]
-            .concat()
-            .to_owned()
+    /// Returns none if SHA1 len != 40 char.
+    pub(crate) fn join_commit_with_ts(&self) -> Option<String> {
+        if self.sha1.len() == 40 {
+            return Some([&self.sha1[..8], "_", self.date_epoch.to_string().as_str()]
+                .concat()
+                .to_owned());
+        }
+
+        error!("Invalid SHA1: {}", &self.sha1);
+        None
     }
 }
 
@@ -323,7 +329,7 @@ pub async fn get_log(
             // We don't use merge info for any particular purpose at the moment
             // potentially, the committer of the merge should get at least some credit for it
             continue;
-        } else if line.starts_with("commit ") {
+        } else if line.len() == 47 && line.starts_with("commit ") {
             // commit d5e742de653954bfae88f0e5f6c8f0a7a5f6c437
             // save the previous commit details and start a new one
             // the very first entry will be always blank, it is remove outside the loop
