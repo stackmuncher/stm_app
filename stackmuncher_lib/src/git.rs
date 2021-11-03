@@ -69,9 +69,11 @@ impl GitLogEntry {
     /// Returns none if SHA1 len != 40 char.
     pub(crate) fn join_commit_with_ts(&self) -> Option<String> {
         if self.sha1.len() == 40 {
-            return Some([&self.sha1[..8], "_", self.date_epoch.to_string().as_str()]
-                .concat()
-                .to_owned());
+            return Some(
+                [&self.sha1[..8], "_", self.date_epoch.to_string().as_str()]
+                    .concat()
+                    .to_owned(),
+            );
         }
 
         error!("Invalid SHA1: {}", &self.sha1);
@@ -241,6 +243,13 @@ pub(crate) async fn get_all_tree_files(
         .collect::<HashSet<String>>();
     let tree_all = files.len();
 
+    // remove encoded files
+    let files = files
+        .into_iter()
+        .filter_map(|file_path| octal_to_unicode_string(file_path))
+        .collect::<HashSet<String>>();
+    let encoded_count = tree_all - files.len();
+
     // remove ignored files
     let files = files
         .into_iter()
@@ -254,13 +263,36 @@ pub(crate) async fn get_all_tree_files(
         .collect::<HashSet<String>>();
 
     info!(
-        "Objects in the GIT tree: {}, ignored: {}, processing: {}",
+        "Objects in the GIT tree: {}, encoded paths: {}, ignored: {}, processing: {}",
         tree_all,
+        encoded_count,
         tree_all - files.len(),
         files.len(),
     );
 
     Ok(files)
+}
+
+/// Checks if the file name was encoded by GIT using octal sequences for non-ASCII glyphs and attempt a conversion to a normal UTF-8 string.
+/// E.g. `"LINQ\343\202\265\343\203\263\343\203\227\343\203\253.cs/.vs/LINQ\343\202\265\343\203\263\343\203\227\343\203\253.cs/v16/.suo"`
+/// Returns None if the string cannot be converted.
+fn octal_to_unicode_string(file_path: String) -> Option<String> {
+    // return as-is if not encoded
+    if !file_path.starts_with("\"") {
+        return Some(file_path);
+    }
+    // the string must be enclosed in "
+    if !file_path.ends_with("\"") {
+        error!("Invalid file name in git-log: {}", file_path);
+        return None;
+    }
+
+    // the decoding should take place here
+    // TODO: see https://github.com/stackmuncher/stm_app/issues/42
+
+    debug!("Encoded file name in git output: {}", file_path);
+
+    None
 }
 
 /// Returns TRUE if the file matches any of the ignore regex rules from `ignore_paths` module.
@@ -415,6 +447,24 @@ pub async fn get_log(
     log_entries.push(current_log_entry);
 
     debug!("Found {} commits of interest", log_entries.len());
+
+    // remove encoded files
+    let log_entries = log_entries
+        .into_iter()
+        .filter_map(|mut log_entry| {
+            log_entry.files = log_entry
+                .files
+                .into_iter()
+                .filter_map(|file_path| octal_to_unicode_string(file_path))
+                .collect::<HashSet<String>>();
+            if log_entry.files.is_empty() {
+                None
+            } else {
+                Some(log_entry)
+            }
+        })
+        .collect::<Vec<GitLogEntry>>();
+
     Ok(log_entries)
 }
 
