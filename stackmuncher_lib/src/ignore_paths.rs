@@ -16,11 +16,12 @@ fn test_compile_ignore_paths() {
 
 /// A list of path fragments, file names, file extensions as Regex.
 /// Files with the path matching any of regex from this list are ignored.
-const IGNORE_PATHS: [&str; 49] = [
+const IGNORE_PATHS: [&str; 53] = [
     // known framework paths
     r#"(?i)node_modules[/\\]"#,
     r#"(?i)angular[/\\]README\.md"#,
     r#"(?i)package-lock\.json"#,
+    r#"(?i)/vendor/"#,
     // images
     r#"(?i)\.ico$"#,
     r#"(?i)\.png$"#,
@@ -33,6 +34,8 @@ const IGNORE_PATHS: [&str; 49] = [
     r#"(?i)\.tiff$"#,
     r#"(?i)\.eps$"#,
     r#"(?i)\.webp$"#,
+    r#"(?i)\.psd$"#,
+    r#"(?i)\.webm$"#,
     // audio / video
     r#"(?i)\.mp4$"#,
     r#"(?i)\.mp3$"#,
@@ -64,6 +67,7 @@ const IGNORE_PATHS: [&str; 49] = [
     r#"(?i)\.zip$"#,
     r#"(?i)\.rar$"#,
     r#"(?i)\.tar$"#,
+    r#"(?i)\.gz$"#,
     // data files
     r#"(?i)\.csv$"#,
     r#"(?i)\.tsv$"#,
