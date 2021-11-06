@@ -3,7 +3,7 @@
   "line_endings": "unix",
   "matches": [
     {
-      "muncher": "csharp.cs"
+      "muncher": "ruby"
     }
   ]
 }

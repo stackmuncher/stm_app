@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Ruby",
+  "bracket_only": [
+    "^\\s*[{}\\[\\]][\\s;,]*$"
+  ],
+  "line_comments": [
+    "^[[:blank:]]*#.{5,}"
+  ],
+  "inline_comments": [
+    "[.[^#\\s]]+[[:blank:]]+#.{5,}"
+  ],
+  "doc_comments": [
+    "^[[:blank:]]*#[[:blank:]]*@[a-zA-Z]+.{5,}"
+  ],
+  "refs": [
+    "^[[:blank:]]*require[[:blank:]]+'([a-zA-Z0-9-_.]+)'"
+  ],
+  "packages": [
+    "(?i).add_runtime_dependency\\s+['\"]([a-zA-Z0-9-_\\.]+)['\"]",
+    "(?i).add_development_dependency\\s+['\"]([a-zA-Z0-9-_\\.]+)['\"]"
+  ]
+}
