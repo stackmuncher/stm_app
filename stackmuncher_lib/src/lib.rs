@@ -480,6 +480,40 @@ impl Report {
             }
         }
 
+        // create a unique list of unprocessed files that were touched by contributors
+        // some files may be unprocessed because they were not listed in the log, but are present in the tree
+        if let Some(contributors) = &old_report.contributors {
+            let mut touched_unprocessed_files: HashSet<&String> = HashSet::new();
+
+            for contrib in contributors.iter() {
+                // if the file is in both, touched_files and unprocessed
+                for file in &contrib.touched_files {
+                    if old_report.unprocessed_file_names.contains(&file.name) {
+                        // add it to the list
+                        touched_unprocessed_files.insert(&file.name);
+                    }
+                }
+            }
+
+            info!(
+                "Unprocessed touched files: {} out of {} all unprocessed files",
+                touched_unprocessed_files.len(),
+                old_report.unprocessed_file_names.len()
+            );
+            trace!("Unprocessed touched files: {:?}", touched_unprocessed_files);
+
+            // check if there are any unprocessed files matching file type rules
+            // this may happen when a new file type was added for an existing muncher
+            // e.g. `.erb.tt`, `.rb.tt`
+            for file_path in touched_unprocessed_files {
+                if code_rules.get_muncher(file_path).is_some() {
+                    // the muncher was changed
+                    info!("Found a new file type rule for {}", file_path);
+                    return true;
+                }
+            }
+        }
+
         info!("No changes in content or munchers. Will re-use the cached report as-is.");
         false
     }
