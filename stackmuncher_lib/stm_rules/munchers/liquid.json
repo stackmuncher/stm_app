@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Liquid",
+  "bracket_only": [
+    "^[[[:blank:]]\\-%{/]*[{}\\[\\]\\(\\)>][[:blank:];,\\-%})]*$"
+  ]
+}
