@@ -533,7 +533,7 @@ pub(crate) fn log_entries_to_list_of_blobs(git_log: &Vec<GitLogEntry>) -> ListOf
             if let Some(blob) = blobs.get_mut(file) {
                 // update the file commit info if encountered a newer file in the source
                 if blob.commit_date_epoch < log_entry.date_epoch {
-                    warn!(
+                    debug!(
                         "Wrong commit order for {}. Existing commit: {}, newer: {}",
                         file, blob.commit_sha1, log_entry.sha1
                     );
