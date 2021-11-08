@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/file-type.json",
+  "line_endings": "unix",
+  "matches": [
+    {
+      "muncher": "html"
+    }
+  ]
+}
