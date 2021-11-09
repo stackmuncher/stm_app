@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stackmuncher/stm_app/master/stackmuncher_lib/stm_rules/schemas/muncher.json",
+  "line_endings": "unix",
+  "language": "Terraform",
+  "line_comments": [
+    "^[[:blank:]]*#.{5,}"
+  ],
+  "inline_comments": [
+    "[.[^#[[:blank:]]]]+[[:blank:]]+#.{5,}"
+  ],
+  "bracket_only": [
+    "^[[:blank:]]*[{}\\[\\]\\(\\)][[:blank:]]*$",
+    "^[[:blank:]]*#[[:blank:]]*.{0,5}$"
+  ],
+  "packages": [
+    "^[[:blank:]]*source[[:blank:]]*=[[:blank:]]*\"[[:alnum:]][[[:alnum:]]-_]+/([[[:alnum:]]-_]+(?:/[[[:alnum:]]-_]+)*)\""
+  ]
+}

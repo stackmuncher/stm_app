@@ -5,37 +5,37 @@
     {
       "muncher": "cicd.appveyor.yml",
       "in_path": [
-        "(?i)appveyor\\.yml$"
+        "(?i)appveyor\\.yaml$"
       ]
     },
     {
       "muncher": "cicd.circleci.yml",
       "in_path": [
-        "(?i)circle\\.yml$"
+        "(?i)circle\\.yaml$"
       ]
     },
     {
       "muncher": "cicd.codecov.yml",
       "in_path": [
-        "(?i)codecov\\.yml$"
+        "(?i)codecov\\.yaml$"
       ]
     },
     {
       "muncher": "cicd.travis.yml",
       "in_path": [
-        "(?i)travis\\.yml$"
+        "(?i)travis\\.yaml$"
       ]
     },
     {
       "muncher": "cicd.github.yml",
       "in_path": [
-        "(?i)\\.github/workflows/.+\\.yml$"
+        "(?i)\\.github/workflows/.+\\.yaml$"
       ]
     },
     {
       "muncher": "docker.yml",
       "in_path": [
-        "(?i)docker-compose(?:\\.[[[:alnum:]]\\-_]+)*\\.yml$"
+        "(?i)docker-compose(?:\\.[[[:alnum:]]\\-_]+)*\\.yaml$"
       ]
     }
   ]
