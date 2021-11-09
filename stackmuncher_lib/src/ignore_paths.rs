@@ -16,12 +16,13 @@ fn test_compile_ignore_paths() {
 
 /// A list of path fragments, file names, file extensions as Regex.
 /// Files with the path matching any of regex from this list are ignored.
-const IGNORE_PATHS: [&str; 54] = [
+const IGNORE_PATHS: [&str; 59] = [
     // known framework paths
     r#"(?i)node_modules[/\\]"#,
     r#"(?i)angular[/\\]README\.md"#,
     r#"(?i)package-lock\.json"#,
     r#"(?i)/vendor/"#,
+    r#"(?i)/\.terraform/"#,
     // images
     r#"(?i)\.ico$"#,
     r#"(?i)\.png$"#,
@@ -74,6 +75,7 @@ const IGNORE_PATHS: [&str; 54] = [
     r#"(?i)\.tsv$"#,
     r#"(?i)\.xls$"#,
     r#"(?i)\.xlsx$"#,
+    r#"(?i)\.log$"#,
     // secrets
     r#"(?i)\.cer$"#,
     r#"(?i)\.crt$"#,
@@ -81,4 +83,8 @@ const IGNORE_PATHS: [&str; 54] = [
     r#"(?i)\.pem$"#,
     r#"(?i)\.p12$"#,
     r#"(?i)\.key$"#,
+    r#"(?i)\.tfvars$"#,
+    // cache, state and lock
+    r#"(?i)\.cache$"#,
+    r#"(?i)\.tfstate$"#,
 ];
