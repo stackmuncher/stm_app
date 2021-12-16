@@ -165,6 +165,10 @@ pub struct Report {
     /// The commits are shortened and joined with their EPOCHs in a single string. E.g. `e29d17e6_1627380297`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recent_project_commits: Option<Vec<String>>,
+    /// A unique list of all keywords found in the report for search. Normalized to lower case and sorted a-z.
+    /// Populated during merge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keywords: Option<HashSet<String>>,
 }
 
 /// A plug for Serde default
@@ -569,6 +573,9 @@ impl Report {
         if let Some(histo) = self.commit_time_histo.as_mut() {
             histo.recalculate_counts_to_percentage();
         }
+
+        // extract all keyword into a single container
+        self.update_keywords();
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -644,6 +651,7 @@ impl Report {
             commit_count_project: None,
             commit_count_contributor: None,
             commit_time_histo: None,
+            keywords: None,
         }
     }
 
@@ -992,6 +1000,40 @@ impl Report {
     /// Returns TRUE if the report is in an older format than the current version.
     pub fn is_outdated_format(&self) -> bool {
         self.parsed_timestamp() < Report::report_format_version()
+    }
+
+    /// Updated `keywords` member from all `refs` and `pkgs`. Splits words at separators like _-/@
+    pub(crate) fn update_keywords(&mut self) {
+        // create a new keywords container if none exists
+        if self.keywords.is_none() {
+            self.keywords = Some(HashSet::new());
+        }
+
+        // loop through all refs and packages adding them as keywords after normalizing
+        if let Some(keywords) = self.keywords.as_mut() {
+            for tech in &self.tech {
+                if let Some(pkgs) = &tech.pkgs_kw {
+                    for kwc in pkgs {
+                        for kw in kwc.split() {
+                            keywords.insert(kw);
+                        }
+                    }
+                }
+                // repeat the same step for keywords
+                if let Some(pkgs) = &tech.refs_kw {
+                    for kwc in pkgs {
+                        for kw in kwc.split() {
+                            keywords.insert(kw);
+                        }
+                    }
+                }
+            }
+        }
+
+        // remove the container if it's empty
+        if self.keywords.as_ref().unwrap().is_empty() {
+            self.keywords = None;
+        }
     }
 }
 

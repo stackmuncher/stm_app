@@ -103,7 +103,7 @@ pub struct CommitTimeHisto {
     )]
     pub timezone_overlap_recent: CommitTimeHistoHours,
     /// Number of working hours in overlap between the dev's active time and the 8am - 6pm working day in the specified time zone.
-    /// Timezones with negative offset are represented as 24-offset. E.g. `-6` hours will be in `h18`.
+    /// Timezones with negative offset are represented as 24-offset + the negative value. E.g. `-6` hours will be in `h18` (24-6-18).
     /// Only activity within standard deviation is included.
     #[serde(
         skip_serializing_if = "CommitTimeHistoHours::is_empty",
