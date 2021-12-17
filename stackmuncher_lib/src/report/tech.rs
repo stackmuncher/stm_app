@@ -4,6 +4,22 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tracing::{debug, trace, warn};
 
+/// Contains time-range data for its parent Tech.
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[serde(rename = "tech")]
+pub struct TechHistory {
+    /// Number of months between the first and the last commit.
+    pub months: usize,
+    /// The date of the first commit for the technology in EPOCH format.
+    pub from_date_epoch: i64,
+    /// The date of the first commit for the technology in 2018-12-09T22:29:40+01:00 format.
+    pub from_date_iso: String,
+    /// The date of the last commit for the technology in EPOCH format.
+    pub to_date_epoch: i64,
+    /// The date of the last commit for the technology in 2018-12-09T22:29:40+01:00 format.
+    pub to_date_iso: String,
+}
+
 /// # PRIVACY REMINDER
 /// Any additions to this struct should be considered for clean up before submission to stackmuncher.com
 /// to avoid sending out any info that doesn't need to be sent.
@@ -42,6 +58,11 @@ pub struct Tech {
     pub line_comments: usize,
     pub block_comments: usize,
     pub docs_comments: usize,
+    /// Historical stats for this tech record: first/last commits, LoC changes.
+    /// Populated on STM server.
+    /// See https://github.com/stackmuncher/stm_app/issues/46 for more info.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history: Option<TechHistory>,
     /// Language-specific keywords, e.g. static, class, try-catch
     #[serde(skip_serializing_if = "HashSet::is_empty", default = "HashSet::new")]
     pub keywords: HashSet<KeywordCounter>, // has to be Option<>

@@ -1,6 +1,6 @@
 use super::commit_time_histo::CommitTimeHisto;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
-use super::tech::Tech;
+use super::tech::{Tech, TechHistory};
 use super::ProjectReportOverview;
 use crate::utils::sha256::hash_str_to_sha256_as_base58;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
@@ -10,7 +10,7 @@ use flate2::Compression;
 use path_absolutize::{self, Absolutize};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
@@ -335,11 +335,18 @@ impl Report {
             }
         }
 
+        // add aggregations based on the merged data
         if let Some(mut report_inner) = merge_into.as_mut() {
             // update the commit time histogram
             CommitTimeHisto::add_commits(&mut report_inner, &other_report_overview.commits);
+
             // add the project overview
             report_inner.projects_included.push(other_report_overview);
+
+            // calculate years per technology based on project overview first/last commit
+            // it is a temporary crude guess that should be replaced with a proper calculation based on git log --numstats data
+            // see https://github.com/stackmuncher/stm_app/issues/46 for more
+            report_inner.update_history();
         }
 
         merge_into
@@ -1034,6 +1041,101 @@ impl Report {
         if self.keywords.as_ref().unwrap().is_empty() {
             self.keywords = None;
         }
+    }
+
+    /// Updates all tech/history records with a summary from other parts of the report.
+    pub(crate) fn update_history(&mut self) {
+        // calculate total years per tech from project overviews
+        let mut tech_history_map: HashMap<&String, TechHistory> = HashMap::new();
+
+        for project_overview in &self.projects_included {
+            // get from and to dates from possible sources
+            // skip to the next project overview if no data can be found
+            let date_from = match &project_overview.contributor_first_commit {
+                Some(v) => v,
+                None => match &project_overview.date_init {
+                    Some(v) => v,
+                    None => {
+                        warn!("No 1st commit or repo init date in {}", project_overview.project_name);
+                        continue;
+                    }
+                },
+            };
+            let date_to = match &project_overview.contributor_last_commit {
+                Some(v) => v,
+                None => match &project_overview.date_head {
+                    Some(v) => v,
+                    None => {
+                        warn!("No last commit or repo head date in {}", project_overview.project_name);
+                        continue;
+                    }
+                },
+            };
+
+            // convert strings into DateTime
+            let date_from = match DateTime::parse_from_rfc3339(&date_from) {
+                Err(e) => {
+                    error!("Invalid 1st or init commit date: {} ({}). Expected RFC3339 format.", date_from, e);
+                    continue;
+                }
+                Ok(v) => v.date().and_hms(0, 0, 0).with_timezone(&Utc),
+            };
+            let date_to = match DateTime::parse_from_rfc3339(&date_to) {
+                Err(e) => {
+                    error!("Invalid last or HEAD commit date: {} ({}). Expected RFC3339 format.", date_to, e);
+                    continue;
+                }
+                Ok(v) => v.date().and_hms(0, 0, 0).with_timezone(&Utc),
+            };
+
+            // loop through every tech in the project overview to update from/to ranges
+            for tech in &project_overview.tech {
+                // get a reference to the existing tech history
+                let tech_history = match tech_history_map.get_mut(&tech.language) {
+                    Some(v) => v,
+                    None => {
+                        // this is the first time this tech is encountered - create a new struct, push into HashMap and continue to the next tech
+                        let th = TechHistory {
+                            months: 0,
+                            from_date_epoch: date_from.timestamp(),
+                            from_date_iso: date_from.to_rfc3339(),
+                            to_date_epoch: date_to.timestamp(),
+                            to_date_iso: date_to.to_rfc3339(),
+                        };
+                        tech_history_map.insert(&tech.language, th);
+                        continue;
+                    }
+                };
+
+                // update the date range in the tech history container
+                if tech_history.from_date_epoch > date_from.timestamp() {
+                    tech_history.from_date_epoch = date_from.timestamp();
+                    tech_history.from_date_iso = date_from.to_rfc3339()
+                }
+                if tech_history.to_date_epoch < date_to.timestamp() {
+                    tech_history.to_date_epoch = date_to.timestamp();
+                    tech_history.to_date_iso = date_to.to_rfc3339()
+                }
+            }
+        }
+
+        // update duration for every tech
+        for (_, tech) in tech_history_map.iter_mut() {
+            // calculated as 31_536_000 / 12
+            // this i64 -> usize conversion should be safe and is needed if somehow the dates are reversed and the result is negative
+            // it will simply produce a zero
+            tech.months = (tech.to_date_epoch - tech.from_date_epoch).max(0) as usize / 2_628_000;
+        }
+
+        // place the tech histories into the top level tech records of the report
+        self.tech = self
+            .tech
+            .drain()
+            .map(|mut v| {
+                v.history = tech_history_map.remove(&v.language);
+                v
+            })
+            .collect::<HashSet<Tech>>();
     }
 }
 
