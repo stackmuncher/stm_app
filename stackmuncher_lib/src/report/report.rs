@@ -324,8 +324,29 @@ impl Report {
             CommitTimeHisto::add_commits(&mut report_inner, &other_report_overview.commits);
 
             // add the project overview
-            report_inner.projects_included.push(other_report_overview);
-
+            if report_inner.projects_included.contains(&other_report_overview) {
+                // merge matching overviews
+                for po in report_inner.projects_included.iter_mut() {
+                    if po == &other_report_overview {
+                        info!(
+                            "Merging ProjOverview for owner:{:?}/{:?}, gh:{:?}/{:?} (into)",
+                            po.owner_id, po.project_id, po.github_user_name, po.github_repo_name
+                        );
+                        info!(
+                            "Merging ProjOverview for owner:{:?}/{:?}, gh:{:?}/{:?} (from)",
+                            other_report_overview.owner_id,
+                            other_report_overview.project_id,
+                            other_report_overview.github_user_name,
+                            other_report_overview.github_repo_name
+                        );
+                        po.merge(other_report_overview);
+                        break;
+                    }
+                }
+            } else {
+                // insert as-is
+                report_inner.projects_included.push(other_report_overview);
+            }
             // calculate years per technology based on project overview first/last commit
             // it is a temporary crude guess that should be replaced with a proper calculation based on git log --numstats data
             // see https://github.com/stackmuncher/stm_app/issues/46 for more

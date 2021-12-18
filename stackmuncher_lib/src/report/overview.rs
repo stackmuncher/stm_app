@@ -245,6 +245,89 @@ impl super::report::Report {
     }
 }
 
+impl ProjectReportOverview {
+    /// Add metrics from another project overview into this one.
+    pub(crate) fn merge(&mut self, rhs: Self) {
+        // merge list of commits while maintaining it unique
+        if let Some(rhs_commits) = rhs.commits {
+            self.commits = if let Some(commits) = self.commits.as_mut() {
+                // merge
+                let mut commits = commits.drain(1..).collect::<HashSet<String>>();
+                for commit in rhs_commits {
+                    commits.insert(commit);
+                }
+                Some(commits.drain().collect::<Vec<String>>())
+            } else {
+                // add all - should never happen, but since it is Option it may happen
+                Some(rhs_commits)
+            };
+        }
+
+        self.commit_count += rhs.commit_count;
+
+        // contributor_first_commit if earlier
+        if self.contributor_first_commit.is_none()
+            || (rhs.contributor_first_commit.is_some()
+                && rhs.contributor_first_commit.as_ref() < self.contributor_first_commit.as_ref())
+        {
+            self.contributor_first_commit = rhs.contributor_first_commit;
+        }
+
+        // contributor_last_commit if later
+        if self.contributor_last_commit.is_none()
+            || (rhs.contributor_last_commit.is_some()
+                && rhs.contributor_last_commit.as_ref() > self.contributor_last_commit.as_ref())
+        {
+            self.contributor_last_commit = rhs.contributor_last_commit;
+        }
+
+        // date_init if earlier
+        if self.date_init.is_none() || (rhs.date_init.is_some() && rhs.date_init.as_ref() < self.date_init.as_ref()) {
+            self.date_init = rhs.date_init;
+        }
+
+        // date_head if later
+        // update some other counts from the latest overview
+        if self.date_head.is_none() || (rhs.date_head.is_some() && rhs.date_head.as_ref() > self.date_head.as_ref()) {
+            self.date_head = rhs.date_head;
+
+            // the later overview has the right project totals
+            self.libs_project = rhs.libs_project;
+            self.loc_project = rhs.loc_project;
+            self.commit_count_project = rhs.commit_count_project;
+            self.ppl = rhs.ppl;
+            self.project_name = rhs.project_name;
+        }
+
+        // merge individual tech records
+        let mut techs = self
+            .tech
+            .drain()
+            .map(|v| (v.language.clone(), v))
+            .collect::<HashMap<String, TechOverview>>();
+        for rhs_tech in rhs.tech {
+            if let Some(tech) = techs.get_mut(&rhs_tech.language) {
+                // update the existing tech record
+                tech.loc = tech.loc.max(rhs_tech.loc);
+                tech.libs = tech.libs.max(rhs_tech.libs);
+            } else {
+                // new tech - insert as is
+                techs.insert(rhs_tech.language.clone(), rhs_tech);
+            }
+        }
+
+        // recalculate totals and LoC percentage
+        self.loc = techs.iter().map(|(_, t)| t.loc).sum::<usize>();
+        self.libs = techs.iter().map(|(_, t)| t.libs).sum::<usize>();
+        for (_, tech) in techs.iter_mut() {
+            tech.loc_percentage = tech.loc * 100 / self.loc;
+        }
+
+        // return the list of technologies back into self
+        self.tech = techs.into_values().collect::<HashSet<TechOverview>>();
+    }
+}
+
 /// Resets the time component by converting ISO dates like `2020-07-28T14:30:50-07:00` into `2020-07-28T00:00:00+00:00`
 fn commit_timestamp_to_date(timestamp: &Option<String>) -> Option<String> {
     // a russian doll of safe unwraps to get to the end of the formatting
