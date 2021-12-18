@@ -118,8 +118,6 @@ pub struct Report {
     /// Total number of commits in the repo. Valid for repo and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub commit_count_project: Option<usize>,
-    /// SHA1 of the first commit made by the contributor.
-    /// Used in contributor reports only and is blank in project reports.
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
     /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -308,26 +306,11 @@ impl Report {
                 }
             }
 
-            // only contributor IDs are getting merged
-            if let Some(contributor_git_ids) = other_report.contributor_git_ids {
-                // this should not happen often, but check just in case if there is no hashset
-                if merge_into_inner.contributor_git_ids.is_none() {
-                    warn!("Missing contributor ids in the master report");
-                    merge_into_inner.contributor_git_ids = Some(HashSet::new());
-                }
-                for contributor_git_id in contributor_git_ids {
-                    merge_into_inner
-                        .contributor_git_ids
-                        .as_mut()
-                        .unwrap()
-                        .insert(contributor_git_id);
-                }
-            } else {
-                // contributor_git_ids are None in contributor reports - only display a warning for GitHub projects
-                if other_report.git_ids_included.is_empty() {
-                    info!("Missing contributor list in other_report");
-                }
-            };
+            // add contributor IDs from the other report
+            for contributor_git_id in other_report.git_ids_included {
+                debug!("Adding git_id: {}", contributor_git_id);
+                merge_into_inner.git_ids_included.insert(contributor_git_id);
+            }
 
             // copy the dev identity if the other report is newer by its timestamp
             if other_report.timestamp > merge_into_inner.timestamp {
