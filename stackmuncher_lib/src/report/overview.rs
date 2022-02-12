@@ -11,11 +11,11 @@ pub struct TechOverview {
     /// The same as Tech.language
     pub language: String,
     /// Lines Of Code including blank lines
-    pub loc: usize,
+    pub loc: u64,
     /// Total number of unique library names
-    pub libs: usize,
+    pub libs: u64,
     /// Percentage of the LoC for this tech from the total LoC for the project
-    pub loc_percentage: usize,
+    pub loc_percentage: u64,
 }
 
 impl std::hash::Hash for TechOverview {
@@ -77,28 +77,28 @@ pub struct ProjectReportOverview {
     /// Lines Of Code (excludes blank lines) to show the size of the contribution.
     /// The value is set to zero in full project reports.
     #[serde(default)]
-    pub loc: usize,
+    pub loc: u64,
     /// Total number of unique library names to show the breadth of the contribution
     /// /// The value is set to zero in full project reports.
     #[serde(default)]
-    pub libs: usize,
+    pub libs: u64,
     /// Lines Of Code (excludes blank lines) to show the size of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(default)]
-    pub loc_project: usize,
+    pub loc_project: u64,
     /// Total number of unique library names to show the breadth of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(default)]
-    pub libs_project: usize,
+    pub libs_project: u64,
     /// Total number of contributors to show the size of the team.
     #[serde(default)]
-    pub ppl: usize,
+    pub ppl: u64,
     /// Total number of commits by the contributor, if there is one.
     #[serde(default)]
-    pub commit_count: usize,
+    pub commit_count: u64,
     /// Total number of commits in the repo.
     #[serde(default)]
-    pub commit_count_project: usize,
+    pub commit_count_project: u64,
     /// Stats per stack technology.
     pub tech: HashSet<TechOverview>,
     /// The last N commits for matching reports to projects.
@@ -153,7 +153,7 @@ impl Tech {
             // this is not a good way of doing it
             // there will be some overlap between pkgs and refs,
             // but getting a unique list is not that straight forward and is language specific
-            libs: self.pkgs.len() + self.refs.len(),
+            libs: self.pkgs.len() as u64 + self.refs.len() as u64,
         }
     }
 }
@@ -183,15 +183,15 @@ impl super::report::Report {
             .collect::<HashSet<TechOverview>>();
 
         // collect summary
-        let loc = tech_overviews.iter().map(|t| t.loc).sum::<usize>();
-        let libs = tech_overviews.iter().map(|t| t.libs).sum::<usize>();
+        let loc = tech_overviews.iter().map(|t| t.loc).sum::<u64>();
+        let libs = tech_overviews.iter().map(|t| t.libs).sum::<u64>();
         // contributor reports do not have a list of contributors, but may have the number copied from the project
         let ppl = match self.contributor_count {
             Some(v) => v,
             None => match &self.contributors {
                 // if no summary is present, try to get the value from the list of contributors
                 // it will only be present in the full project report
-                Some(c) => c.len(),
+                Some(c) => c.len() as u64,
                 None => 0,
             },
         };
@@ -317,8 +317,8 @@ impl ProjectReportOverview {
         }
 
         // recalculate totals and LoC percentage
-        self.loc = techs.iter().map(|(_, t)| t.loc).sum::<usize>();
-        self.libs = techs.iter().map(|(_, t)| t.libs).sum::<usize>();
+        self.loc = techs.iter().map(|(_, t)| t.loc).sum::<u64>();
+        self.libs = techs.iter().map(|(_, t)| t.libs).sum::<u64>();
         for (_, tech) in techs.iter_mut() {
             tech.loc_percentage = tech.loc * 100 / self.loc;
         }

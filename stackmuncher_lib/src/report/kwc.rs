@@ -10,7 +10,7 @@ pub struct KeywordCounter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub t: Option<HashSet<String>>,
     /// count
-    pub c: usize,
+    pub c: u64,
 }
 
 pub(crate) trait KeywordCounterSet {
@@ -67,7 +67,7 @@ impl KeywordCounterSet for HashSet<KeywordCounter> {
 
 impl KeywordCounter {
     /// Returns Self with `t` as `None`. Panics if `keyword` is empty.
-    pub(crate) fn new_keyword(keyword: String, count: usize) -> Self {
+    pub(crate) fn new_keyword(keyword: String, count: u64) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_keyword");
         }
@@ -80,7 +80,7 @@ impl KeywordCounter {
     }
 
     /// Splits `keyword` into `k` and `t`. Panics if `keyword` is empty.
-    pub(crate) fn new_ref(keyword: String, count: usize) -> Self {
+    pub(crate) fn new_ref(keyword: String, count: u64) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_ref");
         }

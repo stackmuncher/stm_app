@@ -24,12 +24,12 @@ pub struct Contributor {
     /// This can be taken from counting the number of entries in `commits` property, but that may be capped
     /// in the future, so it's easier to have a separate counter.
     #[serde(default)]
-    pub commit_count: usize,
+    pub commit_count: u64,
     /// The list of files touched by this contributor as FileName/CommitSHA1 tuple.
     pub touched_files: HashSet<ContributorFile>,
     /// A list of pointers at contributor commits in recent project commits member of Report.
     #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::new")]
-    pub commits: Vec<usize>,
+    pub commits: Vec<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq)]
@@ -96,7 +96,8 @@ impl Contributor {
                 }
 
                 // add the commit to the list of contributor commits
-                contributor.commits.push(commit_idx);
+                // the cast should be safe because the max number of commits within a project is well within u64 bounds
+                contributor.commits.push(commit_idx as u64);
             } else {
                 // it's a new contributor - add as-is
 
@@ -113,7 +114,7 @@ impl Contributor {
                 }
 
                 // add the commit to the list of contributor commits
-                let contr_commits_list = vec![commit_idx];
+                let contr_commits_list = vec![commit_idx as u64];
 
                 // init the contributor
                 let contributor = Contributor {
@@ -147,7 +148,7 @@ impl Contributor {
                 .collect::<HashSet<ContributorFile>>();
 
             // this line will need to move if the list of commits is capped
-            contributor.commit_count = contributor.commits.len();
+            contributor.commit_count = contributor.commits.len() as u64;
 
             output_collector.push(contributor);
         }

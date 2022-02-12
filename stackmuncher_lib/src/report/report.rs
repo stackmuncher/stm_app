@@ -103,21 +103,21 @@ pub struct Report {
     /// Contributors only have their own contributor ID included, so it is not possible to say how big the team
     /// was just by looking at the contributor report.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contributor_count: Option<usize>,
+    pub contributor_count: Option<u64>,
     /// Lines Of Code (excludes blank lines) to show the size of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub loc_project: Option<usize>,
+    pub loc_project: Option<u64>,
     /// Total number of unique library names to show the breadth of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub libs_project: Option<usize>,
+    pub libs_project: Option<u64>,
     /// Total number of commits by the contributor, if there is one. Valid for contributor reports only.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub commit_count_contributor: Option<usize>,
+    pub commit_count_contributor: Option<u64>,
     /// Total number of commits in the repo. Valid for repo and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub commit_count_project: Option<usize>,
+    pub commit_count_project: Option<u64>,
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
     /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,7 +181,7 @@ impl Report {
     /// Repos with this more files than this are ignored
     /// This is a temporary measure. The file count should be taken after some files were ignored,
     /// but since ignoring files like nodejs modules is not implemented we'll just ignore such repos.
-    pub const MAX_FILES_PER_REPO: usize = 10000;
+    pub const MAX_FILES_PER_REPO: u64 = 10000;
 
     /// All project reports created prior to this date must be reprocessed
     pub const REPORT_FORMAT_VERSION: &'static str = "2021-11-02T00:23:00+00:00";
@@ -782,7 +782,7 @@ impl Report {
         let mut report = self;
         debug!("Adding commit history");
 
-        report.commit_count_project = Some(git_log.len());
+        report.commit_count_project = Some(git_log.len() as u64);
 
         // get the date of the last commit
         if let Some(commit) = git_log.iter().next() {
@@ -833,7 +833,7 @@ impl Report {
                 .contributors
                 .as_ref()
                 .expect("Cannot unwrap report.contributor_git_ids. It's a bug")
-                .len(),
+                .len() as u64,
         );
 
         report
@@ -978,8 +978,13 @@ impl Report {
     /// Updates itself with total counts for `loc_project` and `libs_project`.
     pub(crate) fn with_summary(self) -> Self {
         // collect summary
-        let loc_project = Some(self.tech.iter().map(|t| t.code_lines).sum::<usize>());
-        let libs_project = Some(self.tech.iter().map(|t| t.refs.len() + t.pkgs.len()).sum::<usize>());
+        let loc_project = Some(self.tech.iter().map(|t| t.code_lines).sum::<u64>());
+        let libs_project = Some(
+            self.tech
+                .iter()
+                .map(|t| t.refs.len() as u64 + t.pkgs.len() as u64)
+                .sum::<u64>(),
+        );
 
         Self {
             loc_project,
@@ -1126,9 +1131,9 @@ impl Report {
         // update duration for every tech
         for (_, tech) in tech_history_map.iter_mut() {
             // calculated as 31_536_000 / 12
-            // this i64 -> usize conversion should be safe and is needed if somehow the dates are reversed and the result is negative
+            // this i64 -> u64 conversion should be safe and is needed if somehow the dates are reversed and the result is negative
             // it will simply produce a zero
-            tech.months = (tech.to_date_epoch - tech.from_date_epoch).max(0) as usize / 2_628_000;
+            tech.months = (tech.to_date_epoch - tech.from_date_epoch).max(0) as u64 / 2_628_000;
         }
 
         // place the tech histories into the top level tech records of the report
@@ -1177,19 +1182,19 @@ mod test_report {
         let r2: Report = serde_json::from_reader(r2).unwrap();
 
         // calculate the expected sums of files
-        let cs_files: usize = r1
+        let cs_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| if t.language == "C#" { t.files } else { 0 })
             .sum();
-        let md_files: usize = r1
+        let md_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| if t.language == "Markdown" { t.files } else { 0 })
             .sum();
-        let ps1_files: usize = r1
+        let ps1_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
@@ -1197,26 +1202,26 @@ mod test_report {
             .sum();
 
         // do the same for refs and pkgs in C#
-        let cs_refs: usize = r1
+        let cs_refs: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.refs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
                 }
             })
             .sum();
-        let cs_pkgs: usize = r1
+        let cs_pkgs: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.pkgs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
@@ -1248,12 +1253,12 @@ mod test_report {
         }
 
         // compare number of refs and pkgs for C#
-        let cs_refs_rm: usize = rm
+        let cs_refs_rm: u64 = rm
             .tech
             .iter()
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.refs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
@@ -1263,12 +1268,12 @@ mod test_report {
         println!("Refs counts, merged: {}, expected {}", cs_refs_rm, cs_refs);
         assert_eq!(cs_refs_rm, cs_refs, "C# refs count");
 
-        let cs_pkgs_rm: usize = rm
+        let cs_pkgs_rm: u64 = rm
             .tech
             .iter()
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.pkgs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0

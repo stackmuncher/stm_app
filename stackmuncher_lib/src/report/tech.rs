@@ -9,7 +9,7 @@ use tracing::{debug, trace, warn};
 #[serde(rename = "tech")]
 pub struct TechHistory {
     /// Number of months between the first and the last commit.
-    pub months: usize,
+    pub months: u64,
     /// The date of the first commit for the technology in EPOCH format.
     pub from_date_epoch: i64,
     /// The date of the first commit for the technology in 2018-12-09T22:29:40+01:00 format.
@@ -49,15 +49,15 @@ pub struct Tech {
     /// Not present in combined tech reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub commit_date_iso: Option<String>,
-    pub files: usize,
-    pub total_lines: usize,
-    pub blank_lines: usize,
-    pub bracket_only_lines: usize,
-    pub code_lines: usize,
-    pub inline_comments: usize,
-    pub line_comments: usize,
-    pub block_comments: usize,
-    pub docs_comments: usize,
+    pub files: u64,
+    pub total_lines: u64,
+    pub blank_lines: u64,
+    pub bracket_only_lines: u64,
+    pub code_lines: u64,
+    pub inline_comments: u64,
+    pub line_comments: u64,
+    pub block_comments: u64,
+    pub docs_comments: u64,
     /// Historical stats for this tech record: first/last commits, LoC changes.
     /// Populated on STM server.
     /// See https://github.com/stackmuncher/stm_app/issues/46 for more info.
@@ -153,7 +153,7 @@ impl Tech {
         kw_counter: &mut HashSet<KeywordCounter>,
         kw_counter_factory: &B,
     ) where
-        B: Fn(String, usize) -> KeywordCounter,
+        B: Fn(String, u64) -> KeywordCounter,
     {
         // process if there is a regex in the list of rules
         if let Some(v) = regex {

@@ -10,54 +10,54 @@ pub const RECENT_PERIOD_LENGTH_IN_DAYS: i64 = 365;
 /// The structure is skipped in JSON if all values are zero and is initialized to all zeros to have fewer Option<T> unwraps.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommitTimeHistoHours {
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h00: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h01: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h02: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h03: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h04: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h05: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h06: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h07: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h08: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h09: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h10: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h11: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h12: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h13: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h14: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h15: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h16: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h17: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h18: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h19: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h20: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h21: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h22: usize,
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub h23: usize,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h00: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h01: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h02: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h03: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h04: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h05: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h06: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h07: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h08: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h09: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h10: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h11: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h12: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h13: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h14: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h15: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h16: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h17: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h18: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h19: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h20: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h21: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h22: u64,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub h23: u64,
 }
 
 /// Contains members and methods related to commit time histogram
@@ -65,12 +65,12 @@ pub struct CommitTimeHistoHours {
 pub struct CommitTimeHisto {
     /// The sum of all commits included in `histogram_recent`. This value is used as the 100% of all recent commits.
     /// The value is populated once after all commits have been added.
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub histogram_recent_sum: usize,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub histogram_recent_sum: u64,
     /// The sum of all commits included in `histogram_all`. This value is used as the 100% of all commits.
     /// The value is populated once after all commits have been added.
-    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "usize::default")]
-    pub histogram_all_sum: usize,
+    #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
+    pub histogram_all_sum: u64,
 
     /// The standard deviation of `histogram_recent` values.
     #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero_f64", default = "f64::default")]
@@ -114,7 +114,7 @@ pub struct CommitTimeHisto {
 
 impl CommitTimeHistoHours {
     /// A helper function for serde. Returns true if the value is zero.
-    fn is_zero(val: &usize) -> bool {
+    fn is_zero(val: &u64) -> bool {
         val == &0
     }
 
@@ -188,7 +188,7 @@ impl CommitTimeHistoHours {
     }
 
     /// Converts `hxx` values from the number of commits to percentage.
-    fn convert_counts_to_percentage(&mut self, sum: usize) {
+    fn convert_counts_to_percentage(&mut self, sum: u64) {
         if sum == 0 {
             return;
         }
@@ -196,30 +196,30 @@ impl CommitTimeHistoHours {
         // convert the sum into f64 to allow for rounding of the fraction after doing division
         let sum = sum as f64;
         // re-calculate every member
-        self.h00 = (self.h00 as f64 * 100.0 / sum).round() as usize;
-        self.h01 = (self.h01 as f64 * 100.0 / sum).round() as usize;
-        self.h02 = (self.h02 as f64 * 100.0 / sum).round() as usize;
-        self.h03 = (self.h03 as f64 * 100.0 / sum).round() as usize;
-        self.h04 = (self.h04 as f64 * 100.0 / sum).round() as usize;
-        self.h05 = (self.h05 as f64 * 100.0 / sum).round() as usize;
-        self.h06 = (self.h06 as f64 * 100.0 / sum).round() as usize;
-        self.h07 = (self.h07 as f64 * 100.0 / sum).round() as usize;
-        self.h08 = (self.h08 as f64 * 100.0 / sum).round() as usize;
-        self.h09 = (self.h09 as f64 * 100.0 / sum).round() as usize;
-        self.h10 = (self.h10 as f64 * 100.0 / sum).round() as usize;
-        self.h11 = (self.h11 as f64 * 100.0 / sum).round() as usize;
-        self.h12 = (self.h12 as f64 * 100.0 / sum).round() as usize;
-        self.h13 = (self.h13 as f64 * 100.0 / sum).round() as usize;
-        self.h14 = (self.h14 as f64 * 100.0 / sum).round() as usize;
-        self.h15 = (self.h15 as f64 * 100.0 / sum).round() as usize;
-        self.h16 = (self.h16 as f64 * 100.0 / sum).round() as usize;
-        self.h17 = (self.h17 as f64 * 100.0 / sum).round() as usize;
-        self.h18 = (self.h18 as f64 * 100.0 / sum).round() as usize;
-        self.h19 = (self.h19 as f64 * 100.0 / sum).round() as usize;
-        self.h20 = (self.h20 as f64 * 100.0 / sum).round() as usize;
-        self.h21 = (self.h21 as f64 * 100.0 / sum).round() as usize;
-        self.h22 = (self.h22 as f64 * 100.0 / sum).round() as usize;
-        self.h23 = (self.h23 as f64 * 100.0 / sum).round() as usize;
+        self.h00 = (self.h00 as f64 * 100.0 / sum).round() as u64;
+        self.h01 = (self.h01 as f64 * 100.0 / sum).round() as u64;
+        self.h02 = (self.h02 as f64 * 100.0 / sum).round() as u64;
+        self.h03 = (self.h03 as f64 * 100.0 / sum).round() as u64;
+        self.h04 = (self.h04 as f64 * 100.0 / sum).round() as u64;
+        self.h05 = (self.h05 as f64 * 100.0 / sum).round() as u64;
+        self.h06 = (self.h06 as f64 * 100.0 / sum).round() as u64;
+        self.h07 = (self.h07 as f64 * 100.0 / sum).round() as u64;
+        self.h08 = (self.h08 as f64 * 100.0 / sum).round() as u64;
+        self.h09 = (self.h09 as f64 * 100.0 / sum).round() as u64;
+        self.h10 = (self.h10 as f64 * 100.0 / sum).round() as u64;
+        self.h11 = (self.h11 as f64 * 100.0 / sum).round() as u64;
+        self.h12 = (self.h12 as f64 * 100.0 / sum).round() as u64;
+        self.h13 = (self.h13 as f64 * 100.0 / sum).round() as u64;
+        self.h14 = (self.h14 as f64 * 100.0 / sum).round() as u64;
+        self.h15 = (self.h15 as f64 * 100.0 / sum).round() as u64;
+        self.h16 = (self.h16 as f64 * 100.0 / sum).round() as u64;
+        self.h17 = (self.h17 as f64 * 100.0 / sum).round() as u64;
+        self.h18 = (self.h18 as f64 * 100.0 / sum).round() as u64;
+        self.h19 = (self.h19 as f64 * 100.0 / sum).round() as u64;
+        self.h20 = (self.h20 as f64 * 100.0 / sum).round() as u64;
+        self.h21 = (self.h21 as f64 * 100.0 / sum).round() as u64;
+        self.h22 = (self.h22 as f64 * 100.0 / sum).round() as u64;
+        self.h23 = (self.h23 as f64 * 100.0 / sum).round() as u64;
     }
 
     /// Converts `hxx` values from the number of commits to percentage.
@@ -258,7 +258,7 @@ impl CommitTimeHistoHours {
     }
 
     /// Returns the sum of all `hxx` members.
-    fn sum(&self) -> usize {
+    fn sum(&self) -> u64 {
         self.h00
             + self.h01
             + self.h02
@@ -289,13 +289,13 @@ impl CommitTimeHistoHours {
     /// Only commit hours above the standard deviation (std) are included.
     fn overlap(&self, std: f64) -> Self {
         // copy the commit counts into an array for easy referencing in a loop
-        let commit_counts: [usize; 24] = [
+        let commit_counts: [u64; 24] = [
             self.h00, self.h01, self.h02, self.h03, self.h04, self.h05, self.h06, self.h07, self.h08, self.h09,
             self.h10, self.h11, self.h12, self.h13, self.h14, self.h15, self.h16, self.h17, self.h18, self.h19,
             self.h20, self.h21, self.h22, self.h23,
         ];
 
-        let mut tz_overlap: [usize; 24] = [0; 24];
+        let mut tz_overlap: [u64; 24] = [0; 24];
 
         // populate an array for all possible timezones with the number of overlapping hours
         for tz in 0..23 {
@@ -315,7 +315,7 @@ impl CommitTimeHistoHours {
                         0
                     }
                 })
-                .sum::<usize>();
+                .sum::<u64>();
         }
 
         Self {

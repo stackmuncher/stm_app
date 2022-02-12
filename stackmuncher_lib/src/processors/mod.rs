@@ -72,7 +72,7 @@ pub(crate) async fn process_file(
     }
 
     // get total lines
-    tech.total_lines = lines.len();
+    tech.total_lines = lines.len() as u64;
 
     // set to true when the line is inside a block comment
     let mut inside_block_comment = false;
