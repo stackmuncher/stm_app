@@ -16,6 +16,23 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
 
+/// Contains the number of elements per list to help with DB queries.
+/// The numbers are calculated once before saving the Report in the DB.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ListCounts {
+    tech: u64,
+    contributor_git_ids: u64,
+    per_file_tech: u64,
+    file_types: u64,
+    reports_included: u64,
+    projects_included: u64,
+    git_ids_included: u64,
+    contributors: u64,
+    tree_files: u64,
+    recent_project_commits: u64,
+    keywords: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename = "tech")]
 pub struct Report {
@@ -122,6 +139,10 @@ pub struct Report {
     /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributor_git_ids: Option<HashSet<String>>,
+    /// Contains the number of elements per list contained in this report to help with DB queries.
+    /// The values are calculated once before saving the reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list_counts: Option<ListCounts>,
     /// Combined summary per technology, e.g. Rust, C# or CSS
     /// This member can be shared publicly after some clean up
     pub tech: HashSet<Tech>,
@@ -532,6 +553,34 @@ impl Report {
 
     /// Removes some sections that make no sense in the combined report.
     pub fn reset_combined_dev_report<'a>(&mut self) {
+        // calculate lengths of lists before they get cleaned up
+        debug!("Calculating counts of all report lists");
+        let mut list_counts = ListCounts {
+            tech: self.tech.len() as u64,
+            contributor_git_ids: match &self.contributor_git_ids {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            per_file_tech: self.per_file_tech.len() as u64,
+            file_types: self.file_types.len() as u64,
+            reports_included: self.reports_included.len() as u64,
+            projects_included: self.projects_included.len() as u64,
+            git_ids_included: self.git_ids_included.len() as u64,
+            contributors: match &self.contributors {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            tree_files: match &self.tree_files {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            recent_project_commits: match &self.recent_project_commits {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            keywords: 0,
+        };
+
         self.contributors = None;
         self.tree_files = None;
         self.report_commit_sha1 = None;
@@ -587,6 +636,13 @@ impl Report {
 
         // extract all keyword into a single container
         self.update_keywords();
+
+        // update the counts with the length of the keywords collection and add it all to the report
+        list_counts.keywords = match &self.keywords {
+            Some(v) => v.len() as u64,
+            None => 0,
+        };
+        self.list_counts = Some(list_counts);
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -663,6 +719,7 @@ impl Report {
             commit_count_contributor: None,
             commit_time_histo: None,
             keywords: None,
+            list_counts: None,
         }
     }
 
