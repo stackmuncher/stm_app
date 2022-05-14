@@ -1,6 +1,6 @@
 use super::commit_time_histo::CommitTimeHisto;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
-use super::tech::Tech;
+use super::tech::{Tech, TechHistory};
 use super::ProjectReportOverview;
 use crate::utils::sha256::hash_str_to_sha256_as_base58;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
@@ -10,11 +10,28 @@ use flate2::Compression;
 use path_absolutize::{self, Absolutize};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use tracing::{debug, error, info, warn};
+
+/// Contains the number of elements per list to help with DB queries.
+/// The numbers are calculated once before saving the Report in the DB.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ListCounts {
+    tech: u64,
+    contributor_git_ids: u64,
+    per_file_tech: u64,
+    file_types: u64,
+    reports_included: u64,
+    projects_included: u64,
+    git_ids_included: u64,
+    contributors: u64,
+    tree_files: u64,
+    recent_project_commits: u64,
+    keywords: u64,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename = "tech")]
@@ -103,27 +120,29 @@ pub struct Report {
     /// Contributors only have their own contributor ID included, so it is not possible to say how big the team
     /// was just by looking at the contributor report.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contributor_count: Option<usize>,
+    pub contributor_count: Option<u64>,
     /// Lines Of Code (excludes blank lines) to show the size of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub loc_project: Option<usize>,
+    pub loc_project: Option<u64>,
     /// Total number of unique library names to show the breadth of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub libs_project: Option<usize>,
+    pub libs_project: Option<u64>,
     /// Total number of commits by the contributor, if there is one. Valid for contributor reports only.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub commit_count_contributor: Option<usize>,
+    pub commit_count_contributor: Option<u64>,
     /// Total number of commits in the repo. Valid for repo and contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub commit_count_project: Option<usize>,
-    /// SHA1 of the first commit made by the contributor.
-    /// Used in contributor reports only and is blank in project reports.
+    pub commit_count_project: Option<u64>,
     /// List of names or emails of all project contributors (authors and committers) from `contributors` section.
     /// This member is only set on project reports and is missing from individual or combined contributor reports.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contributor_git_ids: Option<HashSet<String>>,
+    /// Contains the number of elements per list contained in this report to help with DB queries.
+    /// The values are calculated once before saving the reports.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list_counts: Option<ListCounts>,
     /// Combined summary per technology, e.g. Rust, C# or CSS
     /// This member can be shared publicly after some clean up
     pub tech: HashSet<Tech>,
@@ -165,6 +184,10 @@ pub struct Report {
     /// The commits are shortened and joined with their EPOCHs in a single string. E.g. `e29d17e6_1627380297`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recent_project_commits: Option<Vec<String>>,
+    /// A unique list of all keywords found in the report for search. Normalized to lower case and sorted a-z.
+    /// Populated during merge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keywords: Option<HashSet<String>>,
 }
 
 /// A plug for Serde default
@@ -179,7 +202,7 @@ impl Report {
     /// Repos with this more files than this are ignored
     /// This is a temporary measure. The file count should be taken after some files were ignored,
     /// but since ignoring files like nodejs modules is not implemented we'll just ignore such repos.
-    pub const MAX_FILES_PER_REPO: usize = 10000;
+    pub const MAX_FILES_PER_REPO: u64 = 10000;
 
     /// All project reports created prior to this date must be reprocessed
     pub const REPORT_FORMAT_VERSION: &'static str = "2021-11-02T00:23:00+00:00";
@@ -304,26 +327,11 @@ impl Report {
                 }
             }
 
-            // only contributor IDs are getting merged
-            if let Some(contributor_git_ids) = other_report.contributor_git_ids {
-                // this should not happen often, but check just in case if there is no hashset
-                if merge_into_inner.contributor_git_ids.is_none() {
-                    warn!("Missing contributor ids in the master report");
-                    merge_into_inner.contributor_git_ids = Some(HashSet::new());
-                }
-                for contributor_git_id in contributor_git_ids {
-                    merge_into_inner
-                        .contributor_git_ids
-                        .as_mut()
-                        .unwrap()
-                        .insert(contributor_git_id);
-                }
-            } else {
-                // contributor_git_ids are None in contributor reports - only display a warning for GitHub projects
-                if other_report.git_ids_included.is_empty() {
-                    info!("Missing contributor list in other_report");
-                }
-            };
+            // add contributor IDs from the other report
+            for contributor_git_id in other_report.git_ids_included {
+                debug!("Adding git_id: {}", contributor_git_id);
+                merge_into_inner.git_ids_included.insert(contributor_git_id);
+            }
 
             // copy the dev identity if the other report is newer by its timestamp
             if other_report.timestamp > merge_into_inner.timestamp {
@@ -331,11 +339,39 @@ impl Report {
             }
         }
 
+        // add aggregations based on the merged data
         if let Some(mut report_inner) = merge_into.as_mut() {
             // update the commit time histogram
             CommitTimeHisto::add_commits(&mut report_inner, &other_report_overview.commits);
+
             // add the project overview
-            report_inner.projects_included.push(other_report_overview);
+            if report_inner.projects_included.contains(&other_report_overview) {
+                // merge matching overviews
+                for po in report_inner.projects_included.iter_mut() {
+                    if po == &other_report_overview {
+                        info!(
+                            "Merging ProjOverview for owner:{:?}/{:?}, gh:{:?}/{:?} (into)",
+                            po.owner_id, po.project_id, po.github_user_name, po.github_repo_name
+                        );
+                        info!(
+                            "Merging ProjOverview for owner:{:?}/{:?}, gh:{:?}/{:?} (from)",
+                            other_report_overview.owner_id,
+                            other_report_overview.project_id,
+                            other_report_overview.github_user_name,
+                            other_report_overview.github_repo_name
+                        );
+                        po.merge(other_report_overview);
+                        break;
+                    }
+                }
+            } else {
+                // insert as-is
+                report_inner.projects_included.push(other_report_overview);
+            }
+            // calculate years per technology based on project overview first/last commit
+            // it is a temporary crude guess that should be replaced with a proper calculation based on git log --numstats data
+            // see https://github.com/stackmuncher/stm_app/issues/46 for more
+            report_inner.update_history();
         }
 
         merge_into
@@ -517,6 +553,34 @@ impl Report {
 
     /// Removes some sections that make no sense in the combined report.
     pub fn reset_combined_dev_report<'a>(&mut self) {
+        // calculate lengths of lists before they get cleaned up
+        debug!("Calculating counts of all report lists");
+        let mut list_counts = ListCounts {
+            tech: self.tech.len() as u64,
+            contributor_git_ids: match &self.contributor_git_ids {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            per_file_tech: self.per_file_tech.len() as u64,
+            file_types: self.file_types.len() as u64,
+            reports_included: self.reports_included.len() as u64,
+            projects_included: self.projects_included.len() as u64,
+            git_ids_included: self.git_ids_included.len() as u64,
+            contributors: match &self.contributors {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            tree_files: match &self.tree_files {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            recent_project_commits: match &self.recent_project_commits {
+                Some(v) => v.len() as u64,
+                None => 0,
+            },
+            keywords: 0,
+        };
+
         self.contributors = None;
         self.tree_files = None;
         self.report_commit_sha1 = None;
@@ -569,6 +633,16 @@ impl Report {
         if let Some(histo) = self.commit_time_histo.as_mut() {
             histo.recalculate_counts_to_percentage();
         }
+
+        // extract all keyword into a single container
+        self.update_keywords();
+
+        // update the counts with the length of the keywords collection and add it all to the report
+        list_counts.keywords = match &self.keywords {
+            Some(v) => v.len() as u64,
+            None => 0,
+        };
+        self.list_counts = Some(list_counts);
     }
 
     /// Returns an abridge copy with some bulky sections removed for indexing in a DB:
@@ -644,6 +718,8 @@ impl Report {
             commit_count_project: None,
             commit_count_contributor: None,
             commit_time_histo: None,
+            keywords: None,
+            list_counts: None,
         }
     }
 
@@ -763,7 +839,7 @@ impl Report {
         let mut report = self;
         debug!("Adding commit history");
 
-        report.commit_count_project = Some(git_log.len());
+        report.commit_count_project = Some(git_log.len() as u64);
 
         // get the date of the last commit
         if let Some(commit) = git_log.iter().next() {
@@ -814,7 +890,7 @@ impl Report {
                 .contributors
                 .as_ref()
                 .expect("Cannot unwrap report.contributor_git_ids. It's a bug")
-                .len(),
+                .len() as u64,
         );
 
         report
@@ -959,8 +1035,13 @@ impl Report {
     /// Updates itself with total counts for `loc_project` and `libs_project`.
     pub(crate) fn with_summary(self) -> Self {
         // collect summary
-        let loc_project = Some(self.tech.iter().map(|t| t.code_lines).sum::<usize>());
-        let libs_project = Some(self.tech.iter().map(|t| t.refs.len() + t.pkgs.len()).sum::<usize>());
+        let loc_project = Some(self.tech.iter().map(|t| t.code_lines).sum::<u64>());
+        let libs_project = Some(
+            self.tech
+                .iter()
+                .map(|t| t.refs.len() as u64 + t.pkgs.len() as u64)
+                .sum::<u64>(),
+        );
 
         Self {
             loc_project,
@@ -992,6 +1073,135 @@ impl Report {
     /// Returns TRUE if the report is in an older format than the current version.
     pub fn is_outdated_format(&self) -> bool {
         self.parsed_timestamp() < Report::report_format_version()
+    }
+
+    /// Updated `keywords` member from all `refs` and `pkgs`. Splits words at separators like _-/@
+    pub(crate) fn update_keywords(&mut self) {
+        // create a new keywords container if none exists
+        if self.keywords.is_none() {
+            self.keywords = Some(HashSet::new());
+        }
+
+        // loop through all refs and packages adding them as keywords after normalizing
+        if let Some(keywords) = self.keywords.as_mut() {
+            for tech in &self.tech {
+                if let Some(pkgs) = &tech.pkgs_kw {
+                    for kwc in pkgs {
+                        for kw in kwc.split() {
+                            keywords.insert(kw);
+                        }
+                    }
+                }
+                // repeat the same step for keywords
+                if let Some(pkgs) = &tech.refs_kw {
+                    for kwc in pkgs {
+                        for kw in kwc.split() {
+                            keywords.insert(kw);
+                        }
+                    }
+                }
+            }
+        }
+
+        // remove the container if it's empty
+        if self.keywords.as_ref().unwrap().is_empty() {
+            self.keywords = None;
+        }
+    }
+
+    /// Updates all tech/history records with a summary from other parts of the report.
+    pub(crate) fn update_history(&mut self) {
+        // calculate total years per tech from project overviews
+        let mut tech_history_map: HashMap<&String, TechHistory> = HashMap::new();
+
+        for project_overview in &self.projects_included {
+            // get from and to dates from possible sources
+            // skip to the next project overview if no data can be found
+            let date_from = match &project_overview.contributor_first_commit {
+                Some(v) => v,
+                None => match &project_overview.date_init {
+                    Some(v) => v,
+                    None => {
+                        warn!("No 1st commit or repo init date in {}", project_overview.project_name);
+                        continue;
+                    }
+                },
+            };
+            let date_to = match &project_overview.contributor_last_commit {
+                Some(v) => v,
+                None => match &project_overview.date_head {
+                    Some(v) => v,
+                    None => {
+                        warn!("No last commit or repo head date in {}", project_overview.project_name);
+                        continue;
+                    }
+                },
+            };
+
+            // convert strings into DateTime
+            let date_from = match DateTime::parse_from_rfc3339(&date_from) {
+                Err(e) => {
+                    error!("Invalid 1st or init commit date: {} ({}). Expected RFC3339 format.", date_from, e);
+                    continue;
+                }
+                Ok(v) => v.date().and_hms(0, 0, 0).with_timezone(&Utc),
+            };
+            let date_to = match DateTime::parse_from_rfc3339(&date_to) {
+                Err(e) => {
+                    error!("Invalid last or HEAD commit date: {} ({}). Expected RFC3339 format.", date_to, e);
+                    continue;
+                }
+                Ok(v) => v.date().and_hms(0, 0, 0).with_timezone(&Utc),
+            };
+
+            // loop through every tech in the project overview to update from/to ranges
+            for tech in &project_overview.tech {
+                // get a reference to the existing tech history
+                let tech_history = match tech_history_map.get_mut(&tech.language) {
+                    Some(v) => v,
+                    None => {
+                        // this is the first time this tech is encountered - create a new struct, push into HashMap and continue to the next tech
+                        let th = TechHistory {
+                            months: 0,
+                            from_date_epoch: date_from.timestamp(),
+                            from_date_iso: date_from.to_rfc3339(),
+                            to_date_epoch: date_to.timestamp(),
+                            to_date_iso: date_to.to_rfc3339(),
+                        };
+                        tech_history_map.insert(&tech.language, th);
+                        continue;
+                    }
+                };
+
+                // update the date range in the tech history container
+                if tech_history.from_date_epoch > date_from.timestamp() {
+                    tech_history.from_date_epoch = date_from.timestamp();
+                    tech_history.from_date_iso = date_from.to_rfc3339()
+                }
+                if tech_history.to_date_epoch < date_to.timestamp() {
+                    tech_history.to_date_epoch = date_to.timestamp();
+                    tech_history.to_date_iso = date_to.to_rfc3339()
+                }
+            }
+        }
+
+        // update duration for every tech
+        for (_, tech) in tech_history_map.iter_mut() {
+            // calculated as 31_536_000 / 12
+            // this i64 -> u64 conversion should be safe and is needed if somehow the dates are reversed and the result is negative
+            // it will simply produce a zero
+            tech.months = (tech.to_date_epoch - tech.from_date_epoch).max(0) as u64 / 2_628_000;
+        }
+
+        // place the tech histories into the top level tech records of the report
+        self.tech = self
+            .tech
+            .drain()
+            .map(|mut v| {
+                v.history = tech_history_map.remove(&v.language);
+                v
+            })
+            .collect::<HashSet<Tech>>();
     }
 }
 
@@ -1029,19 +1239,19 @@ mod test_report {
         let r2: Report = serde_json::from_reader(r2).unwrap();
 
         // calculate the expected sums of files
-        let cs_files: usize = r1
+        let cs_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| if t.language == "C#" { t.files } else { 0 })
             .sum();
-        let md_files: usize = r1
+        let md_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| if t.language == "Markdown" { t.files } else { 0 })
             .sum();
-        let ps1_files: usize = r1
+        let ps1_files: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
@@ -1049,26 +1259,26 @@ mod test_report {
             .sum();
 
         // do the same for refs and pkgs in C#
-        let cs_refs: usize = r1
+        let cs_refs: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.refs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
                 }
             })
             .sum();
-        let cs_pkgs: usize = r1
+        let cs_pkgs: u64 = r1
             .tech
             .iter()
             .chain(r2.tech.iter())
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.pkgs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
@@ -1100,12 +1310,12 @@ mod test_report {
         }
 
         // compare number of refs and pkgs for C#
-        let cs_refs_rm: usize = rm
+        let cs_refs_rm: u64 = rm
             .tech
             .iter()
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.refs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.refs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0
@@ -1115,12 +1325,12 @@ mod test_report {
         println!("Refs counts, merged: {}, expected {}", cs_refs_rm, cs_refs);
         assert_eq!(cs_refs_rm, cs_refs, "C# refs count");
 
-        let cs_pkgs_rm: usize = rm
+        let cs_pkgs_rm: u64 = rm
             .tech
             .iter()
             .map(|t| {
                 if t.language == "C#" {
-                    let rs: usize = t.pkgs.iter().map(|tr| tr.c).sum();
+                    let rs: u64 = t.pkgs.iter().map(|tr| tr.c).sum();
                     rs
                 } else {
                     0

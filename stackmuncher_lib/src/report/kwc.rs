@@ -10,7 +10,7 @@ pub struct KeywordCounter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub t: Option<HashSet<String>>,
     /// count
-    pub c: usize,
+    pub c: u64,
 }
 
 pub(crate) trait KeywordCounterSet {
@@ -67,7 +67,7 @@ impl KeywordCounterSet for HashSet<KeywordCounter> {
 
 impl KeywordCounter {
     /// Returns Self with `t` as `None`. Panics if `keyword` is empty.
-    pub(crate) fn new_keyword(keyword: String, count: usize) -> Self {
+    pub(crate) fn new_keyword(keyword: String, count: u64) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_keyword");
         }
@@ -80,7 +80,7 @@ impl KeywordCounter {
     }
 
     /// Splits `keyword` into `k` and `t`. Panics if `keyword` is empty.
-    pub(crate) fn new_ref(keyword: String, count: usize) -> Self {
+    pub(crate) fn new_ref(keyword: String, count: u64) -> Self {
         if keyword.is_empty() {
             error!("Empty keyword for KeywordCounter in new_ref");
         }
@@ -118,5 +118,50 @@ impl KeywordCounter {
         // return as-is if the keyword is taking the entire length
         // or starts with a boundary
         kwc
+    }
+
+    /// Splits the value in `k` into separate keywords at any non-aplhanumeric character and converts them into lowercase.
+    /// May exit early and return a blank on error. Only ASCII characters are included in the output.
+    pub(crate) fn split(&self) -> Vec<String> {
+        // a container for keywords
+        // there should be no more than 10 keywords per any kind of reference - allocate straight away
+        let mut kws: Vec<String> = Vec::new();
+        kws.reserve(10);
+
+        // a container for keyword characters
+        let mut kw: Vec<u8> = Vec::new();
+        kw.reserve(self.k.len());
+
+        // refs and packages are expected to be ASCII only
+        for k in self.k.to_lowercase().chars() {
+            if k.is_ascii_alphanumeric() {
+                let mut buf = [0_u8; 4];
+                k.encode_utf8(&mut buf);
+                // we only need the first byte because it is ASCII
+                kw.push(buf[0]);
+            } else {
+                if let Ok(kw_utf8) = String::from_utf8(kw) {
+                    if !kw_utf8.is_empty() {
+                        // e.g. ___futures___ produces a few empty strings
+                        kws.push(kw_utf8);
+                    }
+                    kw = Vec::new();
+                } else {
+                    error!("Failed to extract keywords from: {}. It's a bug.", self.k);
+                    return Vec::new();
+                }
+            }
+        }
+
+        // push remaining characters into the output container
+        if !kw.is_empty() {
+            if let Ok(kw_utf8) = String::from_utf8(kw) {
+                kws.push(kw_utf8);
+            } else {
+                error!("Failed to extract keywords from: {}. It's a bug.", self.k);
+            }
+        }
+
+        kws
     }
 }

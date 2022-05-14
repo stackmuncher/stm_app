@@ -43,7 +43,7 @@ impl Report {
 
         // get the list of files in the tree at HEAD
         let all_head_files = git::get_all_tree_files(project_dir, None, &code_rules.ignore_paths).await?;
-        if all_head_files.len() > Report::MAX_FILES_PER_REPO {
+        if all_head_files.len() as u64 > Report::MAX_FILES_PER_REPO {
             warn!("Repo ignored. Too many files: {}", all_head_files.len());
             return Err(());
         }
@@ -371,8 +371,8 @@ impl Report {
                 .commits
                 .iter()
                 .filter_map(|idx| {
-                    if project_commits.len() > *idx {
-                        Some(project_commits[*idx].clone())
+                    if project_commits.len() as u64 > *idx {
+                        Some(project_commits[*idx as usize].clone())
                     } else {
                         None
                     }

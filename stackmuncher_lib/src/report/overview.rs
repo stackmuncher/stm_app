@@ -11,11 +11,11 @@ pub struct TechOverview {
     /// The same as Tech.language
     pub language: String,
     /// Lines Of Code including blank lines
-    pub loc: usize,
+    pub loc: u64,
     /// Total number of unique library names
-    pub libs: usize,
+    pub libs: u64,
     /// Percentage of the LoC for this tech from the total LoC for the project
-    pub loc_percentage: usize,
+    pub loc_percentage: u64,
 }
 
 impl std::hash::Hash for TechOverview {
@@ -77,28 +77,28 @@ pub struct ProjectReportOverview {
     /// Lines Of Code (excludes blank lines) to show the size of the contribution.
     /// The value is set to zero in full project reports.
     #[serde(default)]
-    pub loc: usize,
+    pub loc: u64,
     /// Total number of unique library names to show the breadth of the contribution
     /// /// The value is set to zero in full project reports.
     #[serde(default)]
-    pub libs: usize,
+    pub libs: u64,
     /// Lines Of Code (excludes blank lines) to show the size of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(default)]
-    pub loc_project: usize,
+    pub loc_project: u64,
     /// Total number of unique library names to show the breadth of the project.
     /// The value is set to the size of the project in project and contributor reports.
     #[serde(default)]
-    pub libs_project: usize,
+    pub libs_project: u64,
     /// Total number of contributors to show the size of the team.
     #[serde(default)]
-    pub ppl: usize,
+    pub ppl: u64,
     /// Total number of commits by the contributor, if there is one.
     #[serde(default)]
-    pub commit_count: usize,
+    pub commit_count: u64,
     /// Total number of commits in the repo.
     #[serde(default)]
-    pub commit_count_project: usize,
+    pub commit_count_project: u64,
     /// Stats per stack technology.
     pub tech: HashSet<TechOverview>,
     /// The last N commits for matching reports to projects.
@@ -153,7 +153,7 @@ impl Tech {
             // this is not a good way of doing it
             // there will be some overlap between pkgs and refs,
             // but getting a unique list is not that straight forward and is language specific
-            libs: self.pkgs.len() + self.refs.len(),
+            libs: self.pkgs.len() as u64 + self.refs.len() as u64,
         }
     }
 }
@@ -183,15 +183,15 @@ impl super::report::Report {
             .collect::<HashSet<TechOverview>>();
 
         // collect summary
-        let loc = tech_overviews.iter().map(|t| t.loc).sum::<usize>();
-        let libs = tech_overviews.iter().map(|t| t.libs).sum::<usize>();
+        let loc = tech_overviews.iter().map(|t| t.loc).sum::<u64>();
+        let libs = tech_overviews.iter().map(|t| t.libs).sum::<u64>();
         // contributor reports do not have a list of contributors, but may have the number copied from the project
         let ppl = match self.contributor_count {
             Some(v) => v,
             None => match &self.contributors {
                 // if no summary is present, try to get the value from the list of contributors
                 // it will only be present in the full project report
-                Some(c) => c.len(),
+                Some(c) => c.len() as u64,
                 None => 0,
             },
         };
@@ -242,6 +242,89 @@ impl super::report::Report {
             commit_count: self.commit_count_contributor.as_ref().unwrap_or_else(|| &0).clone(),
             commit_count_project: self.commit_count_project.as_ref().unwrap_or_else(|| &0).clone(),
         }
+    }
+}
+
+impl ProjectReportOverview {
+    /// Add metrics from another project overview into this one.
+    pub(crate) fn merge(&mut self, rhs: Self) {
+        // merge list of commits while maintaining it unique
+        if let Some(rhs_commits) = rhs.commits {
+            self.commits = if let Some(commits) = self.commits.as_mut() {
+                // merge
+                let mut commits = commits.drain(1..).collect::<HashSet<String>>();
+                for commit in rhs_commits {
+                    commits.insert(commit);
+                }
+                Some(commits.drain().collect::<Vec<String>>())
+            } else {
+                // add all - should never happen, but since it is Option it may happen
+                Some(rhs_commits)
+            };
+        }
+
+        self.commit_count += rhs.commit_count;
+
+        // contributor_first_commit if earlier
+        if self.contributor_first_commit.is_none()
+            || (rhs.contributor_first_commit.is_some()
+                && rhs.contributor_first_commit.as_ref() < self.contributor_first_commit.as_ref())
+        {
+            self.contributor_first_commit = rhs.contributor_first_commit;
+        }
+
+        // contributor_last_commit if later
+        if self.contributor_last_commit.is_none()
+            || (rhs.contributor_last_commit.is_some()
+                && rhs.contributor_last_commit.as_ref() > self.contributor_last_commit.as_ref())
+        {
+            self.contributor_last_commit = rhs.contributor_last_commit;
+        }
+
+        // date_init if earlier
+        if self.date_init.is_none() || (rhs.date_init.is_some() && rhs.date_init.as_ref() < self.date_init.as_ref()) {
+            self.date_init = rhs.date_init;
+        }
+
+        // date_head if later
+        // update some other counts from the latest overview
+        if self.date_head.is_none() || (rhs.date_head.is_some() && rhs.date_head.as_ref() > self.date_head.as_ref()) {
+            self.date_head = rhs.date_head;
+
+            // the later overview has the right project totals
+            self.libs_project = rhs.libs_project;
+            self.loc_project = rhs.loc_project;
+            self.commit_count_project = rhs.commit_count_project;
+            self.ppl = rhs.ppl;
+            self.project_name = rhs.project_name;
+        }
+
+        // merge individual tech records
+        let mut techs = self
+            .tech
+            .drain()
+            .map(|v| (v.language.clone(), v))
+            .collect::<HashMap<String, TechOverview>>();
+        for rhs_tech in rhs.tech {
+            if let Some(tech) = techs.get_mut(&rhs_tech.language) {
+                // update the existing tech record
+                tech.loc = tech.loc.max(rhs_tech.loc);
+                tech.libs = tech.libs.max(rhs_tech.libs);
+            } else {
+                // new tech - insert as is
+                techs.insert(rhs_tech.language.clone(), rhs_tech);
+            }
+        }
+
+        // recalculate totals and LoC percentage
+        self.loc = techs.iter().map(|(_, t)| t.loc).sum::<u64>();
+        self.libs = techs.iter().map(|(_, t)| t.libs).sum::<u64>();
+        for (_, tech) in techs.iter_mut() {
+            tech.loc_percentage = tech.loc * 100 / self.loc;
+        }
+
+        // return the list of technologies back into self
+        self.tech = techs.into_values().collect::<HashSet<TechOverview>>();
     }
 }
 

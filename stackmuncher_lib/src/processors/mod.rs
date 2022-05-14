@@ -1,6 +1,6 @@
 use super::muncher::Muncher;
-use crate::report::Tech;
 use crate::git::get_blob_contents;
+use crate::report::Tech;
 use encoding_rs as _;
 use encoding_rs::WINDOWS_1252;
 use encoding_rs_io::{DecodeReaderBytes, DecodeReaderBytesBuilder};
@@ -47,6 +47,7 @@ pub(crate) async fn process_file(
         pkgs: HashSet::new(), // they should be Option<>
         pkgs_kw: None,
         muncher_hash: rules.muncher_hash,
+        history: None,
     };
 
     // get file contents as UTF
@@ -71,7 +72,7 @@ pub(crate) async fn process_file(
     }
 
     // get total lines
-    tech.total_lines = lines.len();
+    tech.total_lines = lines.len() as u64;
 
     // set to true when the line is inside a block comment
     let mut inside_block_comment = false;
