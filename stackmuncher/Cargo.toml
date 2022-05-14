@@ -5,7 +5,7 @@ authors = ["rimutaka <max@onebro.me>"]
 edition = "2018"
 homepage = "https://stackmuncher.com"
 repository = "https://github.com/stackmuncher/stm_app"
-license = "GPL-3.0-or-later"
+license = "AGPL-3.0-or-later"
 description = "A static code analysis app for reporting on amount and type of code produced by looking at git commits."
 
 
