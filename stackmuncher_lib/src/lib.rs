@@ -11,6 +11,7 @@ pub mod config;
 pub mod contributor;
 pub mod file_type;
 pub mod git;
+pub mod graphql;
 mod ignore_paths;
 pub mod muncher;
 pub mod processors;
