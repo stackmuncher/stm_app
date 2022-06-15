@@ -111,9 +111,9 @@ impl<'de> Deserialize<'de> for RustScalarValue {
 }
 
 #[graphql_scalar(with = u64_scalar, scalar = RustScalarValue)]
-type U64 = u64;
+pub type U64 = u64;
 
-mod u64_scalar {
+pub mod u64_scalar {
     use super::*;
 
     pub(super) fn to_output(v: &U64) -> Value<RustScalarValue> {
@@ -138,9 +138,9 @@ mod u64_scalar {
 }
 
 #[graphql_scalar(with = i64_scalar, scalar = RustScalarValue)]
-type I64 = i64;
+pub type I64 = i64;
 
-mod i64_scalar {
+pub mod i64_scalar {
     use super::*;
 
     pub(super) fn to_output(v: &I64) -> Value<RustScalarValue> {
