@@ -2,6 +2,13 @@
 
 #### StackMuncher app helps developers find work that matches their skills and interests. It analyzes commits in their local Git repositories and builds a profile in the [Open Directory of Software Developers](https://stackmuncher.com).
 
+----
+#### SPECIAL NOTICE
+
+This project is on hold. Feel free to use the app or fork the code. The cloud infra is running in read-only mode. The DB is not being updated. Any data you submit is dropped on reception.
+
+----
+
 The code analysis is non-judgemental. It simply collects the facts such as what languages and frameworks are used, number of lines of code or library use. All that data is assembled into a Developer Profile to help someone looking for your skills to find you. 
 
 ## Table of Contents 
