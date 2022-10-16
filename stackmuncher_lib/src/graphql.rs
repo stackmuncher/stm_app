@@ -3,7 +3,7 @@
 
 use juniper::{
     graphql_scalar,
-    parser::{ParseError, ScalarToken, Token},
+    parser::{ParseError, ScalarToken},
     serde::{de, Deserialize, Deserializer, Serialize},
     InputValue, ParseScalarResult, ScalarValue, Value,
 };
@@ -126,13 +126,13 @@ pub mod u64_scalar {
             .ok_or_else(|| format!("Expected `RustScalarValue::U64`, found: {}", v))
     }
 
-    pub(super) fn parse_token(value: ScalarToken<'_>) -> ParseScalarResult<'_, RustScalarValue> {
-        if let ScalarToken::Int(v) = value {
-            v.parse()
-                .map_err(|_| ParseError::UnexpectedToken(Token::Scalar(value)))
-                .map(|s: u64| s.into())
-        } else {
-            Err(ParseError::UnexpectedToken(Token::Scalar(value)))
+    pub(super) fn parse_token(value: ScalarToken<'_>) -> ParseScalarResult<RustScalarValue> {
+        match value {
+            ScalarToken::Int(v) => v
+                .parse()
+                .map_err(|_| ParseError::UnexpectedToken(v.into()))
+                .map(|s: u64| s.into()),
+            ScalarToken::Float(v) | ScalarToken::String(v) => Err(ParseError::UnexpectedToken(v.into())),
         }
     }
 }
@@ -153,13 +153,13 @@ pub mod i64_scalar {
             .ok_or_else(|| format!("Expected `RustScalarValue::I64`, found: {}", v))
     }
 
-    pub(super) fn parse_token(value: ScalarToken<'_>) -> ParseScalarResult<'_, RustScalarValue> {
-        if let ScalarToken::Int(v) = value {
-            v.parse()
-                .map_err(|_| ParseError::UnexpectedToken(Token::Scalar(value)))
-                .map(|s: i64| s.into())
-        } else {
-            Err(ParseError::UnexpectedToken(Token::Scalar(value)))
+    pub(super) fn parse_token(value: ScalarToken<'_>) -> ParseScalarResult<RustScalarValue> {
+        match value {
+            ScalarToken::Int(v) => v
+                .parse()
+                .map_err(|_| ParseError::UnexpectedToken(v.into()))
+                .map(|s: i64| s.into()),
+            ScalarToken::Float(v) | ScalarToken::String(v) => Err(ParseError::UnexpectedToken(v.into())),
         }
     }
 }
