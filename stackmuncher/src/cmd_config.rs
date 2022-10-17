@@ -2,7 +2,7 @@ use crate::config::AppConfig;
 use crate::help;
 use crate::signing::ReportSignature;
 use hyper::{Client, Request};
-use hyper_rustls::HttpsConnector;
+use hyper_rustls::HttpsConnectorBuilder;
 use ring::signature::{self, Ed25519KeyPair, KeyPair};
 use serde::Deserialize;
 use serde_json::Value;
@@ -139,7 +139,13 @@ pub(crate) async fn get_validated_gist(gist_id: &Option<String>, user_key_pair: 
 
     // send it out, but it may fail for any number of reasons and we still have to carry on
     let res = match Client::builder()
-        .build::<_, hyper::Body>(HttpsConnector::with_native_roots())
+        .build::<_, hyper::Body>(
+            HttpsConnectorBuilder::new()
+                .with_native_roots()
+                .https_only()
+                .enable_http1()
+                .build(),
+        )
         .request(req)
         .await
     {
