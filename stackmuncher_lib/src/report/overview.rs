@@ -1,12 +1,15 @@
 use super::tech::Tech;
+use crate::graphql::RustScalarValue;
 use chrono::{DateTime, Datelike, Timelike, Utc};
+use juniper::GraphQLObject;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
 /// A very concise overview of a single Tech record
 /// to show the share of the technology in the project
-#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct TechOverview {
     /// The same as Tech.language
     pub language: String,
@@ -36,7 +39,8 @@ impl PartialEq for TechOverview {
 
 /// An overview of an individual project report included in the combined report
 /// to avoid loading the full project report every time the combined report is looked at.
-#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct ProjectReportOverview {
     /// A human-readable project name. It should not be used as an ID.
     #[serde(default = "String::new")]

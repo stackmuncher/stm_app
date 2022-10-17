@@ -1,5 +1,7 @@
 use super::Report;
+use crate::graphql::RustScalarValue;
 use chrono::{self, Duration, TimeZone, Timelike, Utc};
+use juniper::GraphQLObject;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
@@ -8,7 +10,8 @@ pub const RECENT_PERIOD_LENGTH_IN_DAYS: i64 = 365;
 
 /// Number of commits or percentage of commits per UTC hour.
 /// The structure is skipped in JSON if all values are zero and is initialized to all zeros to have fewer Option<T> unwraps.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct CommitTimeHistoHours {
     #[serde(skip_serializing_if = "CommitTimeHistoHours::is_zero", default = "u64::default")]
     pub h00: u64,
@@ -61,7 +64,8 @@ pub struct CommitTimeHistoHours {
 }
 
 /// Contains members and methods related to commit time histogram
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct CommitTimeHisto {
     /// The sum of all commits included in `histogram_recent`. This value is used as the 100% of all recent commits.
     /// The value is populated once after all commits have been added.

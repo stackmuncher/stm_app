@@ -16,7 +16,7 @@ chrono = "0.4"
 tracing = { version = "0.1", features = ["log"] }
 encoding_rs_io = "0.1"
 encoding_rs = "0.8"
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "1.1.0", features = ["v4"] }
 tokio = { version = "1", features = ["full"] }
 sha-1 = "0.10"
 sha2 = "0.10"
@@ -24,6 +24,9 @@ bs58 = "0.4"
 path-absolutize = "3.0"
 flate2 = "1.0"
 rust-embed = { version = "6", features = ["compression"] }
+# Temporarily running off a fork until https://github.com/graphql-rust/juniper/issues/1071 is resolved
+# juniper = { git = "https://github.com/graphql-rust/juniper.git" }
+juniper = { git = "https://github.com/rimutaka/juniper.git", branch = "impl-hashset-as-vec" }
 
 [dev-dependencies]
 tracing-subscriber = "0.3"

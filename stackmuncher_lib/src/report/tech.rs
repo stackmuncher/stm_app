@@ -1,11 +1,14 @@
 use super::kwc::{KeywordCounter, KeywordCounterSet};
+use crate::graphql::RustScalarValue;
+use juniper::GraphQLObject;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tracing::{debug, trace, warn};
 
 /// Contains time-range data for its parent Tech.
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 #[serde(rename = "tech")]
 pub struct TechHistory {
     /// Number of months between the first and the last commit.
@@ -24,7 +27,8 @@ pub struct TechHistory {
 /// Any additions to this struct should be considered for clean up before submission to stackmuncher.com
 /// to avoid sending out any info that doesn't need to be sent.
 /// See https://github.com/stackmuncher/stm_app/issues/12
-#[derive(Serialize, Deserialize, Debug, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, Clone, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 #[serde(rename = "tech")]
 pub struct Tech {
     /// The name of the file for individual file reports. Not present in combined tech reports.

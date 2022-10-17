@@ -1,10 +1,19 @@
 use super::git::GitLogEntry;
+use crate::graphql::RustScalarValue;
+use juniper::GraphQLObject;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+/// This type would normally be a `(String, String)` tuple, but GraphQL requires a custom implementation for that.
+/// On the other hand there is a default impl for `[T]`.
+///
+/// The serialized output looks the same for both: `["rimutaka","max@onebro.me"]`.
+pub type NameEmailPairType = [String; 2];
+
 /// A GIT author or committer. E.g. `Author: rimutaka <max@onebro.me>` from `git log`.
 /// It contains extended info like what was committed, when, contact details.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct Contributor {
     /// Email is the preferred ID, but it can be just the name if the email is missing, e.g. `max@onebro.me` for `Author: rimutaka <max@onebro.me>`
     ///
@@ -13,7 +22,7 @@ pub struct Contributor {
     pub git_id: String,
     /// A list of possible identities as name/email pairs for extracting contact details and de-duplication.
     /// E.g. `Author: rimutaka <max@onebro.me> would be `rimutaka`/`max@onebro.me`.
-    pub name_email_pairs: HashSet<(String, String)>,
+    pub name_email_pairs: HashSet<NameEmailPairType>,
     /// The full SHA1 of the very last commit by this contributor. This bit should be retained for matching repositories on STM server.
     pub last_commit_sha1: String,
     /// The timestamp as EPOCH of the very last commit by this contributor.
@@ -32,7 +41,8 @@ pub struct Contributor {
     pub commits: Vec<u64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct ContributorFile {
     /// The file name extracted from GIT, including the relative path, e.g. `myproject/src/main.rs`
     pub name: String,
@@ -86,7 +96,7 @@ impl Contributor {
                 // this is a known contributor - merge with the existing one
                 contributor
                     .name_email_pairs
-                    .insert((commit.author_name_email.0, commit.author_name_email.1));
+                    .insert([commit.author_name_email.0, commit.author_name_email.1]);
 
                 // only the latest version of the file is of interest
                 for file in commit.files {
@@ -102,8 +112,8 @@ impl Contributor {
                 // it's a new contributor - add as-is
 
                 // add the identities as name/email pairs
-                let mut name_email_pairs: HashSet<(String, String)> = HashSet::new();
-                name_email_pairs.insert((commit.author_name_email.0, commit.author_name_email.1));
+                let mut name_email_pairs: HashSet<NameEmailPairType> = HashSet::new();
+                name_email_pairs.insert([commit.author_name_email.0, commit.author_name_email.1]);
 
                 // collect the list of touched files with the commit SHA1
                 let mut touched_files: HashMap<String, (String, String, i64)> = HashMap::new();

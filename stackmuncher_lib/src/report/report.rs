@@ -2,11 +2,13 @@ use super::commit_time_histo::CommitTimeHisto;
 use super::kwc::{KeywordCounter, KeywordCounterSet};
 use super::tech::{Tech, TechHistory};
 use super::ProjectReportOverview;
+use crate::graphql::RustScalarValue;
 use crate::utils::sha256::hash_str_to_sha256_as_base58;
 use crate::{contributor::Contributor, git::GitLogEntry, utils};
 use chrono::{DateTime, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use juniper::GraphQLObject;
 use path_absolutize::{self, Absolutize};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -18,7 +20,8 @@ use tracing::{debug, error, info, warn};
 
 /// Contains the number of elements per list to help with DB queries.
 /// The numbers are calculated once before saving the Report in the DB.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct ListCounts {
     tech: u64,
     contributor_git_ids: u64,
@@ -33,7 +36,8 @@ pub struct ListCounts {
     keywords: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 #[serde(rename = "tech")]
 pub struct Report {
     /// The exact timestamp of the report generation in ISO3389 format.

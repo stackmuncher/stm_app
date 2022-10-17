@@ -1,8 +1,11 @@
+use crate::graphql::RustScalarValue;
+use juniper::GraphQLObject;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tracing::{error, warn};
 
-#[derive(Debug, Serialize, Deserialize, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Eq, Clone, GraphQLObject)]
+#[graphql(scalar = RustScalarValue)]
 pub struct KeywordCounter {
     /// keyword
     pub k: String,
