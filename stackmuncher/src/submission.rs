@@ -2,7 +2,7 @@ use crate::help;
 use crate::signing::ReportSignature;
 use crate::AppConfig;
 use hyper::{Client, Request};
-use hyper_rustls::HttpsConnector;
+use hyper_rustls::HttpsConnectorBuilder;
 use stackmuncher_lib::report::Report;
 use tracing::{debug, info, warn};
 
@@ -40,7 +40,13 @@ pub(crate) async fn submit_report(report: Report, config: &AppConfig) {
     // send out the request
     info!("Sending request to INBOX for {}", report_sig.public_key.clone());
     let res = match Client::builder()
-        .build::<_, hyper::Body>(HttpsConnector::with_native_roots())
+        .build::<_, hyper::Body>(
+            HttpsConnectorBuilder::new()
+                .with_native_roots()
+                .https_only()
+                .enable_http1()
+                .build(),
+        )
         .request(req)
         .await
     {
